@@ -12,7 +12,9 @@ public sealed class I052ParticipacaoServiceTests
     private readonly ViagensFake viagens = new();
     private readonly TrabalhoFake trabalho = new();
     private readonly NotificacoesFake notificacoes = new();
-    private ParticipacaoService CriarServico() => new(participacoes, viagens, trabalho, notificacoes);
+    private ParticipacaoService CriarServico() =>
+    new(participacoes, viagens, trabalho, notificacoes,
+        new CampusCarpool.Tests.NotificadorPedidosFalso());
 
     private (Participacao pedido, Viagem viagem, Guid condutor) Preparar()
     {

@@ -33,7 +33,7 @@ public static class InfrastructureServiceRegistration
         // Repositório de notificações.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
         services.AddScoped<IRepositorioDispositivos, RepositorioDispositivo>();
-        services.AddHttpClient<IServicoPush, CampusCarpool.Infrastructure.Integrations.ServicoPush>();
+        
 
         // Repositório de participações.
         services.AddScoped<IRepositorioParticipacoes, RepositorioParticipacoes>();

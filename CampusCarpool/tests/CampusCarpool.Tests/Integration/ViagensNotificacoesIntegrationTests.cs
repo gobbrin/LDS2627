@@ -63,7 +63,9 @@ public sealed class ViagensNotificacoesIntegrationTests {
 
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes);
+        var notificacaoService = new NotificacaoService(
+    repositorioNotificacoes,
+    new CampusCarpool.Tests.ServicoPushFalso());
 
         var controller = new ViagensController(db, mapas, notificacaoService: notificacaoService);
 
