@@ -54,6 +54,12 @@ builder.Services.AddHealthChecks();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// I049 - Historico pessoal
+builder.Services.AddScoped<
+    CampusCarpool.Application.Interfaces.IHistoricoService,
+    CampusCarpool.Infrastructure.Services.HistoricoService>();
+
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
