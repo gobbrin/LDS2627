@@ -4,7 +4,7 @@ using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Services;
 
-public sealed class NotificacaoService(IRepositorioNotificacoes repositorioNotificacoes) : INotificacaoService {
+public sealed class NotificacaoService(IRepositorioNotificacoes repositorioNotificacoes, IServicoPush servicoPush) : INotificacaoService {
     
     //Cria uma notificação e delega a sua persistência ao repositório.
     public async Task<Notificacao> CriarAsync(Guid utilizadorId, TipoNotificacao tipo, string mensagem, CancellationToken ct) {
@@ -18,6 +18,10 @@ public sealed class NotificacaoService(IRepositorioNotificacoes repositorioNotif
 
         //Guarda a notificação e devolve o registo criado.
         await repositorioNotificacoes.AdicionarAsync(notificacao, ct);
+        // Só os três eventos de pedidos geram push Android (F006).
+        if (tipo is TipoNotificacao.PedidoRecebido or TipoNotificacao.PedidoAceite or TipoNotificacao.PedidoRejeitado)
+            await servicoPush.EnviarAsync(utilizadorId, notificacao.Titulo, mensagem, tipo.ToString(), ct);
+
 
         return notificacao;
     }
