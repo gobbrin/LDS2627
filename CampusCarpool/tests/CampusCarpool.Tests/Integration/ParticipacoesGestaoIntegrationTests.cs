@@ -38,6 +38,26 @@ public sealed class ParticipacoesGestaoIntegrationTests
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
         public CampusCarpoolDbContext Db { get; }
+        public class ServicoPushFalso : System.Reflection.DispatchProxy
+        {
+            protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
+            {
+                var returnType = targetMethod?.ReturnType;
+                if (returnType == typeof(Task))
+                    return Task.CompletedTask;
+
+                if (returnType?.IsGenericType == true && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                {
+                    var resultType = returnType.GetGenericArguments()[0];
+                    var result = resultType.IsValueType ? Activator.CreateInstance(resultType) : null;
+                    return typeof(Task).GetMethod(nameof(Task.FromResult))!
+                        .MakeGenericMethod(resultType)
+                        .Invoke(null, new[] { result });
+                }
+
+                return returnType?.IsValueType == true ? Activator.CreateInstance(returnType) : null;
+            }
+        }
 
         /// <summary>Cria uma base SQLite em memória para isolar cada cenário.</summary>
         public Fixture()
@@ -118,7 +138,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
         Guid? utilizadorId)
     {
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes);
+        var servicoPush = System.Reflection.DispatchProxy.Create<IServicoPush, Fixture.ServicoPushFalso>();
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, servicoPush);
 
         var repositorioParticipacoes = new RepositorioParticipacoes(db);
         var repositorioViagens = new RepositorioViagens(db);

@@ -24,6 +24,7 @@ builder.Services.AddScoped<EstimativaCustoService>();
 builder.Services.AddScoped<ConsultaRotaViagemService>();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();
+builder.Services.AddHttpClient<IServicoPush, ServicoPush>();
 
 builder.Services.AddHttpClient<MapasService>((sp, client) =>
 {
