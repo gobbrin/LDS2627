@@ -17,7 +17,8 @@ namespace CampusCarpool.Api.Controllers;
 public sealed class PedidosController(
     CampusCarpoolDbContext db,
     MapasService mapas,
-    INotificacaoService notificacaoService) : ControllerBase
+    INotificacaoService notificacaoService,
+    INotificadorPedidosTempoReal notificadorPedidosTempoReal) : ControllerBase
 {
     private const string IndicePedidosAtivos = "IX_Participacoes_ViagemId_PassageiroId";
 
@@ -195,6 +196,12 @@ public sealed class PedidosController(
             TipoNotificacao.PedidoRecebido, 
             "Recebeste um novo pedido de participação numa viagem.",
             ct);
+
+        await notificadorPedidosTempoReal.PedidoRecebidoAsync(
+            viagem.CondutorId,
+            pedido.Id,
+            ct);
+
 
         return StatusCode(StatusCodes.Status201Created, new
         {

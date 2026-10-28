@@ -1,6 +1,6 @@
-
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Application.Services;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -20,6 +20,15 @@ namespace CampusCarpool.Tests.Integration;
 
 public sealed class PedidosParticipacaoIntegrationTests
 {
+    private sealed class NotificadorPedidosTempoRealFalso : INotificadorPedidosTempoReal
+    {
+        public Task PedidoRecebidoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+
+        public Task PedidoAceiteAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+
+        public Task PedidoRejeitadoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly SqliteConnection _connection =
@@ -110,7 +119,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var notificacaoService = new NotificacaoService(repositorioNotificacoes);
 
-        var controller = new PedidosController(db, mapas, notificacaoService);
+        var controller = new PedidosController(db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
 
         var claims = utilizadorId.HasValue
             ? new[]
@@ -489,7 +498,7 @@ public async Task SemChaveMapas_ComPonto_Devolve503()
     var repositorioNotificacoes = new RepositorioNotificacoes(f.Db);
     var notificacaoService = new NotificacaoService(repositorioNotificacoes);
 
-    var controller = new PedidosController(f.Db, mapas, notificacaoService);
+    var controller = new PedidosController(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
 
     controller.ControllerContext = new ControllerContext
     {
