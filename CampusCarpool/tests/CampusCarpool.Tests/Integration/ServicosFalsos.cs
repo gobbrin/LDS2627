@@ -27,3 +27,26 @@ public sealed class NotificadorPedidosFalso : INotificadorPedidosTempoReal
         Guid destinatarioId, Guid pedidoId, CancellationToken ct)
         => Task.CompletedTask;
 }
+
+public sealed class ServicoPushRegistador : IServicoPush
+{
+    public List<(Guid UtilizadorId, string Titulo,
+        string Mensagem, string Tipo)> Envios { get; } = new();
+
+    public bool SimularFalha { get; set; }
+
+    public Task EnviarAsync(
+        Guid utilizadorId,
+        string titulo,
+        string mensagem,
+        string tipo,
+        CancellationToken ct)
+    {
+        if (SimularFalha)
+            throw new HttpRequestException("Falha simulada no serviço push.");
+
+        Envios.Add((utilizadorId, titulo, mensagem, tipo));
+
+        return Task.CompletedTask;
+    }
+}

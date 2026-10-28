@@ -49,6 +49,10 @@ public static class InfrastructureServiceRegistration
         // Serviço daunidade de trabalho.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
+
+        // I048 - Repositório de avaliações
+        services.AddScoped<IRepositorioAvaliacoes, RepositorioAvaliacoes>();
+
         return services;
     }
     
