@@ -1,0 +1,17 @@
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Regras de estilo, segurança e robustez: não reduzir a severidade dos diagnósticos do SDK.
+dotnet_analyzer_diagnostic.category-Security.severity = warning
+dotnet_analyzer_diagnostic.category-Reliability.severity = warning
+dotnet_analyzer_diagnostic.category-Performance.severity = suggestion
+
+dotnet_diagnostic.CA1062.severity = suggestion
