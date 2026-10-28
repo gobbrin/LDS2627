@@ -1,0 +1,118 @@
+
+name: CampusCarpool Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Restore, Build, Test, Analyse and Publish
+    runs-on: ubuntu-latest
+
+    env:
+      MIN_COVERAGE: "10"
+
+    defaults:
+      run:
+        working-directory: CampusCarpool
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore CampusCarpool.slnx
+
+      - name: Build
+        run: |
+          dotnet build CampusCarpool.slnx \
+            --configuration Release \
+            --no-restore
+
+      - name: Static Analysis
+        run: |
+          dotnet format whitespace CampusCarpool.slnx \
+            --verify-no-changes \
+            --verbosity diagnostic
+
+      - name: Test with Coverage
+        run: |
+          dotnet test CampusCarpool.slnx \
+            --configuration Release \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults
+
+      - name: Quality Gate
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          reports = glob.glob(
+              "TestResults/**/coverage.cobertura.xml",
+              recursive=True
+          )
+
+          if not reports:
+              print("QUALITY GATE FAILED: No coverage report found.")
+              sys.exit(1)
+
+          covered = 0
+          valid = 0
+
+          for report in reports:
+              root = ET.parse(report).getroot()
+              covered += int(root.attrib["lines-covered"])
+              valid += int(root.attrib["lines-valid"])
+
+          if valid == 0:
+              print("QUALITY GATE FAILED: No measurable lines.")
+              sys.exit(1)
+
+          coverage = covered / valid * 100
+          minimum = float(os.environ["MIN_COVERAGE"])
+
+          print(f"Coverage: {coverage:.2f}%")
+          print(f"Required: {minimum:.2f}%")
+
+          if coverage < minimum:
+              print("QUALITY GATE FAILED")
+              sys.exit(1)
+
+          print("QUALITY GATE PASSED")
+          PY
+
+      - name: Publish
+        run: |
+          dotnet publish \
+            src/CampusCarpool.Api/CampusCarpool.Api.csproj \
+            --configuration Release \
+            --output publish \
+            --no-restore
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: campuscarpool-backend
+          path: CampusCarpool/publish/
+          retention-days: 7
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: campuscarpool-test-evidence
+          path: CampusCarpool/TestResults/
+          if-no-files-found: ignore
+          retention-days: 7

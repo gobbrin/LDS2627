@@ -1,0 +1,48 @@
+
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+stages:
+  - restore
+  - build
+  - test
+  - publish
+
+default:
+  tags:
+    - docker-runner-estg
+  before_script:
+    - cd CampusCarpool
+
+variables:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "true"
+  NUGET_PACKAGES: "$CI_PROJECT_DIR/.nuget/packages"
+
+cache:
+  key: "nuget-$CI_PROJECT_NAME"
+  paths:
+    - .nuget/packages/
+
+restore:
+  stage: restore
+  script:
+    - dotnet restore CampusCarpool.slnx
+
+build:
+  stage: build
+  script:
+    - dotnet build CampusCarpool.slnx --configuration Release
+
+test:
+  stage: test
+  script:
+    - dotnet test CampusCarpool.slnx --configuration Release
+
+publish:
+  stage: publish
+  script:
+    - dotnet publish src/CampusCarpool.Api/CampusCarpool.Api.csproj --configuration Release --output publish
+  artifacts:
+    paths:
+      - CampusCarpool/publish/
+    expire_in: 7 days

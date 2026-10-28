@@ -1,0 +1,44 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+# IDEs
+.idea/
+*.DotSettings.user
+# Tests / coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+# Local configuration / secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+*.pfx
+*.p12
+*.snk
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+# Publish / artifacts
+artifacts/
+publish/
+
+# Segredos e ficheiros locais
+**/appsettings.Local.json
+**/appsettings.Production.json
+**/appsettings.*.local.json
+**/secrets.json
+.env
+.env.*
+!.env.example

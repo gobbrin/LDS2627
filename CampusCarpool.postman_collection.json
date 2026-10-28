@@ -1,0 +1,1599 @@
+{
+	"info": {
+		"_postman_id": "1c3d389a-51cb-4beb-9696-69c29124ce50",
+		"name": "Campus Carpool — API completa (controladores fornecidos)",
+		"description": "17 endpoints reais identificados nos controladores fornecidos. Testes automáticos HTTP e variáveis. Usar apenas em ambiente de desenvolvimento/teste; alguns pedidos modificam dados. Os 6 controladores vazios não têm endpoints a testar.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "50129827",
+		"_collection_link": "https://crism12-8542751.postman.co/workspace/CrisM12's-Workspace~743441ab-95d0-4bb9-8169-ef2cc75931d8/collection/50129827-1c3d389a-51cb-4beb-9696-69c29124ce50?action=share&source=collection_link&creator=50129827"
+	},
+	"item": [
+		{
+			"name": "01 Autenticação",
+			"item": [
+				{
+					"name": "Registar — email académico",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Teste Campus\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"registo"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Registar — email não académico (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"teste@gmail.com\",\n  \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"registo"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Registar — password curta (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"{{email}}\",\n  \"password\": \"curta\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"registo"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Reenviar confirmação",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{email}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/reenviar-confirmacao",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"reenviar-confirmacao"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Confirmar conta — token recebido por email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{confirmToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"confirmar"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Confirmar conta — token inválido (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"invalido\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"confirmar"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Login — guardar JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+									"const j=pm.response.json();",
+									"pm.test(\"JWT recebido\",()=>pm.expect(j.accessToken).to.be.a(\"string\").and.not.empty);",
+									"if(j.accessToken) pm.collectionVariables.set(\"accessToken\",j.accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"login"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Login — password errada (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"errada\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"login"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Me — autenticação",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/autenticacao/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"autenticacao",
+								"me"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "02 Utilizadores",
+			"item": [
+				{
+					"name": "Consultar perfil",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+									"const j=pm.response.json();",
+									"pm.test(\"Não expõe passwordHash\",()=>pm.expect(JSON.stringify(j).toLowerCase()).not.to.include(\"passwordhash\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"utilizadores",
+								"me"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar perfil",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Teste Atualizado\",\n  \"curso\": \"Engenharia Informática\",\n  \"instituicao\": \"ESTG\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"utilizadores",
+								"me"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar — nome vazio (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \" \",\n  \"curso\": null,\n  \"instituicao\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"utilizadores",
+								"me"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "03 Mapas",
+			"item": [
+				{
+					"name": "Geocodificar Porto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+									"const j=pm.response.json();",
+									"pm.test(\"Latitude e longitude\",()=>{pm.expect(j).to.have.property(\"latitude\");pm.expect(j).to.have.property(\"longitude\");});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=Porto",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rotas",
+								"geocodificar"
+							],
+							"query": [
+								{
+									"key": "texto",
+									"value": "Porto"
+								}
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Geocodificar — texto vazio (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rotas",
+								"geocodificar"
+							],
+							"query": [
+								{
+									"key": "texto",
+									"value": ""
+								}
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Calcular rota Porto → Braga",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+									"const j=pm.response.json();",
+									"pm.test(\"Distância positiva\",()=>pm.expect(j.distanciaKm).to.be.above(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/rotas/calcular",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rotas",
+								"calcular"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Calcular — origem vazia (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origem\": \" \",\n  \"destino\": \"Braga\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/rotas/calcular",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rotas",
+								"calcular"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "04 Viagens",
+			"item": [
+				{
+					"name": "Criar viagem — guardar ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+									"const j=pm.response.json();",
+									"pm.test(\"ID da viagem\",()=>pm.expect(j.id).to.be.a(\"string\"));",
+									"if(j.id)pm.collectionVariables.set(\"viagemId\",j.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Criar — mesma origem e destino (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Porto\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Criar — lugares inválidos (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 9\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Consultar viagem",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Consultar viagem inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{idInexistente}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{idInexistente}}"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Editar viagem",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 4\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Editar — lugares inválidos (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Indisponibilizar viagem — altera estado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/indisponibilizar",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}",
+								"indisponibilizar"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Indisponibilizar novamente (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/indisponibilizar",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}",
+								"indisponibilizar"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Concluir viagem futura (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/concluir",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}",
+								"concluir"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido. Executar manualmente após preparar os dados necessários."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "05 Pesquisa",
+			"item": [
+				{
+					"name": "Pesquisar viagens",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+									"const j=pm.response.json();",
+									"pm.test(\"Metadados de paginação\",()=>{pm.expect(j).to.have.property(\"total\");pm.expect(j).to.have.property(\"viagens\");});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Pesquisar com filtros",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?origem=Porto&destino=Braga&pagina=1&tamanho=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							],
+							"query": [
+								{
+									"key": "origem",
+									"value": "Porto"
+								},
+								{
+									"key": "destino",
+									"value": "Braga"
+								},
+								{
+									"key": "pagina",
+									"value": "1"
+								},
+								{
+									"key": "tamanho",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Pesquisar por data e hora",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?data={{dataPesquisa}}&hora={{horaPesquisa}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							],
+							"query": [
+								{
+									"key": "data",
+									"value": "{{dataPesquisa}}"
+								},
+								{
+									"key": "hora",
+									"value": "{{horaPesquisa}}"
+								}
+							]
+						},
+						"description": "Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Paginação inválida (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?pagina=0&tamanho=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							],
+							"query": [
+								{
+									"key": "pagina",
+									"value": "0"
+								},
+								{
+									"key": "tamanho",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Tamanho inválido (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?pagina=1&tamanho=101",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							],
+							"query": [
+								{
+									"key": "pagina",
+									"value": "1"
+								},
+								{
+									"key": "tamanho",
+									"value": "101"
+								}
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "06 Segurança",
+			"item": [
+				{
+					"name": "Sem JWT — perfil (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"utilizadores",
+								"me"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Sem JWT — pesquisa (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"pesquisa",
+								"viagens"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				},
+				{
+					"name": "Sem JWT — viagens (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"viagens",
+								"{{viagemId}}"
+							]
+						},
+						"description": "Cenário negativo. Endpoint real do controlador fornecido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "07 Mensagens",
+			"item": [
+				{
+					"name": "Enviar Mensagem",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"destinatarioId\": \"COLOCA-AQUI-O-ID-REAL-DO-DESTINATARIO\",\r\n  \"conteudo\": \"Olá! Esta é uma mensagem de teste do Campus Carpool.\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/mensagens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensagens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Consultar Conversa",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/mensagens/conversa/{{outroUtilizadorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mensagens",
+								"conversa",
+								"{{outroUtilizadorId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const future = new Date(Date.now()+7*86400000);",
+					"pm.collectionVariables.set(\"partidaFutura\", future.toISOString());",
+					"pm.collectionVariables.set(\"partidaPassada\", new Date(Date.now()-86400000).toISOString());",
+					"pm.collectionVariables.set(\"dataPesquisa\", future.toISOString().slice(0,10));"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://localhost:7001"
+		},
+		{
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "email",
+			"value": "teste@estg.ipp.pt"
+		},
+		{
+			"key": "password",
+			"value": "PasswordSegura123!"
+		},
+		{
+			"key": "confirmToken",
+			"value": ""
+		},
+		{
+			"key": "viagemId",
+			"value": "00000000-0000-0000-0000-000000000000"
+		},
+		{
+			"key": "idInexistente",
+			"value": "00000000-0000-0000-0000-000000000001"
+		},
+		{
+			"key": "partidaFutura",
+			"value": ""
+		},
+		{
+			"key": "partidaPassada",
+			"value": ""
+		},
+		{
+			"key": "dataPesquisa",
+			"value": ""
+		},
+		{
+			"key": "horaPesquisa",
+			"value": "08:00"
+		}
+	]
+}

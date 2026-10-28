@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CampusCarpool.Api/CampusCarpool.Api.csproj" />
+    <Project Path="src/CampusCarpool.Application/CampusCarpool.Application.csproj" />
+    <Project Path="src/CampusCarpool.Domain/CampusCarpool.Domain.csproj" />
+    <Project Path="src/CampusCarpool.Infrastructure/CampusCarpool.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CampusCarpool.Tests/CampusCarpool.Tests.csproj" />
+  </Folder>
+</Solution>
