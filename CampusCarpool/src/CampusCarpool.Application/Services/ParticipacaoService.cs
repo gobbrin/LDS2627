@@ -9,7 +9,8 @@ public sealed class ParticipacaoService(
     IRepositorioParticipacoes repositorioParticipacoes,
     IRepositorioViagens repositorioViagens,
     IUnidadeDeTrabalho unidadeDeTrabalho,
-    INotificacaoService notificacaoService) : IParticipacaoService
+    INotificacaoService notificacaoService,
+    INotificadorPedidosTempoReal notificadorPedidosTempoReal) : IParticipacaoService
 {
     public async Task<ResultadoGestaoParticipacao> AceitarAsync(
         Guid participacaoId,
@@ -60,6 +61,12 @@ public sealed class ParticipacaoService(
         // Guarda a decisão e a alteração de capacidade.
         // Conflitos no token Versao são tratados pela unidade de trabalho.
         unidadeDeTrabalho.Confirmar();
+
+        // A decisão já foi confirmada; envia o evento ao passageiro.
+        await notificadorPedidosTempoReal.PedidoAceiteAsync(
+              participacao.PassageiroId,
+              participacao.Id,
+              ct);
 
         // As notificações são criadas depois da confirmação da operação.
         await notificacaoService.CriarAsync(
@@ -113,7 +120,15 @@ public sealed class ParticipacaoService(
 
         participacao.Estado = EstadoParticipacao.Rejeitada;
 
+        // Guarda a decisão e a alteração de capacidade.
+        // Conflitos no token Versao são tratados pela unidade de trabalho.
         unidadeDeTrabalho.Confirmar();
+
+        // A decisão já foi confirmada; envia o evento ao passageiro.
+        await notificadorPedidosTempoReal.PedidoRejeitadoAsync(
+              participacao.PassageiroId,
+              participacao.Id,
+              ct);
 
         await notificacaoService.CriarAsync(
             participacao.PassageiroId,
