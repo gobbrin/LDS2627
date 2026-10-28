@@ -1,6 +1,7 @@
 using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Services;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
@@ -34,12 +35,32 @@ public class NotificadorPedidosSignalRTests
             "PedidoRejeitado");
     }
 
+    [Fact]
+    public async Task PedidoRecebidoAsync_QuandoEnvioFalha_NaoDevePropagarExcecao()
+    {
+        var hubContexto = new HubContextoFalso();
+        hubContexto.Clientes.Proxy.FalharEnvio = true;
+
+        var notificador = new NotificadorPedidosSignalR(hubContexto, NullLogger<NotificadorPedidosSignalR>.Instance);
+
+        var destinatarioId = Guid.NewGuid();
+        var pedidoId = Guid.NewGuid();
+
+        var excecao = await Record.ExceptionAsync(() =>
+            notificador.PedidoRecebidoAsync(
+                destinatarioId,
+                pedidoId,
+                CancellationToken.None));
+
+        Assert.Null(excecao);
+    }
+
     private static async Task VerificarEventoAsync(
         Func<NotificadorPedidosSignalR, Guid, Guid, Task> acao,
         string eventoEsperado)
     {
         var hubContexto = new HubContextoFalso();
-        var notificador = new NotificadorPedidosSignalR(hubContexto);
+        var notificador = new NotificadorPedidosSignalR(hubContexto, NullLogger<NotificadorPedidosSignalR>.Instance);
 
         var destinatarioId = Guid.NewGuid();
         var pedidoId = Guid.NewGuid();
@@ -118,11 +139,16 @@ public class NotificadorPedidosSignalRTests
 
         public object?[]? Argumentos { get; private set; }
 
-        public Task SendCoreAsync(
-            string method,
-            object?[] args,
-            CancellationToken cancellationToken = default)
+        public bool FalharEnvio { get; set; }
+
+        public Task SendCoreAsync(string method, object?[] args, CancellationToken cancellationToken = default)
         {
+            if (FalharEnvio)
+            {
+                return Task.FromException(
+                    new InvalidOperationException("Falha simulada no envio SignalR."));
+            }
+
             NomeEvento = method;
             Argumentos = args;
 
