@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -24,6 +25,15 @@ namespace CampusCarpool.Tests.Integration;
 /// </remarks>  
 public sealed class ParticipacoesGestaoIntegrationTests
 {
+    private sealed class NotificadorPedidosTempoRealFalso : INotificadorPedidosTempoReal
+    {
+        public Task PedidoRecebidoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+
+        public Task PedidoAceiteAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+
+        public Task PedidoRejeitadoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct) => Task.CompletedTask;
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
@@ -118,7 +128,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
             repositorioParticipacoes,
             repositorioViagens,
             unidadeDeTrabalho,
-            notificacaoService);
+            notificacaoService,
+            new NotificadorPedidosTempoRealFalso());
 
         var controller = new GestaoParticipacoesController(participacaoService);
 

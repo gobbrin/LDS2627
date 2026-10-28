@@ -1,4 +1,5 @@
 using System.Text;
+using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Application.DependencyInjection;
@@ -7,11 +8,20 @@ using CampusCarpool.Infrastructure.DependencyInjection;
 using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+
+builder.Services.AddScoped<
+    INotificadorPedidosTempoReal,
+    NotificadorPedidosSignalR>();
+builder.Services.AddSingleton<
+    Microsoft.AspNetCore.SignalR.IUserIdProvider,
+    PedidosUserIdProvider>();
 builder.Services.AddScoped<EstimativaCustoService>();
 builder.Services.AddScoped<ConsultaRotaViagemService>();
-builder.Services.AddHttpClient();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();
 
@@ -43,9 +53,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
 var jwtKey = builder.Configuration["Jwt:Key"];
+
 if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
     throw new InvalidOperationException("Definir Jwt:Key com pelo menos 32 bytes através de User Secrets ou variáveis de ambiente.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -59,7 +72,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromSeconds(30)
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var requestPath = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                requestPath.StartsWithSegments("/hubs/pedidos"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
+
 builder.Services.AddAuthorization();
 var app = builder.Build();
 app.UseExceptionHandler();
@@ -69,6 +100,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<PedidosHub>("/hubs/pedidos");
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new { service = "Campus Carpool API", status = "running" }));
 app.Run();
