@@ -6,6 +6,17 @@ namespace CampusCarpool.Api.Middleware;
 
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetails) : IExceptionHandler
 {
+    private static readonly Action<ILogger, string, Exception?> LogConflitoNegocio =
+    LoggerMessage.Define<string>(
+        LogLevel.Warning,
+        new EventId(1001, nameof(LogConflitoNegocio)),
+        "Conflito de regra de negócio (trace {TraceId})");
+
+    private static readonly Action<ILogger, string, string, Exception?> LogExcecaoNaoTratada =
+        LoggerMessage.Define<string, string>(
+            LogLevel.Error,
+            new EventId(1002, nameof(LogExcecaoNaoTratada)),
+            "Unhandled exception of type {ExceptionType} (trace {TraceId})");
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
     {
         var eConflitoNegocio = exception is RegraDeNegocioException;
@@ -16,16 +27,18 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
         if (eConflitoNegocio)
         {
-            logger.LogWarning(
-                "Conflito de regra de negócio (trace {TraceId})",
-                context.TraceIdentifier);
+            LogConflitoNegocio(
+                logger,
+                context.TraceIdentifier,
+                null);
         }
         else
         {
-            logger.LogError(
-                "Unhandled exception of type {ExceptionType} (trace {TraceId})",
+            LogExcecaoNaoTratada(
+                logger,
                 exception.GetType().Name,
-                context.TraceIdentifier);
+                context.TraceIdentifier,
+                exception);
         }
 
         context.Response.StatusCode = statusCode;
