@@ -138,8 +138,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
         Guid? utilizadorId)
     {
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
-        var servicoPush = System.Reflection.DispatchProxy.Create<IServicoPush, Fixture.ServicoPushFalso>();
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, servicoPush);
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
         var repositorioParticipacoes = new RepositorioParticipacoes(db);
         var repositorioViagens = new RepositorioViagens(db);
