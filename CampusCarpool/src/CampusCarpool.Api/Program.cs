@@ -30,7 +30,7 @@ builder.Services.AddHttpClient<MapasService>((sp, client) =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
     client.BaseAddress = new Uri(
-        (config["Maps:BaseUrl"] ?? "https://api.openrouteservice.org")
+        config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
         .TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(
         config.GetValue("Maps:TimeoutSeconds", 10));
