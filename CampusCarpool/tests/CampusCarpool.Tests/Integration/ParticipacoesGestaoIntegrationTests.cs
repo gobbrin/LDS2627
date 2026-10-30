@@ -133,43 +133,55 @@ public sealed class ParticipacoesGestaoIntegrationTests
     }
 
     /// <summary>Cria o controller com o utilizador autenticado simulado no claim JWT.</summary>
-  private static GestaoParticipacoesController CriarController(
+ 
+private static GestaoParticipacoesController CriarController(
     CampusCarpoolDbContext db,
     Guid? utilizadorId,
-    IServicoPush? push = null)
-    {
-        var repositorioNotificacoes = new RepositorioNotificacoes(db);
-        var servicoPush = push ?? new CampusCarpool.Tests.ServicoPushFalso();
-var notificacaoService = new NotificacaoService(
-    repositorioNotificacoes, servicoPush);
-        var repositorioParticipacoes = new RepositorioParticipacoes(db);
-        var repositorioViagens = new RepositorioViagens(db);
-        var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
+    IFilaNotificacoesPush? filaPush = null)
+{
+    var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-        var participacaoService = new ParticipacaoService(
-            repositorioParticipacoes,
-            repositorioViagens,
-            unidadeDeTrabalho,
-            notificacaoService,
-            new NotificadorPedidosTempoRealFalso());
+    var fila = filaPush ?? new FilaNotificacoesPushFalsa();
 
-        var controller = new GestaoParticipacoesController(participacaoService);
+    var notificacaoService = new NotificacaoService(
+        repositorioNotificacoes,
+        fila);
 
-        var claims = utilizadorId.HasValue
-            ? new[] { new Claim(ClaimTypes.NameIdentifier, utilizadorId.Value.ToString()) }
-            : Array.Empty<Claim>();
+    var repositorioParticipacoes = new RepositorioParticipacoes(db);
+    var repositorioViagens = new RepositorioViagens(db);
+    var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
 
-        controller.ControllerContext = new ControllerContext
+    var participacaoService = new ParticipacaoService(
+        repositorioParticipacoes,
+        repositorioViagens,
+        unidadeDeTrabalho,
+        notificacaoService,
+        new NotificadorPedidosTempoRealFalso());
+
+    var controller = new GestaoParticipacoesController(participacaoService);
+
+    var claims = utilizadorId.HasValue
+        ? new[]
         {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
+            new Claim(
+                ClaimTypes.NameIdentifier,
+                utilizadorId.Value.ToString())
+        }
+        : Array.Empty<Claim>();
+
+    controller.ControllerContext = new ControllerContext
+    {
+        HttpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
                     claims,
                     utilizadorId.HasValue ? "Test" : null))
-            }
-        };
-        return controller;
-    }
+        }
+    };
+
+    return controller;
+}
 
     [Fact]
     /// <summary>Verifica que o condutor aceita um pedido e perde um lugar disponível.</summary>

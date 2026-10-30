@@ -1,5 +1,5 @@
-
 using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using CampusCarpool.Infrastructure.Services;
@@ -30,7 +30,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
         services.AddScoped<IRepositorioUtilizadores, RepositorioUtilizadores>();
 
-        // Repositório de notificações.
+        // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
         services.AddScoped<IRepositorioDispositivos, RepositorioDispositivo>();
         
@@ -46,12 +46,24 @@ public static class InfrastructureServiceRegistration
         // Serviço de avisos do condutor (I044).
         services.AddScoped<IAvisoService, AvisoService>();
 
-        // Serviço daunidade de trabalho.
+        // Serviço da unidade de trabalho.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
+        // Serviço da unidade de trabalho.
+        services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
-        // I048 - Repositório de avaliações
+        // I048 - Repositório de avaliações.
         services.AddScoped<IRepositorioAvaliacoes, RepositorioAvaliacoes>();
+
+        // Fila partilhada de notificações push (I047).
+        services.AddSingleton<IFilaNotificacoesPush, FilaNotificacoesPush>();
+
+        // Trabalhador que processa a fila em segundo plano (I047).
+        services.AddHostedService<TrabalhadorNotificacoesPush>();
+
+        return services;
+    }
+}
 
         return services;
     }

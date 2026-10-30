@@ -7,7 +7,8 @@ namespace CampusCarpool.Application.Services;
 
 public sealed class NotificacaoService(
     IRepositorioNotificacoes repositorioNotificacoes,
-    IServicoPush servicoPush) : INotificacaoService
+    IFilaNotificacoesPush filaNotificacoesPush)
+    : INotificacaoService
 {
     // Cria uma notificação e delega a persistência ao repositório.
     public async Task<Notificacao> CriarAsync(
@@ -24,31 +25,20 @@ public sealed class NotificacaoService(
             Conteudo = mensagem
         };
 
+        // Guarda a notificação antes de colocar o push na fila.
         await repositorioNotificacoes.AdicionarAsync(notificacao, ct);
 
-        // Apenas estes três eventos geram push Android.
+        // Apenas estes três eventos geram notificações push Android.
         if (tipo is TipoNotificacao.PedidoRecebido
             or TipoNotificacao.PedidoAceite
             or TipoNotificacao.PedidoRejeitado)
         {
-            try
-            {
-                await servicoPush.EnviarAsync(
-                    utilizadorId,
-                    notificacao.Titulo,
-                    mensagem,
-                    tipo.ToString(),
-                    ct);
-            }
-            catch (OperationCanceledException)
-                when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                // A falha do push não deve impedir a operação principal.
-            }
+            await filaNotificacoesPush.EnfileirarAsync(
+                utilizadorId,
+                notificacao.Titulo,
+                mensagem,
+                tipo.ToString(),
+                ct);
         }
 
         return notificacao;
@@ -61,15 +51,9 @@ public sealed class NotificacaoService(
         int tamanhoPagina,
         CancellationToken ct)
     {
-        if (pagina < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pagina));
-        }
-
-        if (tamanhoPagina < 1 || tamanhoPagina > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(tamanhoPagina));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(pagina, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(tamanhoPagina, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(tamanhoPagina, 100);
 
         var itens = await repositorioNotificacoes.ListarAsync(
             utilizadorId, pagina, tamanhoPagina, ct);
@@ -92,7 +76,7 @@ public sealed class NotificacaoService(
             naoLidas);
     }
 
-    // Marca uma notificação como lida.
+    // Marca uma notificação como lida apenas se pertencer ao utilizador.
     public async Task<bool> MarcarComoLidaAsync(
         Guid notificacaoId,
         Guid utilizadorId,
@@ -143,3 +127,4 @@ public sealed class NotificacaoService(
         return notificacoes.Count;
     }
 }
+

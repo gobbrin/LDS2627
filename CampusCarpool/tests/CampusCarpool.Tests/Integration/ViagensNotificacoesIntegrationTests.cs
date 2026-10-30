@@ -1,4 +1,3 @@
-
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
@@ -63,9 +62,9 @@ public sealed class ViagensNotificacoesIntegrationTests {
 
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-        var notificacaoService = new NotificacaoService(
-    repositorioNotificacoes,
-    new CampusCarpool.Tests.ServicoPushFalso());
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
         var controller = new ViagensController(db, mapas, notificacaoService: notificacaoService);
 
