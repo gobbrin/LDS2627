@@ -1,3 +1,4 @@
+
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -9,10 +10,13 @@ public sealed class NotificacaoService(
     IFilaNotificacoesPush filaNotificacoesPush)
     : INotificacaoService
 {
-    // Cria uma notificação e delega a sua persistência ao repositório.
-    public async Task<Notificacao> CriarAsync(Guid utilizadorId, TipoNotificacao tipo, string mensagem, CancellationToken ct)
+    // Cria uma notificação e delega a persistência ao repositório.
+    public async Task<Notificacao> CriarAsync(
+        Guid utilizadorId,
+        TipoNotificacao tipo,
+        string mensagem,
+        CancellationToken ct)
     {
-        // Constrói a notificação para o utilizador destinatário.
         var notificacao = new Notificacao
         {
             UtilizadorId = utilizadorId,
@@ -21,10 +25,10 @@ public sealed class NotificacaoService(
             Conteudo = mensagem
         };
 
-        // Guarda a notificação antes de colocar o envio push na fila.
+        // Guarda a notificação antes de colocar o push na fila.
         await repositorioNotificacoes.AdicionarAsync(notificacao, ct);
 
-        // Só os três eventos de pedidos geram push Android (F006).
+        // Apenas estes três eventos geram notificações push Android.
         if (tipo is TipoNotificacao.PedidoRecebido
             or TipoNotificacao.PedidoAceite
             or TipoNotificacao.PedidoRejeitado)
@@ -41,28 +45,45 @@ public sealed class NotificacaoService(
     }
 
     // Devolve uma página de notificações pessoais.
-    public async Task<PaginaNotificacoes> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)
+    public async Task<PaginaNotificacoes> ListarAsync(
+        Guid utilizadorId,
+        int pagina,
+        int tamanhoPagina,
+        CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(pagina, 1);
-
         ArgumentOutOfRangeException.ThrowIfLessThan(tamanhoPagina, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(tamanhoPagina, 100);
 
-        var itens = await repositorioNotificacoes.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct);
+        var itens = await repositorioNotificacoes.ListarAsync(
+            utilizadorId, pagina, tamanhoPagina, ct);
 
-        var total = await repositorioNotificacoes.ContarAsync(utilizadorId, ct);
+        var total = await repositorioNotificacoes.ContarAsync(
+            utilizadorId, ct);
 
-        var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(utilizadorId, ct);
+        var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(
+            utilizadorId, ct);
 
-        var totalPaginas = (int)Math.Ceiling(total / (double)tamanhoPagina);
+        var totalPaginas = (int)Math.Ceiling(
+            total / (double)tamanhoPagina);
 
-        return new PaginaNotificacoes(itens, pagina, tamanhoPagina, total, totalPaginas, naoLidas);
+        return new PaginaNotificacoes(
+            itens,
+            pagina,
+            tamanhoPagina,
+            total,
+            totalPaginas,
+            naoLidas);
     }
 
     // Marca uma notificação como lida apenas se pertencer ao utilizador.
-    public async Task<bool> MarcarComoLidaAsync(Guid notificacaoId, Guid utilizadorId, CancellationToken ct)
+    public async Task<bool> MarcarComoLidaAsync(
+        Guid notificacaoId,
+        Guid utilizadorId,
+        CancellationToken ct)
     {
-        var notificacao = await repositorioNotificacoes.ObterAsync(notificacaoId, utilizadorId, ct);
+        var notificacao = await repositorioNotificacoes.ObterAsync(
+            notificacaoId, utilizadorId, ct);
 
         if (notificacao is null)
         {
@@ -81,10 +102,13 @@ public sealed class NotificacaoService(
         return true;
     }
 
-    // Marca todas as notificações não lidas do utilizador como lidas.
-    public async Task<int> MarcarTodasComoLidasAsync(Guid utilizadorId, CancellationToken ct)
+    // Marca todas as notificações não lidas como lidas.
+    public async Task<int> MarcarTodasComoLidasAsync(
+        Guid utilizadorId,
+        CancellationToken ct)
     {
-        var notificacoes = await repositorioNotificacoes.ListarNaoLidasAsync(utilizadorId, ct);
+        var notificacoes = await repositorioNotificacoes.ListarNaoLidasAsync(
+            utilizadorId, ct);
 
         if (notificacoes.Count == 0)
         {
@@ -103,3 +127,4 @@ public sealed class NotificacaoService(
         return notificacoes.Count;
     }
 }
+

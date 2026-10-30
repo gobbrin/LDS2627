@@ -49,11 +49,21 @@ public static class InfrastructureServiceRegistration
         // Serviço da unidade de trabalho.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
-        // Fila partilhada de notificações push.
+        // Serviço da unidade de trabalho.
+        services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
+
+        // I048 - Repositório de avaliações.
+        services.AddScoped<IRepositorioAvaliacoes, RepositorioAvaliacoes>();
+
+        // Fila partilhada de notificações push (I047).
         services.AddSingleton<IFilaNotificacoesPush, FilaNotificacoesPush>();
 
-        // Trabalhador que processa a fila em segundo plano.
+        // Trabalhador que processa a fila em segundo plano (I047).
         services.AddHostedService<TrabalhadorNotificacoesPush>();
+
+        return services;
+    }
+}
 
         return services;
     }

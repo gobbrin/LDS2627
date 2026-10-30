@@ -27,8 +27,9 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     {
         if (!Configurado) throw new InvalidOperationException("Maps:ApiKey nÃ£o configurada.");
 
-        var url = "/geocode/search?api_key=" + Uri.EscapeDataString(config["Maps:ApiKey"]!) +
-            "&size=1&text=" + Uri.EscapeDataString(texto);
+        var url = "https://api.heigit.org/pelias/v1/search?api_key=" +
+    Uri.EscapeDataString(config["Maps:ApiKey"]!.Trim()) +
+    "&size=1&text=" + Uri.EscapeDataString(texto);
 
         using var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
@@ -61,8 +62,8 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
         var end = destino.Longitude.ToString(c) + "," +
                   destino.Latitude.ToString(c);
 
-        var url = "v2/directions/driving-car?start=" +
-                  start + "&end=" + end;
+       var url = "https://api.heigit.org/openrouteservice/v2/directions/driving-car?start=" +
+          start + "&end=" + end;
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
