@@ -44,9 +44,9 @@ public sealed class MensagensNotificacoesIntegrationTests {
         var repositorioMensagens = new RepositorioMensagens(db);
         var repositorioUtilizadores = new RepositorioUtilizadores(db);
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
-      var notificacaoService = new NotificacaoService(
-    repositorioNotificacoes,
-    new CampusCarpool.Tests.ServicoPushFalso());
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
         var mensagemService = new MensagemService(repositorioMensagens, repositorioUtilizadores, notificacaoService);
 

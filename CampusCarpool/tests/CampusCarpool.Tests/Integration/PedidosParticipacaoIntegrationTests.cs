@@ -117,9 +117,9 @@ public sealed class PedidosParticipacaoIntegrationTests
         var mapas = new MapasService(httpClient, configuracao);
 
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
-        var notificacaoService = new NotificacaoService(
-    repositorioNotificacoes,
-    new CampusCarpool.Tests.ServicoPushFalso());
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
         var controller = new PedidosController(db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
 
@@ -498,9 +498,9 @@ public async Task SemChaveMapas_ComPonto_Devolve503()
         configuracao);
 
     var repositorioNotificacoes = new RepositorioNotificacoes(f.Db);
-    var notificacaoService = new NotificacaoService(
-    repositorioNotificacoes,
-    new CampusCarpool.Tests.ServicoPushFalso());
+    var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+    var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
     var controller = new PedidosController(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
 
