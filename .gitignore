@@ -42,3 +42,8 @@ publish/
 .env
 .env.*
 !.env.example
+
+# Custom
+CampusCarpool/docs/.local-context/
+CLAUDE.md
+.claude/
