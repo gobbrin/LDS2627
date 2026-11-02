@@ -105,7 +105,8 @@ public sealed class RotasParticipacoesIntegrationTests
             }
 
 
-            if (caminho.Contains("geocode/search"))
+            if (caminho.Contains(
+    "/pelias/v1/search", StringComparison.OrdinalIgnoreCase))
             {
                 ChamadasGeocodificacao++;
 

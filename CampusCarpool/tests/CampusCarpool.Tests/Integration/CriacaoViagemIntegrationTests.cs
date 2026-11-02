@@ -26,7 +26,7 @@ public sealed class CriacaoViagemIntegrationTests
             string resposta;
 
             if (request.RequestUri!.AbsolutePath.Contains(
-                "geocode", StringComparison.OrdinalIgnoreCase))
+    "/pelias/v1/search", StringComparison.OrdinalIgnoreCase))
             {
                 var url = Uri.UnescapeDataString(
                     request.RequestUri.ToString());
