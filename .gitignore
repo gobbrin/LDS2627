@@ -47,3 +47,7 @@ publish/
 CampusCarpool/docs/.local-context/
 CLAUDE.md
 .claude/
+
+# Notas locais (apenas minhas)
+CampusCarpool/docs/revisoes/
+CampusCarpool/docs/divida-tecnica/

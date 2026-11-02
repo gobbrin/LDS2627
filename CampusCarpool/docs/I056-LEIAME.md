@@ -14,6 +14,3 @@ Copiar os ficheiros para a **raiz da solução** (`CampusCarpool/`). `Directory.
 ## Execução
 
 Requisitos: .NET SDK 10, Python 3, PowerShell 7+ (`pwsh`).
-
-```powershell
-./scripts/analisar-i056.ps1
