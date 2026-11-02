@@ -498,115 +498,109 @@ private static GestaoParticipacoesController CriarController(
         Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == passageiroPendente.Id);
     }
 
-
-
-[Fact]
-public async Task IT038_AceitarPedido_EnviaPushAoPassageiro()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-    var participacao = await f.CriarParticipacao(
-        viagem.Id, passageiro.Id);
-
-    var push = new CampusCarpool.Tests.ServicoPushRegistador();
-
-    var controller = CriarController(f.Db, condutor.Id, push);
-
-    var resultado = await controller.Aceitar(
-        participacao.Id, CancellationToken.None);
-
-    Assert.IsType<NoContentResult>(resultado);
-
-    var envio = Assert.Single(push.Envios);
-
-    Assert.Equal(passageiro.Id, envio.UtilizadorId);
-    Assert.Equal("PedidoAceite", envio.Tipo);
-
-    Assert.Equal(
-        EstadoParticipacao.Aceite,
-        (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
-
-    var notificacao = Assert.Single(
-        await f.Db.Notificacoes.ToListAsync());
-
-    Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
-    Assert.Equal(TipoNotificacao.PedidoAceite, notificacao.Tipo);
-}
-
-[Fact]
-public async Task IT038_RejeitarPedido_EnviaPushAoPassageiro()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-    var participacao = await f.CriarParticipacao(
-        viagem.Id, passageiro.Id);
-
-    var push = new CampusCarpool.Tests.ServicoPushRegistador();
-
-    var controller = CriarController(f.Db, condutor.Id, push);
-
-    var resultado = await controller.Rejeitar(
-        participacao.Id, CancellationToken.None);
-
-    Assert.IsType<NoContentResult>(resultado);
-
-    var envio = Assert.Single(push.Envios);
-
-    Assert.Equal(passageiro.Id, envio.UtilizadorId);
-    Assert.Equal("PedidoRejeitado", envio.Tipo);
-
-    Assert.Equal(
-        EstadoParticipacao.Rejeitada,
-        (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
-
-    var notificacao = Assert.Single(
-        await f.Db.Notificacoes.ToListAsync());
-
-    Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
-    Assert.Equal(TipoNotificacao.PedidoRejeitado, notificacao.Tipo);
-}
-
-[Fact]
-public async Task IT038_FalhaPush_NaoDeveImpedirAceitacao()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-    var participacao = await f.CriarParticipacao(
-        viagem.Id, passageiro.Id);
-
-    var push = new CampusCarpool.Tests.ServicoPushRegistador
+    [Fact]
+    public async Task IT038_AceitarPedido_EnfileiraPushAoPassageiro()
     {
-        SimularFalha = true
-    };
+        using var f = new Fixture();
 
-    var controller = CriarController(f.Db, condutor.Id, push);
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        var participacao = await f.CriarParticipacao(
+            viagem.Id, passageiro.Id);
 
-    var resultado = await controller.Aceitar(
-        participacao.Id, CancellationToken.None);
+        var fila = new FilaNotificacoesPushFalsa();
+        var controller = CriarController(f.Db, condutor.Id, fila);
 
-    Assert.IsType<NoContentResult>(resultado);
+        var resultado = await controller.Aceitar(
+            participacao.Id, CancellationToken.None);
 
-    Assert.Equal(
-        EstadoParticipacao.Aceite,
-        (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+        Assert.IsType<NoContentResult>(resultado);
 
-    Assert.Equal(
-        1,
-        (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
+        var envio = Assert.Single(fila.Notificacoes);
 
-    var notificacao = Assert.Single(
-        await f.Db.Notificacoes.ToListAsync());
+        Assert.Equal(passageiro.Id, envio.UtilizadorId);
+        Assert.Equal("PedidoAceite", envio.Tipo);
 
-    Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
-}
+        Assert.Equal(
+            EstadoParticipacao.Aceite,
+            (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+
+        var notificacao = Assert.Single(
+            await f.Db.Notificacoes.ToListAsync());
+
+        Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
+        Assert.Equal(TipoNotificacao.PedidoAceite, notificacao.Tipo);
+    }
+
+    [Fact]
+    public async Task IT038_RejeitarPedido_EnfileiraPushAoPassageiro()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        var participacao = await f.CriarParticipacao(
+            viagem.Id, passageiro.Id);
+
+        var fila = new FilaNotificacoesPushFalsa();
+        var controller = CriarController(f.Db, condutor.Id, fila);
+
+        var resultado = await controller.Rejeitar(
+            participacao.Id, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(resultado);
+
+        var envio = Assert.Single(fila.Notificacoes);
+
+        Assert.Equal(passageiro.Id, envio.UtilizadorId);
+        Assert.Equal("PedidoRejeitado", envio.Tipo);
+
+        Assert.Equal(
+            EstadoParticipacao.Rejeitada,
+            (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+
+        var notificacao = Assert.Single(
+            await f.Db.Notificacoes.ToListAsync());
+
+        Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
+        Assert.Equal(TipoNotificacao.PedidoRejeitado, notificacao.Tipo);
+    }
+
+    [Fact]
+    public async Task IT038_CancelamentoDePushNaoAfetaAceitacaoJaConcluida()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        var participacao = await f.CriarParticipacao(
+            viagem.Id, passageiro.Id);
+
+        var fila = new FilaNotificacoesPushFalsa();
+        var controller = CriarController(f.Db, condutor.Id, fila);
+
+        var resultado = await controller.Aceitar(
+            participacao.Id, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(resultado);
+
+        Assert.Equal(
+            EstadoParticipacao.Aceite,
+            (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+
+        Assert.Equal(
+            1,
+            (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
+
+        var notificacao = Assert.Single(
+            await f.Db.Notificacoes.ToListAsync());
+
+        Assert.Equal(passageiro.Id, notificacao.UtilizadorId);
+
+        Assert.Single(fila.Notificacoes);
+    }
 
 }

@@ -94,7 +94,8 @@ public sealed class SimulacoesIntegrationTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             if (_falhar) throw new HttpRequestException("Falha simulada dos mapas");
-            if (request.RequestUri!.AbsolutePath.Contains("geocode/search"))
+            if (request.RequestUri!.AbsolutePath.Contains(
+    "/pelias/v1/search", StringComparison.OrdinalIgnoreCase))
             {
                 var query = Uri.UnescapeDataString(request.RequestUri.Query);
                 var index = query.IndexOf("text=", StringComparison.Ordinal);
