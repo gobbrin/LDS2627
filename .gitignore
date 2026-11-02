@@ -47,3 +47,6 @@ publish/
 CampusCarpool/docs/.local-context/
 CLAUDE.md
 .claude/
+
+**/docs/revisoes
+**/docs/divida-tecnica
