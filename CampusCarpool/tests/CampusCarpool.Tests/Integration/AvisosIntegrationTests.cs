@@ -99,7 +99,10 @@ public sealed class AvisosIntegrationTests
         Guid? utilizadorId)
     {
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes);
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+    
 
         var controller = new NotificacoesController(notificacaoService);
         AplicarIdentidade(controller, utilizadorId);

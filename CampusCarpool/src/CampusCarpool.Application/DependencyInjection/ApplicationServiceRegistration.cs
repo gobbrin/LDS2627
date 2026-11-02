@@ -11,6 +11,9 @@ public static class ApplicationServiceRegistration {
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();
+
+        // I048 - Avaliações
+        services.AddScoped<IAvaliacaoService, AvaliacaoService>();
         
         return services;
     }
