@@ -5,12 +5,18 @@ using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Services;
 
+/// <summary>Implementação das notificações pessoais (F006). Ver <see cref="INotificacaoService"/>.</summary>
 public sealed class NotificacaoService(
     IRepositorioNotificacoes repositorioNotificacoes,
     IFilaNotificacoesPush filaNotificacoesPush)
     : INotificacaoService
 {
-    // Cria uma notificação e delega a persistência ao repositório.
+    /// <inheritdoc />
+    /// <remarks>
+    /// Cria uma notificação e delega a persistência ao repositório.
+    /// Não preenche <c>Notificacao.ViagemId</c>: só as notificações de aviso (criadas pelo <c>AvisoService</c>)
+    /// ficam ligadas à viagem.
+    /// </remarks>
     public async Task<Notificacao> CriarAsync(
         Guid utilizadorId,
         TipoNotificacao tipo,
@@ -21,6 +27,7 @@ public sealed class NotificacaoService(
         {
             UtilizadorId = utilizadorId,
             Tipo = tipo,
+            // DC-40 / AP-06: o título é o nome do enum (ex.: "PedidoAceite"), também no push; fica para m4.
             Titulo = tipo.ToString(),
             Conteudo = mensagem
         };
@@ -45,6 +52,7 @@ public sealed class NotificacaoService(
     }
 
     // Devolve uma página de notificações pessoais.
+    /// <inheritdoc />
     public async Task<PaginaNotificacoes> ListarAsync(
         Guid utilizadorId,
         int pagina,
@@ -77,6 +85,7 @@ public sealed class NotificacaoService(
     }
 
     // Marca uma notificação como lida apenas se pertencer ao utilizador.
+    /// <inheritdoc />
     public async Task<bool> MarcarComoLidaAsync(
         Guid notificacaoId,
         Guid utilizadorId,
@@ -103,6 +112,7 @@ public sealed class NotificacaoService(
     }
 
     // Marca todas as notificações não lidas como lidas.
+    /// <inheritdoc />
     public async Task<int> MarcarTodasComoLidasAsync(
         Guid utilizadorId,
         CancellationToken ct)

@@ -3,8 +3,19 @@ using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Services;
 
-// Gere a aceitação, rejeição e cancelamento de participações.
-// Utiliza abstrações de persistência, sem depender do EF Core.
+/// <summary>
+/// Gere a aceitação, rejeição e cancelamento de participações.
+/// Utiliza abstrações de persistência, sem depender do EF Core.
+/// </summary>
+/// <remarks>
+/// Padrão comum aos três métodos: (1) carregar a participação e a viagem (rastreadas); (2) verificar a
+/// permissão e o estado; (3) alterar as entidades e gravar com <see cref="IUnidadeDeTrabalho.Confirmar"/>;
+/// (4) só depois enviar o evento em tempo real e criar as notificações.
+/// Os lugares são verificados contra a contagem real de aceites antes de mexer em <c>LugaresDisponiveis</c>;
+/// se não baterem, a operação devolve <see cref="ResultadoGestaoParticipacao.DadosInconsistentes"/>.
+/// A coluna <c>Versao</c> da viagem protege a aceitação e o cancelamento de uma aceite (que mudam a viagem);
+/// a rejeição e o cancelamento de um pendente só mudam a participação, que não tem versão (DO-03).
+/// </remarks>
 public sealed class ParticipacaoService(
     IRepositorioParticipacoes repositorioParticipacoes,
     IRepositorioViagens repositorioViagens,
@@ -12,6 +23,7 @@ public sealed class ParticipacaoService(
     INotificacaoService notificacaoService,
     INotificadorPedidosTempoReal notificadorPedidosTempoReal) : IParticipacaoService
 {
+    /// <inheritdoc />
     public async Task<ResultadoGestaoParticipacao> AceitarAsync(
         Guid participacaoId,
         Guid utilizadorId,
@@ -32,6 +44,7 @@ public sealed class ParticipacaoService(
         if (viagem.CondutorId != utilizadorId)
             return ResultadoGestaoParticipacao.NaoAutorizado;
 
+        // RF-F004-10: só pedidos pendentes, de viagens ativas que ainda não partiram.
         if (participacao.Estado != EstadoParticipacao.Pendente
             || viagem.Estado != nameof(EstadoViagem.Ativa)
             || viagem.PartidaEm <= DateTime.UtcNow)
@@ -44,6 +57,7 @@ public sealed class ParticipacaoService(
             EstadoParticipacao.Aceite,
             ct);
 
+        // RF-F002-13: lugares disponíveis = oferecidos - aceites. O valor guardado tem de bater com a contagem.
         var lugaresCalculados = viagem.LugaresOferecidos - aceites.Count;
 
         if (lugaresCalculados != viagem.LugaresDisponiveis
@@ -56,6 +70,7 @@ public sealed class ParticipacaoService(
             return ResultadoGestaoParticipacao.SemCapacidade;
 
         participacao.Estado = EstadoParticipacao.Aceite;
+        // AceiteEm fica mesmo que a participação seja cancelada depois (histórico, RF-F009-08).
         participacao.AceiteEm = DateTime.UtcNow;
         viagem.LugaresDisponiveis--;
 
@@ -76,6 +91,7 @@ public sealed class ParticipacaoService(
             "O teu pedido de participação na viagem foi aceite.",
             ct);
 
+        // RF-F006-14: os outros passageiros aceites são avisados do novo passageiro (sem push).
         var restantes = await repositorioParticipacoes.ListarPorViagemAsync(
             viagem.Id,
             EstadoParticipacao.Aceite,
@@ -96,6 +112,7 @@ public sealed class ParticipacaoService(
         return ResultadoGestaoParticipacao.Sucesso;
     }
 
+    /// <inheritdoc />
     public async Task<ResultadoGestaoParticipacao> RejeitarAsync(
         Guid participacaoId,
         Guid utilizadorId,
@@ -121,8 +138,8 @@ public sealed class ParticipacaoService(
 
         participacao.Estado = EstadoParticipacao.Rejeitada;
 
-        // Guarda a decisão e a alteração de capacidade.
-        // Conflitos no token Versao são tratados pela unidade de trabalho.
+        // Guarda a decisão. A rejeição não mexe na viagem, por isso o token Versao não protege
+        // contra uma aceitação ou um cancelamento simultâneos do mesmo pedido (DO-03).
         unidadeDeTrabalho.Confirmar();
 
         // A decisão já foi confirmada; envia o evento ao passageiro.
@@ -140,6 +157,7 @@ public sealed class ParticipacaoService(
         return ResultadoGestaoParticipacao.Sucesso;
     }
 
+    /// <inheritdoc />
     public async Task<ResultadoGestaoParticipacao> CancelarAsync(
         Guid participacaoId,
         Guid utilizadorId,
@@ -157,6 +175,7 @@ public sealed class ParticipacaoService(
         if (viagem is null)
             return ResultadoGestaoParticipacao.NaoEncontrada;
 
+        // DO-06 / DC-35: também o condutor pode cancelar, o que nenhum requisito prevê (por decidir pelo grupo).
         if (participacao.PassageiroId != utilizadorId
             && viagem.CondutorId != utilizadorId)
         {
@@ -173,6 +192,7 @@ public sealed class ParticipacaoService(
 
         if (eraAceite)
         {
+            // P-03: uma participação aceite só pode ser cancelada até à hora de partida.
             if (viagem.PartidaEm <= DateTime.UtcNow)
                 return ResultadoGestaoParticipacao.Conflito;
 
@@ -189,6 +209,7 @@ public sealed class ParticipacaoService(
                 return ResultadoGestaoParticipacao.DadosInconsistentes;
             }
 
+            // RF-F004-17: liberta o lugar (recalculado a partir dos aceites, sem contar este).
             viagem.LugaresDisponiveis =
                 viagem.LugaresOferecidos - (aceites.Count - 1);
         }
@@ -197,6 +218,9 @@ public sealed class ParticipacaoService(
 
         unidadeDeTrabalho.Confirmar();
 
+        // P-21: cancelar um pedido pendente não gera notificação.
+        // DEF-BE-019 (fica para m4): RF-F006-02 pede que o condutor seja notificado quando um passageiro
+        // cancela; aqui só são notificados os outros passageiros aceites.
         if (eraAceite)
         {
             var restantes = await repositorioParticipacoes.ListarPorViagemAsync(

@@ -3,6 +3,11 @@ namespace CampusCarpool.Application.Interfaces;
 /// <summary>
 /// Conclusão automática das viagens (UC-F002-05; RF-F002-12, RF-F004-19).
 /// </summary>
+/// <remarks>
+/// Implementado por <c>Infrastructure/Services/ConclusaoViagensService.cs</c> e chamado periodicamente pelo
+/// <c>TrabalhadorConclusaoViagens</c>. A conclusão manual (<c>POST /api/v1/viagens/{id}/concluir</c>)
+/// continua a existir (PA-01/PA-03 por decidir pelo grupo).
+/// </remarks>
 public interface IConclusaoViagensService
 {
     /// <summary>
@@ -11,5 +16,7 @@ public interface IConclusaoViagensService
     /// ainda pendentes; as participações aceites mantêm-se. Devolve o número de
     /// viagens concluídas.
     /// </summary>
+    /// <param name="agora">Momento de referência (UTC); recebido por parâmetro para os testes controlarem o relógio.</param>
+    /// <param name="ct">Cancelamento (paragem da aplicação).</param>
     Task<int> ConcluirViagensTerminadasAsync(DateTime agora, CancellationToken ct);
 }

@@ -7,6 +7,7 @@ namespace CampusCarpool.Application.Interfaces;
 /// Define as operações de acesso a dados relativas às participações.
 /// A implementação concreta pertence à camada Infrastructure.
 /// </summary>
+/// <remarks>As listas são só de leitura (não rastreadas); só <see cref="ObterPorIdAsync"/> devolve uma entidade para alterar.</remarks>
 public interface IRepositorioParticipacoes
 {
 
@@ -31,6 +32,7 @@ public interface IRepositorioParticipacoes
     /// Verifica se existe uma participação pendente ou aceite
     /// para o passageiro na viagem indicada.
     /// </summary>
+    /// <remarks>RF-F004-06. O índice único filtrado <c>(ViagemId, PassageiroId)</c> garante o mesmo na BD (I038).</remarks>
     Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
 
 }

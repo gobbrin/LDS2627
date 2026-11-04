@@ -4,13 +4,18 @@ using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Services;
 
+/// <summary>Implementação das mensagens individuais (F005). Ver <see cref="IMensagemService"/>.</summary>
 public sealed class MensagemService(
     IRepositorioMensagens repositorioMensagens,
     IRepositorioUtilizadores repositorioUtilizadores,
     INotificacaoService notificacaoService) : IMensagemService
 {
 
-    //Valida os participantes, guarda a mensagem e cria a notificação.
+    /// <inheritdoc />
+    /// <remarks>
+    /// Valida os participantes, guarda a mensagem e cria a notificação. São duas gravações separadas: se a
+    /// notificação falhar, a mensagem já ficou gravada (AP-02).
+    /// </remarks>
     public async Task<Mensagem> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
     {
         //Impede o envio de mensagens para a própria conta.
@@ -62,7 +67,8 @@ public sealed class MensagemService(
         return mensagem;
     }
 
-    //Devolve o histórico da conversa entre os dois participantes.
+    /// <inheritdoc />
+    /// <remarks>Devolve o histórico da conversa entre os dois participantes, sem paginação (AP-10).</remarks>
     public async Task<IReadOnlyList<Mensagem>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
     {
         //Impede a consulta de uma conversa consigo próprio.
