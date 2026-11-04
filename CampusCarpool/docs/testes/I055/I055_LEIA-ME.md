@@ -13,7 +13,7 @@ A I055 disponibiliza uma collection Postman para verificar os endpoints da API C
 
 A **collection oficial da I055** é `CampusCarpool — I055.postman_collection.json`, com **113 pedidos HTTP**. Deve ser utilizada em conjunto com `CampusCarpool — I055 — environment.postman_environment.json` e com este README.
 
-| Ficheiro em `CampusCarpool/docs/I055/` | Identificação | Utilização |
+| Ficheiro em `CampusCarpool/docs/testes/I055/` | Identificação | Utilização |
 | --- | --- | --- |
 | `CampusCarpool — I055.postman_collection.json` | Collection atual — **113 pedidos** | **Versão oficial** |
 | `CampusCarpool — I055 — environment.postman_environment.json` | Variáveis e dados de teste associados | **Environment oficial** |
@@ -37,7 +37,7 @@ Uma única chamada HTTP pode conter várias asserções; por isso, o número de 
 
 ### Localização no repositório e na documentação do projeto
 
-Os ficheiros técnicos da I055 são versionados no GitHub em `CampusCarpool/docs/I055/`.
+Os ficheiros técnicos da I055 são versionados no GitHub em `CampusCarpool/docs/testes/I055/`.
 
 A localização `03-artefactos-de-qualidade-de-produto/03.01-backend/03.01.05-postman/` pertence à **estrutura documental oficial da milestone**, que é distinta do repositório GitHub e inclui também atas, revisões e auditorias. A organização dos artefactos nessa pasta integra a consolidação documental da milestone pelo grupo. A localização no GitHub não pretende reproduzir essa estrutura externa.
 
@@ -137,4 +137,4 @@ A entrega atual da I055 está identificada pela **collection oficial de 113 pedi
 
 A execução integral comunicada registou **105 asserções aprovadas e 20 falhadas**. A incompatibilidade de estados entre cenários explica tecnicamente a necessidade de execução manual independente, mas a atribuição individual das 20 falhas permanece **por comprovar com registos da execução integral**. Também não estão anexadas ao ZIP evidências exportadas do Runner ou identificadores completos de versão da execução.
 
-Os artefactos técnicos estão organizados em `CampusCarpool/docs/I055/` no GitHub; a colocação na pasta documental oficial é uma operação distinta de consolidação da milestone. Estas limitações são expressamente registadas para permitir uma revisão objetiva, sem alterar os resultados comunicados ou atribuir verificações não demonstradas.
+Os artefactos técnicos estão organizados em `CampusCarpool/docs/testes/I055/` no GitHub; a colocação na pasta documental oficial é uma operação distinta de consolidação da milestone. Estas limitações são expressamente registadas para permitir uma revisão objetiva, sem alterar os resultados comunicados ou atribuir verificações não demonstradas.

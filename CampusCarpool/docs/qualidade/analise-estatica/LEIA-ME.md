@@ -5,7 +5,7 @@
 - `Directory.Build.props`: ativa analisadores Roslyn em todos os projetos .NET sob a raiz.
 - `scripts/analisar-backend.ps1`: análise em Windows/PowerShell.
 - `scripts/analisar-backend.sh`: análise em Linux/macOS.
-- `docs/m3-relatorio-analise-estatica-backend-v01.pdf`: relatório preliminar, sem resultados inventados.
+- `docs/qualidade/analise-estatica/m3-relatorio-analise-estatica-backend-v01.pdf`: relatório preliminar, sem resultados inventados.
 - `I056-inventario-preliminar.md`: inventário observado do ZIP de 28/10.
 
 ## Instalação
