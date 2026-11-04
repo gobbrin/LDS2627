@@ -218,29 +218,31 @@ public sealed class ViagensController(
         if (v.CondutorId != userId) return Forbid();
         if (v.Estado != nameof(EstadoViagem.Ativa)) return Conflict();
         v.Estado = nameof(EstadoViagem.Indisponibilizada);
-        var pendentes = await db.Participacoes
-            .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Pendente)
+
+        // P-25 / RF-F002-10 (DEF-BE-008): cancela os pedidos pendentes e as participações aceites.
+        var afetadas = await db.Participacoes
+            .Where(p => p.ViagemId == id &&
+                (p.Estado == EstadoParticipacao.Pendente || p.Estado == EstadoParticipacao.Aceite))
             .ToListAsync(ct);
-        foreach (var p in pendentes) p.Estado = EstadoParticipacao.Cancelada;
+        foreach (var p in afetadas) p.Estado = EstadoParticipacao.Cancelada;
+        // Sem participações aceites, todos os lugares ficam livres.
+        v.LugaresDisponiveis = v.LugaresOferecidos;
         await db.SaveChangesAsync(ct);
 
-        // Notifica os passageiros com participação aceite.
+        // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou
+        // participação aceite antes da indisponibilização; o condutor originou a alteração.
         if (notificacaoService is not null)
         {
-            var passageiros = await db.Participacoes
-                .Where(p =>
-                    p.ViagemId == id &&
-                    p.Estado == EstadoParticipacao.Aceite)
+            var passageiros = afetadas
                 .Select(p => p.PassageiroId)
-                .Distinct()
-                .ToListAsync(ct);
+                .Distinct();
 
             foreach (var passageiroId in passageiros)
             {
                 await notificacaoService.CriarAsync(
                     passageiroId,
                     TipoNotificacao.AlteracaoViagem,
-                    "A viagem em que participas foi marcada como indisponível pelo condutor.",
+                    "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.",
                     ct);
             }
         }

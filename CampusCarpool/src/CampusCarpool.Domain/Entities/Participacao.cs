@@ -19,4 +19,7 @@ public sealed class Participacao
     public Utilizador Passageiro { get; set; } = null!; [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente; public string? Recolha { get; set; }
     public string? Destino { get; set; }
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Momento em que o condutor aceitou o pedido; fica preenchido mesmo depois de a participação ser cancelada.</summary>
+    public DateTime? AceiteEm { get; set; }
 }

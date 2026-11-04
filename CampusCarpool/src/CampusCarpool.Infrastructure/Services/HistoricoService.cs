@@ -39,7 +39,13 @@ public sealed class HistoricoService(
             .AsNoTracking()
             .Where(p =>
                 p.PassageiroId == utilizadorId &&
-                p.Estado == EstadoParticipacao.Aceite &&
+                // RF-F009-08: a indisponibilização cancela as participações aceites (P-25),
+                // mas a viagem continua no histórico do passageiro, com o estado atual.
+                // As canceladas pelo próprio passageiro ficam de fora até à decisão D-029.
+                (p.Estado == EstadoParticipacao.Aceite ||
+                 (p.Estado == EstadoParticipacao.Cancelada &&
+                  p.AceiteEm != null &&
+                  p.Viagem.Estado == nameof(EstadoViagem.Indisponibilizada))) &&
                 (p.Viagem.PartidaEm <= agora ||
                  p.Viagem.Estado != nameof(EstadoViagem.Ativa)))
                     .OrderByDescending(p => p.Viagem.PartidaEm)

@@ -155,7 +155,7 @@ public sealed class ViagensNotificacoesIntegrationTests
     }
 
     [Fact]
-    public async Task IndisponibilizarViagem_NotificaPassageirosAceitesMasNaoPendentes()
+    public async Task IndisponibilizarViagem_CancelaENotificaPassageirosAceitesEPendentes()
     {
         using var f = new Fixture();
 
@@ -205,26 +205,34 @@ public sealed class ViagensNotificacoesIntegrationTests
 
         Assert.Equal("Indisponibilizada", viagemAtualizada.Estado);
 
-        //Confirma que foi criada uma notificação para o passageiro aceite.
+
+        // P-25 / RF-F002-10 (DEF-BE-008, I110): o pedido pendente e a participação aceite
+        // ficam canceladas e todos os lugares ficam livres.
+        var participacoes = await f.Db.Participacoes
+            .AsNoTracking()
+            .Where(p => p.ViagemId == viagem.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, participacoes.Count);
+        Assert.All(participacoes, p => Assert.Equal(EstadoParticipacao.Cancelada, p.Estado));
+        Assert.Equal(3, viagemAtualizada.LugaresDisponiveis);
+
+        // P-23 / RF-F006-03 (DEF-BE-020, I110): uma notificação Alteração da viagem por
+        // passageiro afetado (aceite e pendente) e nenhuma para o condutor.
         var notificacoes = await f.Db.Notificacoes
             .AsNoTracking()
             .ToListAsync();
 
-        var notificacao = Assert.Single(notificacoes);
-
-        Assert.Equal(passageiroAceite.Id, notificacao.UtilizadorId);
-        Assert.Equal(TipoNotificacao.AlteracaoViagem, notificacao.Tipo);
-        Assert.Contains("indisponível", notificacao.Conteudo);
-
-        //O pedido pendente não deve receber esta notificação.
-        Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == passageiroPendente.Id);
-
-        //Confirma que a participação pendente foi cancelada.
-        var participacaoPendente = await f.Db.Participacoes
-            .AsNoTracking()
-            .SingleAsync(p => p.PassageiroId == passageiroPendente.Id);
-
-        Assert.Equal(EstadoParticipacao.Cancelada, participacaoPendente.Estado);
+        Assert.Equal(2, notificacoes.Count);
+        Assert.Equal(
+            new[] { passageiroAceite.Id, passageiroPendente.Id }.Order(),
+            notificacoes.Select(n => n.UtilizadorId).Order());
+        Assert.All(notificacoes, n =>
+        {
+            Assert.Equal(TipoNotificacao.AlteracaoViagem, n.Tipo);
+            Assert.Contains("indisponível", n.Conteudo);
+        });
+        Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == condutor.Id);
     }
 
 }

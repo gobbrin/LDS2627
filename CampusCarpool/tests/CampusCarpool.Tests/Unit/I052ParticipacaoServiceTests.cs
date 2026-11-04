@@ -70,6 +70,7 @@ public sealed class I052ParticipacaoServiceTests
         var (pedido, viagem, condutor) = Preparar();
         var resultado = await CriarServico().AceitarAsync(pedido.Id, condutor, default);
         Assert.Equal(ResultadoGestaoParticipacao.Sucesso, resultado);
+        Assert.NotNull(pedido.AceiteEm); // I110: guardado para o histórico depois de cancelamentos (RF-F009-08)
         Assert.Equal(EstadoParticipacao.Aceite, pedido.Estado);
         Assert.Equal(1, viagem.LugaresDisponiveis);
         Assert.Equal(1, trabalho.Confirmacoes);

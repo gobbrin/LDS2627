@@ -56,6 +56,7 @@ public sealed class ParticipacaoService(
             return ResultadoGestaoParticipacao.SemCapacidade;
 
         participacao.Estado = EstadoParticipacao.Aceite;
+        participacao.AceiteEm = DateTime.UtcNow;
         viagem.LugaresDisponiveis--;
 
         // Guarda a decisão e a alteração de capacidade.
