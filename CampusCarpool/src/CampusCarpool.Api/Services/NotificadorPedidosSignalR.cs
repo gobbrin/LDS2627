@@ -5,10 +5,18 @@ using Microsoft.Extensions.Logging;
 
 namespace CampusCarpool.Api.Services;
 
+/// <summary>Implementação SignalR de <see cref="INotificadorPedidosTempoReal"/>: envia eventos pelo <see cref="PedidosHub"/>.</summary>
+/// <remarks>
+/// Cada evento vai para todas as ligações do utilizador (<c>Clients.User</c>, identificado pelo
+/// <see cref="PedidosUserIdProvider"/>), com o nome <c>PedidoRecebido</c>, <c>PedidoAceite</c> ou
+/// <c>PedidoRejeitado</c> e o corpo <c>{ pedidoId }</c>. O cliente vai buscar os detalhes por HTTP.
+/// Uma falha de envio só fica no log: a operação que a originou já está gravada e não é desfeita.
+/// </remarks>
 public sealed class NotificadorPedidosSignalR(
     IHubContext<PedidosHub> hubContext,
     ILogger<NotificadorPedidosSignalR> logger) : INotificadorPedidosTempoReal
 {
+    /// <inheritdoc />
     public Task PedidoRecebidoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct)
     {
         return EnviarEventoAsync(
@@ -18,6 +26,7 @@ public sealed class NotificadorPedidosSignalR(
             ct);
     }
 
+    /// <inheritdoc />
     public Task PedidoAceiteAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct)
     {
         return EnviarEventoAsync(
@@ -27,6 +36,7 @@ public sealed class NotificadorPedidosSignalR(
             ct);
     }
 
+    /// <inheritdoc />
     public Task PedidoRejeitadoAsync(Guid destinatarioId, Guid pedidoId, CancellationToken ct)
     {
         return EnviarEventoAsync(

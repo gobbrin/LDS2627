@@ -1,9 +1,13 @@
 
 namespace CampusCarpool.Api.Services;
 
+/// <summary>Calcula a distância e a duração de uma rota já ordenada, somando segmento a segmento.</summary>
+/// <remarks>Um pedido à Directions API por segmento; pontos consecutivos com as mesmas coordenadas dão um segmento de 0 km.</remarks>
 public sealed class CalculadorRotaComPontos(
     MapasService mapas)
 {
+    /// <summary>Calcula todos os segmentos; devolve <c>null</c> se algum não tiver rota.</summary>
+    /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<ResultadoRotaComPontos?> CalcularAsync(
         IReadOnlyList<PontoRota> pontosOrdenados,
         CancellationToken ct)

@@ -5,9 +5,21 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Api.Controllers;
 
+/// <summary>Pesquisa de viagens (F003). Rota <c>GET /api/v1/pesquisa/viagens</c>.</summary>
+/// <remarks>Usa o <see cref="CampusCarpoolDbContext"/> diretamente.</remarks>
 [ApiController, Authorize, Route("api/v1/pesquisa")]
 public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBase
 {
+    /// <summary>Pesquisa viagens ativas, futuras e com lugares (RF-F003-01, RF-F003-02, RF-F003-05, P-12).</summary>
+    /// <remarks>
+    /// Filtros opcionais e combináveis: <c>origem</c> e <c>destino</c> por texto contido (sem distinção de
+    /// maiúsculas no SQL Server; com distinção em SQLite, nos testes), <c>data</c> (dia) e <c>hora</c> (a partir
+    /// de). Ordenado por partida crescente, paginado (<c>tamanho</c> até 100).
+    /// DC-42 / API-06 (fica para m4): o dia e a hora são comparados em UTC, não na hora de Portugal; perto da
+    /// meia-noite ou com hora de verão, uma viagem pode cair no dia ou hora errados.
+    /// DEF-BE-011 (fica para m4): os resultados não trazem o nome nem a média do condutor (RF-F003-04).
+    /// </remarks>
+    /// <returns>200 <c>{ total, pagina, tamanho, viagens }</c>; 400 paginação inválida; 401.</returns>
     [HttpGet("viagens")]
     public async Task<IActionResult> Pesquisar([FromQuery] string? origem, [FromQuery] string? destino,
         [FromQuery] DateOnly? data, [FromQuery] TimeOnly? hora, [FromQuery] int pagina = 1,

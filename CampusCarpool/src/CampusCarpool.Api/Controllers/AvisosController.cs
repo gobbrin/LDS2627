@@ -13,6 +13,7 @@ namespace CampusCarpool.Api.Controllers;
 [ApiController, Authorize, Route("api/v1/viagens/{viagemId:guid}/avisos")]
 public sealed class AvisosController(IAvisoService avisoService) : ControllerBase
 {
+    /// <summary>Corpo de <c>POST</c>: o texto do aviso (até 100 caracteres, P-28).</summary>
     public sealed record CriarAviso(string? Conteudo);
 
     private Guid? UtilizadorId => Guid.TryParse(
@@ -20,6 +21,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
         out var id) ? id : null;
 
     /// <summary>Cria um aviso e notifica os passageiros com participação aceite.</summary>
+    /// <returns>201; 400 texto inválido; 401; 403 não é o condutor; 404 viagem inexistente.</returns>
     [HttpPost]
     public async Task<IActionResult> Criar(Guid viagemId, CriarAviso? input, CancellationToken ct)
     {
@@ -40,6 +42,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     }
 
     /// <summary>Lista os avisos quando o utilizador é condutor ou passageiro aceite.</summary>
+    /// <returns>200 avisos (mais recentes primeiro); 401; 403; 404.</returns>
     [HttpGet]
     public async Task<IActionResult> Listar(Guid viagemId, CancellationToken ct)
     {

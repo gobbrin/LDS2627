@@ -4,6 +4,12 @@ using System.Text.Json.Serialization;
 
 namespace CampusCarpool.Api.Services;
 
+/// <summary>Código morto: cópia antiga do envio de email pela Brevo.</summary>
+/// <remarks>
+/// Não está registado na DI nem é usado pela aplicação; a implementação em uso é
+/// <c>Infrastructure/Integrations/ServicoEmail.cs</c> (<c>IServicoEmail</c>). Só os testes
+/// <c>EmailSenderTests</c> o usam. Apagar com esses testes no m4 (IN-04).
+/// </remarks>
 public sealed class EmailSender(
     IConfiguration configuration,
     IHttpClientFactory httpClientFactory)

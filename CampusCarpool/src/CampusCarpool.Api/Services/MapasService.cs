@@ -4,25 +4,45 @@ using System.Text.Json;
 
 namespace CampusCarpool.Api.Services;
 
+/// <summary>Coordenadas geográficas em graus decimais (WGS 84).</summary>
 public sealed record Coordenadas(
     decimal Latitude,
     decimal Longitude);
 
+/// <summary>Rota entre dois pontos: distância em km (2 casas) e duração em minutos (arredondada para cima).</summary>
 public sealed record ResultadoRota(
     decimal DistanciaKm,
     int DuracaoMinutos,
     Coordenadas Origem,
     Coordenadas Destino);
 
+/// <summary>Matriz da Matrix API: [i][j] é a duração (s) ou distância (m) do ponto i ao j; <c>null</c> se não houver rota.</summary>
 public sealed record MatrizRotas(
     double?[][] DuracoesSegundos,
     double?[][] DistanciasMetros);
 
+/// <summary>
+/// Cliente do Serviço de Mapas e Rotas: OpenRouteService alojado pela HeiGIT (<c>api.heigit.org</c>), perfil
+/// <c>driving-car</c> (F008).
+/// </summary>
+/// <remarks>
+/// Configuração: <c>Maps:ApiKey</c> (obrigatória; sem ela <see cref="Configurado"/> é falso e os controllers
+/// respondem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> do <c>Program.cs</c>).
+/// Os URLs são absolutos e fixos, por isso <c>Maps:BaseUrl</c> e <c>Maps:Provider</c> não têm efeito (IN-04).
+/// Erros HTTP saem como <see cref="HttpRequestException"/> (<c>EnsureSuccessStatusCode</c>) e o tempo esgotado
+/// como <see cref="TaskCanceledException"/>; os controllers convertem-nos em 502 e 504.
+/// </remarks>
 public sealed class MapasService(HttpClient http, IConfiguration config)
 {
+    /// <summary>Indica se há chave da API configurada.</summary>
     public bool Configurado => !string.IsNullOrWhiteSpace(config["Maps:ApiKey"]);
 
-    //Geocodificar uma localização.
+    /// <summary>Geocodificar uma localização: devolve o primeiro resultado do Pelias, ou <c>null</c> se não houver nenhum.</summary>
+    /// <remarks>
+    /// A chave vai na query string (exigência do Pelias), por isso pode aparecer em logs de pedidos HTTP.
+    /// A mensagem da exceção abaixo tem uma gralha de codificação ("nÃ£o"), a corrigir num commit de código.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     public async Task<Coordenadas?> GeocodificarAsync(string texto, CancellationToken ct)
     {
         if (!Configurado) throw new InvalidOperationException("Maps:ApiKey nÃ£o configurada.");
@@ -40,12 +60,14 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
 
         if (features.ValueKind != JsonValueKind.Array || features.GetArrayLength() == 0) return null;
 
+        // GeoJSON escreve [longitude, latitude], pela ordem inversa da habitual.
         var coordinates = features[0].GetProperty("geometry").GetProperty("coordinates");
 
         return new Coordenadas(coordinates[1].GetDecimal(), coordinates[0].GetDecimal());
     }
 
-    //Calcular uma rota entre origem e destino.
+    /// <summary>Calcular uma rota entre origem e destino (Directions API); <c>null</c> se o serviço não devolver rota.</summary>
+    /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     public async Task<ResultadoRota?> CalcularAsync(
         Coordenadas origem,
         Coordenadas destino,
@@ -100,7 +122,10 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
             destino);
     }
 
-    //Calcular uma rota com várias paragens.
+    /// <summary>Calcular uma rota com várias paragens, pela ordem dada, num só pedido.</summary>
+    /// <remarks>Só é usado pelos testes; a rota da viagem calcula segmento a segmento (<c>CalculadorRotaComPontos</c>).</remarks>
+    /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
+    /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<ResultadoRota?> CalcularComParagensAsync(
         IReadOnlyList<Coordenadas> pontos,
         CancellationToken ct)
@@ -152,7 +177,10 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
             pontos[^1]);
     }
 
-    //Calcular matriz de distâncias e durações
+    /// <summary>Calcular matriz de distâncias e durações entre todos os pares de pontos (Matrix API), num só pedido.</summary>
+    /// <remarks>Usado pelo <c>OtimizadorRotas</c> na simulação.</remarks>
+    /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
+    /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<MatrizRotas?> CalcularMatrizAsync(
         IReadOnlyList<Coordenadas> pontos,
         CancellationToken ct)

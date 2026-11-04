@@ -14,6 +14,12 @@ namespace CampusCarpool.Api.Services;
 /// </remarks>
 public static class ValidacaoTokensRevogados
 {
+    /// <summary>
+    /// Chamado depois de a assinatura e a validade do token estarem verificadas; marca o pedido como não
+    /// autenticado (401) se o token não tiver <c>jti</c> ou se esse <c>jti</c> tiver sido revogado.
+    /// </summary>
+    /// <remarks>Uma consulta à BD por pedido autenticado (índice único em <c>TokensRevogados.Jti</c>).</remarks>
+    /// <param name="context">Contexto do evento do JwtBearer.</param>
     public static async Task ValidarAsync(TokenValidatedContext context)
     {
         var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;

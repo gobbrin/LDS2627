@@ -4,6 +4,15 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CampusCarpool.Api.Middleware;
 
+/// <summary>
+/// Último recurso para exceções não tratadas nos controllers: responde em formato <c>ProblemDetails</c> (RFC 7807).
+/// </summary>
+/// <remarks>
+/// <see cref="RegraDeNegocioException"/> → 409 (aviso no log); qualquer outra → 500 (erro no log, com a exceção).
+/// Os textos são genéricos: a mensagem e a stack trace nunca vão para o cliente. Outras exceções conhecidas
+/// (<c>DbUpdateConcurrencyException</c>, <c>ArgumentException</c>, ...) também dão 500 se chegarem aqui; a tabela
+/// única exceção → código está por fazer (DC-41, fica para m4).
+/// </remarks>
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetails) : IExceptionHandler
 {
     private static readonly Action<ILogger, string, Exception?> LogConflitoNegocio =
@@ -17,6 +26,8 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             LogLevel.Error,
             new EventId(1002, nameof(LogExcecaoNaoTratada)),
             "Unhandled exception of type {ExceptionType} (trace {TraceId})");
+
+    /// <summary>Escreve a resposta de erro; devolve <c>true</c> se a escreveu.</summary>
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
     {
         var eConflitoNegocio = exception is RegraDeNegocioException;

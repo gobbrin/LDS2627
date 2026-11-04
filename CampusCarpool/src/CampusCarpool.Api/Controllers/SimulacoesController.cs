@@ -8,12 +8,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Api.Controllers;
 
+/// <summary>
+/// Simulação do percurso de uma viagem se o condutor aceitar um pedido pendente (RF-F004-09, RF-F008-06).
+/// Rota <c>POST /api/v1/viagens/{viagemId}/simulacao</c>.
+/// </summary>
+/// <remarks>
+/// Não altera nada. Compara a rota atual (com os aceites) com a rota que resultaria de juntar o pedido, ambas
+/// otimizadas pelo <see cref="OtimizadorRotas"/> (P-07). Pontos omitidos assumem a origem ou o destino da viagem
+/// (P-20). Todo o cálculo tem um limite de 10 segundos.
+/// </remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/viagens/{viagemId:guid}/simulacao")]
 public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService mapas) : ControllerBase
 {
+    /// <summary>Corpo do pedido: o pedido pendente a simular.</summary>
     public sealed record SimularPedido(Guid PedidoId);
+    /// <summary>Resultado: rota original e simulada (distância em km, duração em minutos, ordem dos pontos) e o desvio.</summary>
     public sealed record RespostaSimulacao(
         Guid ViagemId, Guid PedidoId, string OrigemViagem, string DestinoViagem,
         string RecolhaPassageiro, string DestinoPassageiro,
@@ -22,6 +33,12 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
         decimal DesvioDistanciaKm, int DesvioDuracaoMinutos,
         IReadOnlyList<string> OrdemOriginal, IReadOnlyList<string> OrdemSimulada);
 
+    /// <summary>Simula a aceitação do pedido indicado.</summary>
+    /// <returns>
+    /// 200 simulação; 400 pedido sem pontos, ou recolha igual ao destino; 401; 403 não é o condutor; 404 viagem ou
+    /// pedido inexistente; 409 viagem não ativa/já partida ou pedido não pendente; 422 local não encontrado;
+    /// 502/503/504 problema no serviço de mapas.
+    /// </returns>
     [HttpPost]
     public async Task<IActionResult> Simular(Guid viagemId, [FromBody] SimularPedido? input, CancellationToken ct)
     {

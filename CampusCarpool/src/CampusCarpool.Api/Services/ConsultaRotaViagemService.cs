@@ -4,8 +4,22 @@ using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Api.Services;
 
+/// <summary>
+/// Rota atual de uma viagem com os pontos das participações aceites (RF-F008-03, RF-F008-05).
+/// Usada pela consulta da rota (<c>RotasController</c>) e pela estimativa de custo (<c>ViagensController</c>).
+/// </summary>
+/// <remarks>
+/// Recalculada em cada consulta: a origem e o destino usam as coordenadas guardadas, mas os pontos dos passageiros
+/// são geocodificados de novo a partir do texto, um pedido por ponto (DO-05). Pedidos HTTP: 1 por ponto adicional
+/// mais 1 por segmento da rota.
+/// </remarks>
 public sealed class ConsultaRotaViagemService(MapasService mapas)
 {
+    /// <summary>Calcula a rota com os pontos ordenados e os segmentos.</summary>
+    /// <param name="viagem">Viagem.</param>
+    /// <param name="participacoes">Participações da viagem; só as aceites são usadas.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A rota, ou <c>null</c> se algum local ou segmento não for encontrado.</returns>
     public async Task<ResultadoRotaComPontos?> CalcularAsync(
         Viagem viagem,
         IEnumerable<Participacao> participacoes,

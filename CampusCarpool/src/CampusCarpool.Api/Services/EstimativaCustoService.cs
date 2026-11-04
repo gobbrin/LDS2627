@@ -3,6 +3,8 @@ namespace CampusCarpool.Api.Services;
 
 using CampusCarpool.Domain.Services;
 
+/// <summary>Estimativa de custo devolvida ao cliente (RF-F008-10, RF-F008-11).</summary>
+/// <remarks><c>Indicativo</c> é sempre <c>true</c>: o valor é só uma referência para dividir despesas, não um preço.</remarks>
 public sealed record ResultadoEstimativaCusto(
     decimal DistanciaKm,
     decimal PrecoPorKm,
@@ -14,9 +16,15 @@ public sealed record ResultadoEstimativaCusto(
     string Moeda
 );
 
+/// <summary>Junta a configuração (<c>Custos:PrecoPorKm</c>) ao cálculo do Domain (<see cref="CalculadoraDeCusto"/>, P-06).</summary>
 public sealed class EstimativaCustoService(
     IConfiguration config)
 {
+    /// <summary>Calcula o custo total e por participante (condutor incluído).</summary>
+    /// <param name="distanciaKm">Distância total da rota; tem de ser positiva.</param>
+    /// <param name="passageirosAceites">Passageiros aceites, de 0 a 8 (P-11).</param>
+    /// <exception cref="ArgumentOutOfRangeException">Distância não positiva ou passageiros fora de 0 a 8.</exception>
+    /// <exception cref="InvalidOperationException">Preço por km em falta ou não positivo na configuração.</exception>
     public ResultadoEstimativaCusto Calcular(
         decimal distanciaKm,
         int passageirosAceites)

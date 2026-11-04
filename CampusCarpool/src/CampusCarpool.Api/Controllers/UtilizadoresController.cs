@@ -9,18 +9,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Api.Controllers;
 
+/// <summary>Perfil do utilizador autenticado e perfil público de outros utilizadores (F001). Rotas em <c>/api/v1/utilizadores</c>.</summary>
+/// <remarks>
+/// Usa o <see cref="CampusCarpoolDbContext"/> diretamente. Não há endpoints para as ligações externas
+/// (RF-F001-15, RF-F001-16, RF-F001-22; DEF-BE-005, fica para m4).
+/// </remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/utilizadores")]
 public sealed class UtilizadoresController(
     CampusCarpoolDbContext db) : ControllerBase
 {
+    /// <summary>Corpo de <c>PUT me</c>. O nome é obrigatório; curso e instituição vazios passam a <c>null</c>.</summary>
     public sealed record AtualizarPerfil(
         string Nome,
         string? Curso,
         string? Instituicao
     );
 
+    // Id do utilizador autenticado, lido da claim "sub" (o JwtBearer mapeia-a para NameIdentifier).
     private Guid? ObterUtilizadorId()
     {
         var valor =
@@ -32,6 +39,7 @@ public sealed class UtilizadoresController(
     }
 
     // GET /api/v1/utilizadores/me
+    /// <summary>Perfil do próprio utilizador, incluindo o email (RF-F001-20). 200; 401; 404.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> ConsultarPerfil(
         CancellationToken ct)
@@ -114,6 +122,12 @@ public sealed class UtilizadoresController(
     }
 
     // PUT /api/v1/utilizadores/me
+    /// <summary>Altera nome, curso e instituição do próprio utilizador (RF-F001-14).</summary>
+    /// <remarks>
+    /// Só altera o perfil do utilizador do token, por isso ninguém altera o perfil de outro (RF-F001-18).
+    /// O limite de 150 caracteres para curso e instituição é do código; P-26 ainda não o define (D-004).
+    /// </remarks>
+    /// <returns>200 perfil atualizado; 400 dados inválidos; 401; 404.</returns>
     [HttpPut("me")]
     public async Task<IActionResult> Atualizar(
         [FromBody] AtualizarPerfil input,

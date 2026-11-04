@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Disponibiliza as notificações pessoais do utilizador autenticado.</summary>
+/// <remarks>Caixa de notificações (RF-F006-07). Rotas em <c>/api/v1/notificacoes</c>; todas exigem sessão (401 sem ela).</remarks>
 [ApiController, Authorize, Route("api/v1/notificacoes")]
 public sealed class NotificacoesController(INotificacaoService notificacaoService) : ControllerBase
 {
@@ -14,6 +15,7 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
         out var id) ? id : null;
 
     /// <summary>Lista notificações paginadas da mais recente para a mais antiga.</summary>
+    /// <returns>200 <see cref="PaginaNotificacoes"/>; 400 paginação inválida.</returns>
     [HttpGet]
     public async Task<IActionResult> Listar([FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken ct = default)
     {
@@ -24,6 +26,7 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     }
 
     /// <summary>Marca uma notificação do próprio utilizador como lida.</summary>
+    /// <returns>204; 404 se não existir ou for de outro utilizador.</returns>
     [HttpPut("{id:guid}/ler")]
     public async Task<IActionResult> MarcarComoLida(Guid id, CancellationToken ct)
     {
@@ -34,6 +37,7 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     }
 
     /// <summary>Marca todas as notificações do próprio utilizador como lidas.</summary>
+    /// <returns>200 <c>{ marcadas }</c>.</returns>
     [HttpPut("ler-todas")]
     public async Task<IActionResult> MarcarTodasComoLidas(CancellationToken ct)
     {
