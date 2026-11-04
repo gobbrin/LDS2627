@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Repositories;
 
+/// <summary>Implementação EF Core de <see cref="IRepositorioParticipacoes"/>.</summary>
 public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : IRepositorioParticipacoes
 {
 
@@ -19,6 +20,7 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
     }
 
     // Lista as participações de uma viagem, podendo filtrar pelo estado.
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Participacao>> ListarPorViagemAsync(Guid viagemId, EstadoParticipacao? estado, CancellationToken ct)
     {
         var query = context.Participacoes
@@ -34,6 +36,7 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
     }
 
     // Lista as participações de um passageiro.
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Participacao>> ListarPorPassageiroAsync(Guid passageiroId, CancellationToken ct)
     {
         return await context.Participacoes
@@ -44,6 +47,7 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
 
     // Verifica se o passageiro tem uma participação pendente ou aceite
     // na viagem indicada.
+    /// <inheritdoc />
     public async Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct)
     {
         return await context.Participacoes

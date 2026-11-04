@@ -9,6 +9,10 @@ namespace CampusCarpool.Infrastructure.Services;
 /// <summary>
 /// Implementação de <see cref="IConclusaoViagensService"/> sobre o EF Core (DEF-BE-009).
 /// </summary>
+/// <remarks>
+/// Cada viagem é concluída e gravada à parte (UC-F002-05, E1), limpando o <c>ChangeTracker</c> entre viagens.
+/// A conclusão automática não cria notificações.
+/// </remarks>
 public sealed class ConclusaoViagensService(
     CampusCarpoolDbContext db,
     ILogger<ConclusaoViagensService> logger) : IConclusaoViagensService
@@ -19,6 +23,7 @@ public sealed class ConclusaoViagensService(
             new EventId(1, "FalhaConclusaoViagem"),
             "Falha ao concluir automaticamente a viagem {ViagemId}; nova tentativa na próxima verificação.");
 
+    /// <inheritdoc />
     public async Task<int> ConcluirViagensTerminadasAsync(DateTime agora, CancellationToken ct)
     {
         // A duração não é negativa, por isso a partida já passou em todas as candidatas.
@@ -60,6 +65,7 @@ public sealed class ConclusaoViagensService(
         return concluidas;
     }
 
+    // Conclui uma viagem e cancela os seus pendentes; devolve false se já não estava Ativa.
     private async Task<bool> ConcluirAsync(Guid viagemId, CancellationToken ct)
     {
         var viagem = await db.Viagens.SingleAsync(v => v.Id == viagemId, ct);

@@ -30,6 +30,13 @@ public sealed class TrabalhadorConclusaoViagens(
     public TimeSpan Intervalo { get; } = TimeSpan.FromSeconds(
         Math.Max(1, configuration.GetValue("ConclusaoViagens:IntervaloSegundos", 60)));
 
+    /// <summary>Executa a verificação a cada <see cref="Intervalo"/> até a aplicação parar.</summary>
+    /// <remarks>
+    /// Cria um <em>scope</em> de DI por verificação, porque o serviço usa o <c>DbContext</c> (Scoped) e o
+    /// trabalhador é Singleton. Com várias instâncias da API, cada uma corre o seu temporizador; a
+    /// verificação do estado e a coluna <c>Versao</c> (SQL Server) evitam concluir a mesma viagem duas vezes.
+    /// </remarks>
+    /// <param name="stoppingToken">Cancelado quando a aplicação termina.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var temporizador = new PeriodicTimer(Intervalo);

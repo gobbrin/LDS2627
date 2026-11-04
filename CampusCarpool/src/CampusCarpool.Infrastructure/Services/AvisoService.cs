@@ -11,11 +11,15 @@ namespace CampusCarpool.Infrastructure.Services;
 /// Um aviso é guardado uma vez em <c>Avisos</c>. Para cada participação aceite
 /// é criada uma cópia dirigida em <c>Notificacoes</c>. As duas operações usam
 /// a mesma transação para não deixar avisos sem os seus destinatários.
+/// Está na Infrastructure (usa o <c>DbContext</c> diretamente), embora tenha regras de negócio (AP-04).
+/// As notificações de aviso não passam pelo <c>NotificacaoService</c>, por isso não geram push (RF-F006-17).
 /// </remarks>
 public sealed class AvisoService(CampusCarpoolDbContext db) : IAvisoService
 {
+    // P-28 (100 caracteres); o mesmo limite está no DbContext (HasMaxLength(100)).
     private const int TamanhoMaximoConteudo = 100;
 
+    /// <inheritdoc />
     public async Task<(ResultadoCriacaoAviso Resultado, Aviso? Aviso)> CriarAsync(
         Guid viagemId, Guid condutorId, string? conteudo, CancellationToken ct)
     {
@@ -30,6 +34,9 @@ public sealed class AvisoService(CampusCarpoolDbContext db) : IAvisoService
         if (viagem.CondutorId != condutorId)
             return (ResultadoCriacaoAviso.NaoAutorizado, null);
 
+        // DEF-BE-017 (fica para m4): RF-F005-05 só permite avisos em viagens Ativas; o estado não é verificado.
+
+        // Serializable: a lista de passageiros é lida dentro da transação que grava o aviso e as notificações.
         await using var transaction = await db.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable, ct);
 
@@ -61,6 +68,8 @@ public sealed class AvisoService(CampusCarpoolDbContext db) : IAvisoService
         return (ResultadoCriacaoAviso.Sucesso, aviso);
     }
 
+    /// <inheritdoc />
+    /// <remarks>Os avisos vêm do mais recente para o mais antigo.</remarks>
     public async Task<(ResultadoConsultaAvisos Resultado, IReadOnlyList<Aviso> Avisos)> ListarAsync(
         Guid viagemId, Guid utilizadorId, CancellationToken ct)
     {

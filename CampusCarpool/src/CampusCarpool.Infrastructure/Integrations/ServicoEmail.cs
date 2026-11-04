@@ -9,6 +9,10 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// <remarks>
 /// Esta classe contém o detalhe externo da integração. A API depende apenas de
 /// <see cref="IServicoEmail"/> e os testes substituem-na por um fake.
+/// Configuração: <c>Brevo:ApiKey</c>, <c>Brevo:FromEmail</c>, <c>Brevo:FromName</c> (opcional) e
+/// <c>Frontend:ConfirmUrl</c> (página <c>/confirmar-conta</c> do frontend, que recebe <c>?token=…</c> e chama
+/// <c>POST /api/v1/autenticacao/confirmar</c>).
+/// Registada no <c>Program.cs</c> com <c>AddHttpClient</c>.
 /// </remarks>
 public sealed class ServicoEmail(
     IConfiguration configuration,
@@ -17,6 +21,10 @@ public sealed class ServicoEmail(
     // A API conhece apenas IServicoEmail; Brevo fica isolado nesta integração.
     // Um fornecedor diferente pode implementar o mesmo contrato sem alterar controllers.
     /// <summary>Envia o email de confirmação através da API Brevo.</summary>
+    /// <exception cref="InvalidOperationException">Falta a configuração da Brevo ou o URL de confirmação.</exception>
+    /// <exception cref="HttpRequestException">
+    /// A Brevo recusou o envio. O registo não apanha esta exceção e responde 500 (DC-43 / IN-03, fica para m4).
+    /// </exception>
     public async Task EnviarConfirmacaoAsync(
         string destino,
         string token,

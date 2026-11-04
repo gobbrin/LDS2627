@@ -5,6 +5,14 @@ using Microsoft.Extensions.Logging;
 
 namespace CampusCarpool.Infrastructure.Services;
 
+/// <summary>
+/// Trabalhador em segundo plano que lê a <see cref="IFilaNotificacoesPush"/> e envia cada push pelo
+/// <see cref="IServicoPush"/> (Firebase), fora do pedido HTTP (P-24: entrega em 30 segundos).
+/// </summary>
+/// <remarks>
+/// Cada envio usa um <em>scope</em> de DI novo, porque o <c>ServicoPush</c> depende de um repositório Scoped
+/// (o <c>DbContext</c>) e este trabalhador é Singleton. Uma falha é registada no log e não se tenta de novo.
+/// </remarks>
 public sealed class TrabalhadorNotificacoesPush(
     IFilaNotificacoesPush fila,
     IServiceScopeFactory scopeFactory,
@@ -22,6 +30,8 @@ public sealed class TrabalhadorNotificacoesPush(
         _falhaEnvioNotificacaoPush(logger, utilizadorId, exception);
     }
 
+    /// <summary>Processa a fila até a aplicação parar.</summary>
+    /// <param name="stoppingToken">Cancelado quando a aplicação termina.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await foreach (var notificacao in fila.LerPendentesAsync(stoppingToken))

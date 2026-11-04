@@ -9,9 +9,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CampusCarpool.Infrastructure.DependencyInjection;
 
+/// <summary>Registo da camada Infrastructure: base de dados, repositórios, serviços e trabalhadores em segundo plano.</summary>
+/// <remarks>
+/// As integrações externas com <c>HttpClient</c> (<c>ServicoEmail</c>, <c>ServicoPush</c>) e o
+/// <c>HistoricoService</c> são registados no <c>Program.cs</c> da Api, não aqui.
+/// </remarks>
 public static class InfrastructureServiceRegistration
 {
-    // Regista os serviços e o acesso à base de dados.
+    /// <summary>Regista os serviços e o acesso à base de dados.</summary>
+    /// <param name="services">Coleção de serviços da aplicação.</param>
+    /// <param name="configuration">Configuração; tem de ter <c>ConnectionStrings:DefaultConnection</c>.</param>
+    /// <returns>A mesma coleção, para encadear chamadas.</returns>
+    /// <exception cref="InvalidOperationException">Falta a connection string (a API não arranca sem ela).</exception>
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -22,6 +31,7 @@ public static class InfrastructureServiceRegistration
                 "ConnectionStrings:DefaultConnection não configurada.");
 
         // Configura o Entity Framework Core para SQL Server.
+        // As migrations não são aplicadas ao arrancar: aplicam-se à parte (dotnet ef database update ou script).
         services.AddDbContext<CampusCarpoolDbContext>(
             options => options.UseSqlServer(connection));
 
@@ -50,12 +60,14 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
         // Serviço da unidade de trabalho.
+        // Registo repetido (T6, fica para m4): é inofensivo, o segundo substitui o primeiro.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
         // I048 - Repositório de avaliações.
         services.AddScoped<IRepositorioAvaliacoes, RepositorioAvaliacoes>();
 
         // Fila partilhada de notificações push (I047).
+        // Singleton: a mesma fila em memória é partilhada por todos os pedidos e pelo trabalhador.
         services.AddSingleton<IFilaNotificacoesPush, FilaNotificacoesPush>();
 
         // Trabalhador que processa a fila em segundo plano (I047).

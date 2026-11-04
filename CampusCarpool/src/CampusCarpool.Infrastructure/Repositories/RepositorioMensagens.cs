@@ -5,17 +5,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Repositories;
 
+/// <summary>Implementação EF Core de <see cref="IRepositorioMensagens"/>.</summary>
 public sealed class RepositorioMensagens(CampusCarpoolDbContext context) : IRepositorioMensagens
 {
 
-    //Guarda a mensagem e persiste as alterações.
+    /// <inheritdoc />
+    /// <remarks>Guarda a mensagem e persiste as alterações.</remarks>
     public async Task AdicionarAsync(Mensagem mensagem, CancellationToken ct)
     {
         await context.Mensagens.AddAsync(mensagem, ct);
         await context.SaveChangesAsync(ct);
     }
 
-    //Recupera a conversa nos dois sentidos, por ordem cronológica.
+    /// <inheritdoc />
+    /// <remarks>
+    /// Recupera a conversa nos dois sentidos, por ordem cronológica. O desempate por <c>Id</c> torna a
+    /// ordem estável quando duas mensagens têm a mesma data.
+    /// </remarks>
     public async Task<IReadOnlyList<Mensagem>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
     {
         return await context.Mensagens

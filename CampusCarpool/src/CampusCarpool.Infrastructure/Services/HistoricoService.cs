@@ -6,16 +6,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Services;
 
+/// <summary>Implementação do histórico pessoal (F009) sobre o EF Core. Ver <see cref="IHistoricoService"/>.</summary>
+/// <remarks>
+/// Está na Infrastructure e é registado no <c>Program.cs</c> (AP-04). São seis consultas só de leitura, sem
+/// paginação (AP-10). As viagens só aparecem depois de partirem ou de deixarem de estar ativas: as ativas
+/// futuras ainda não são "histórico". As conversões de enums para texto são feitas em memória, depois do
+/// <c>ToListAsync</c>, para não depender da tradução do fornecedor de BD.
+/// </remarks>
 public sealed class HistoricoService(
     CampusCarpoolDbContext db) : IHistoricoService
 {
+    /// <inheritdoc />
     public async Task<HistoricoResultado> ConsultarAsync(
         Guid utilizadorId,
         CancellationToken ct)
     {
         var agora = DateTime.UtcNow;
 
-        // Viagens em que o utilizador foi condutor
+        // Viagens em que o utilizador foi condutor (RF-F009-02), da partida mais recente para a mais antiga (RF-F009-06)
         var condutor = await db.Viagens
             .AsNoTracking()
             .Where(v =>
@@ -73,7 +81,7 @@ public sealed class HistoricoService(
                 p.Estado.ToString()))
             .ToList();
 
-        // Pedidos efetuados pelo utilizador
+        // Pedidos efetuados pelo utilizador (RF-F009-04), em todos os estados
         var pedidosEfetuadosDb = await db.Participacoes
             .AsNoTracking()
             .Where(p => p.PassageiroId == utilizadorId)
@@ -129,7 +137,7 @@ public sealed class HistoricoService(
                 p.Estado.ToString()))
             .ToList();
 
-        // Notificacoes pessoais
+        // Notificacoes pessoais (RF-F009-05); repete a lista paginada de /notificacoes, aqui sem paginação
         var notificacoesDb = await db.Notificacoes
             .AsNoTracking()
             .Where(n => n.UtilizadorId == utilizadorId)

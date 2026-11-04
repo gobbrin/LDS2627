@@ -10,10 +10,20 @@ using Microsoft.Extensions.Logging;
 namespace CampusCarpool.Infrastructure.Integrations;
 
 /// <summary>Firebase Cloud Messaging HTTP v1; autenticação OAuth2 por service account.</summary>
+/// <remarks>
+/// Configuração: <c>Firebase:ProjectId</c>, <c>Firebase:ClientEmail</c> e <c>Firebase:PrivateKey</c> (PEM; as
+/// quebras de linha podem vir escritas como <c>\n</c>). Sem configuração, o push é ignorado com um aviso no log.
+/// Os erros nunca chegam ao pedido HTTP do utilizador: o envio corre no <c>TrabalhadorNotificacoesPush</c>.
+/// IN-05 (fica para m4): pede um token OAuth novo em cada envio (não o guarda em cache durante a hora de validade).
+/// </remarks>
 public sealed class ServicoPush(HttpClient http, IConfiguration config,
     IRepositorioDispositivos dispositivos, ILogger<ServicoPush> logger) : IServicoPush
 {
+    // Base64url sem "=" (formato exigido pelo JWT).
     private static string B64(byte[] data) => Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    // Fluxo OAuth2 "JWT bearer" da Google: assina um JWT RS256 com a chave privada da service account e troca-o
+    // por um access token. Devolve null se o Firebase não estiver configurado.
     private async Task<string?> ObterAccessTokenAsync(CancellationToken ct)
     {
         var project = config["Firebase:ProjectId"];
@@ -45,6 +55,11 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         using var doc = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync(ct));
         return doc.RootElement.GetProperty("access_token").GetString();
     }
+    /// <inheritdoc />
+    /// <remarks>
+    /// Um pedido ao FCM por dispositivo ativo. Os tokens que o FCM declara inválidos (404 ou
+    /// <c>UNREGISTERED</c>) são desativados; as outras falhas só ficam no log.
+    /// </remarks>
     public async Task EnviarAsync(Guid utilizadorId, string titulo, string mensagem, string tipo, CancellationToken ct)
     {
         var tokens = await dispositivos.ListarAtivosAsync(utilizadorId, ct);
