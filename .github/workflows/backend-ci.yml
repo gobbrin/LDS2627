@@ -41,13 +41,33 @@ jobs:
           dotnet format whitespace CampusCarpool.slnx \
             --verify-no-changes \
             --verbosity diagnostic
+          dotnet format style CampusCarpool.slnx \
+            --verify-no-changes \
+            --no-restore \
+            --verbosity diagnostic
 
+      - name: Vulnerable Packages
+        shell: bash
+        run: |
+          dotnet list CampusCarpool.slnx package \
+            --vulnerable \
+            --include-transitive | tee vulnerable-packages.txt
+          if grep -q "has the following vulnerable packages" vulnerable-packages.txt; then
+            echo "QUALITY GATE FAILED: vulnerable NuGet packages found."
+            exit 1
+          fi
+
+      # O IT023 precisa de SQL Server: sem CAMPUSCARPOOL_TESTES_SQLSERVER
+      # fica marcado como saltado no relatório (SqlServerFactAttribute).
+      # A cobertura exclui as Migrations (coverage.runsettings).
       - name: Test with Coverage
         run: |
           dotnet test CampusCarpool.slnx \
             --configuration Release \
             --no-restore \
+            --settings coverage.runsettings \
             --collect:"XPlat Code Coverage" \
+            --logger "trx;LogFileName=test-results.trx" \
             --results-directory TestResults
 
       - name: Quality Gate
