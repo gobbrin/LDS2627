@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      MIN_COVERAGE: "10"
+      MIN_COVERAGE: "80"
 
     defaults:
       run:
