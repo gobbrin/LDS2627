@@ -61,6 +61,10 @@ public static class InfrastructureServiceRegistration
         // Trabalhador que processa a fila em segundo plano (I047).
         services.AddHostedService<TrabalhadorNotificacoesPush>();
 
+        // Conclusão automática das viagens (I110, DEF-BE-009; UC-F002-05).
+        services.AddScoped<IConclusaoViagensService, ConclusaoViagensService>();
+        services.AddHostedService<TrabalhadorConclusaoViagens>();
+
         return services;
     }
 }
