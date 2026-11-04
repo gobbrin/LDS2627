@@ -22,7 +22,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     /// <summary>Cria um aviso e notifica os passageiros com participação aceite.</summary>
     [HttpPost]
     public async Task<IActionResult> Criar(Guid viagemId, CriarAviso? input, CancellationToken ct)
-    {   
+    {
         if (UtilizadorId is not Guid condutorId) return Unauthorized();
 
         var resultado = await avisoService.CriarAsync(viagemId, condutorId, input?.Conteudo, ct);
@@ -31,7 +31,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
             ResultadoCriacaoAviso.Sucesso => Created(
                 // CORREÇÃO: Aponta para a rota da lista de avisos (que existe), 
                 // em vez de apontar para um ID individual (que não existe na I044).
-                $"/api/v1/viagens/{viagemId}/avisos", 
+                $"/api/v1/viagens/{viagemId}/avisos",
                 new { resultado.Aviso!.Id, resultado.Aviso.Conteudo, resultado.Aviso.CriadoEm }),
             ResultadoCriacaoAviso.ViagemNaoEncontrada => NotFound(),
             ResultadoCriacaoAviso.NaoAutorizado => Forbid(),

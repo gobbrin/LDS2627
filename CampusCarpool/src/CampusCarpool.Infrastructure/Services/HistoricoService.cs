@@ -34,26 +34,26 @@ public sealed class HistoricoService(
             .ToListAsync(ct);
 
         // Participacoes do utilizador em viagens
-       
-var participacoes = await db.Participacoes
-    .AsNoTracking()
-    .Where(p =>
-        p.PassageiroId == utilizadorId &&
-        p.Estado == EstadoParticipacao.Aceite &&
-        (p.Viagem.PartidaEm <= agora ||
-         p.Viagem.Estado != "Ativa"))
-            .OrderByDescending(p => p.Viagem.PartidaEm)
-            .Select(p => new
-            {
-                p.Id,
-                p.ViagemId,
-                p.Viagem.Origem,
-                p.Viagem.Destino,
-                p.Viagem.PartidaEm,
-                EstadoViagem = p.Viagem.Estado,
-                p.Estado
-            })
-            .ToListAsync(ct);
+
+        var participacoes = await db.Participacoes
+            .AsNoTracking()
+            .Where(p =>
+                p.PassageiroId == utilizadorId &&
+                p.Estado == EstadoParticipacao.Aceite &&
+                (p.Viagem.PartidaEm <= agora ||
+                 p.Viagem.Estado != "Ativa"))
+                    .OrderByDescending(p => p.Viagem.PartidaEm)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.ViagemId,
+                        p.Viagem.Origem,
+                        p.Viagem.Destino,
+                        p.Viagem.PartidaEm,
+                        EstadoViagem = p.Viagem.Estado,
+                        p.Estado
+                    })
+                    .ToListAsync(ct);
 
         var passageiro = participacoes
             .Select(p => new ViagemHistorico(

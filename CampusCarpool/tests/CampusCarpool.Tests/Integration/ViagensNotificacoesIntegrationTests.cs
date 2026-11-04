@@ -15,13 +15,16 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
-public sealed class ViagensNotificacoesIntegrationTests {
+public sealed class ViagensNotificacoesIntegrationTests
+{
 
-    private sealed class Fixture : IDisposable {
+    private sealed class Fixture : IDisposable
+    {
         private readonly SqliteConnection _connection = new("Data Source=:memory:");
         public CampusCarpoolDbContext Db { get; }
 
-        public Fixture() {
+        public Fixture()
+        {
             _connection.Open();
 
             var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
@@ -32,8 +35,10 @@ public sealed class ViagensNotificacoesIntegrationTests {
             Db.Database.EnsureCreated();
         }
 
-        public async Task<Utilizador> CriarUtilizadorAsync() {
-            var utilizador = new Utilizador {
+        public async Task<Utilizador> CriarUtilizadorAsync()
+        {
+            var utilizador = new Utilizador
+            {
                 Nome = "Utilizador de teste",
                 Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
                 EmailConfirmado = true
@@ -45,15 +50,18 @@ public sealed class ViagensNotificacoesIntegrationTests {
             return utilizador;
         }
 
-        public void Dispose() {
+        public void Dispose()
+        {
             Db.Dispose();
             _connection.Dispose();
         }
     }
 
-    private static ViagensController CriarController(CampusCarpoolDbContext db, Guid condutorId) {
+    private static ViagensController CriarController(CampusCarpoolDbContext db, Guid condutorId)
+    {
         var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> {
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes"
             })
             .Build();
@@ -68,8 +76,10 @@ public sealed class ViagensNotificacoesIntegrationTests {
 
         var controller = new ViagensController(db, mapas, notificacaoService: notificacaoService);
 
-        controller.ControllerContext = new ControllerContext {
-            HttpContext = new DefaultHttpContext {
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                         new[] {
@@ -85,14 +95,16 @@ public sealed class ViagensNotificacoesIntegrationTests {
     }
 
     [Fact]
-    public async Task EditarViagem_NotificaPassageirosAceitesMasNaoPendentes() {
+    public async Task EditarViagem_NotificaPassageirosAceitesMasNaoPendentes()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizadorAsync();
         var passageiroAceite = await f.CriarUtilizadorAsync();
         var passageiroPendente = await f.CriarUtilizadorAsync();
 
-        var viagem = new Viagem {
+        var viagem = new Viagem
+        {
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -105,12 +117,14 @@ public sealed class ViagensNotificacoesIntegrationTests {
         f.Db.Viagens.Add(viagem);
 
         f.Db.Participacoes.AddRange(
-            new Participacao {
+            new Participacao
+            {
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroAceite.Id,
                 Estado = EstadoParticipacao.Aceite
             },
-            new Participacao {
+            new Participacao
+            {
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroPendente.Id,
                 Estado = EstadoParticipacao.Pendente
@@ -137,18 +151,20 @@ public sealed class ViagensNotificacoesIntegrationTests {
 
         Assert.Equal(TipoNotificacao.AlteracaoViagem, notificacao.Tipo);
 
-        Assert.DoesNotContain( notificacoes, n => n.UtilizadorId == passageiroPendente.Id);
+        Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == passageiroPendente.Id);
     }
 
     [Fact]
-    public async Task IndisponibilizarViagem_NotificaPassageirosAceitesMasNaoPendentes() {
+    public async Task IndisponibilizarViagem_NotificaPassageirosAceitesMasNaoPendentes()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizadorAsync();
         var passageiroAceite = await f.CriarUtilizadorAsync();
         var passageiroPendente = await f.CriarUtilizadorAsync();
 
-        var viagem = new Viagem {
+        var viagem = new Viagem
+        {
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -161,12 +177,14 @@ public sealed class ViagensNotificacoesIntegrationTests {
         f.Db.Viagens.Add(viagem);
 
         f.Db.Participacoes.AddRange(
-            new Participacao {
+            new Participacao
+            {
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroAceite.Id,
                 Estado = EstadoParticipacao.Aceite
             },
-            new Participacao {
+            new Participacao
+            {
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroPendente.Id,
                 Estado = EstadoParticipacao.Pendente

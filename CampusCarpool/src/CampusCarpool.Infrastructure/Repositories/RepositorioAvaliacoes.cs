@@ -4,6 +4,7 @@ using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Infrastructure.Repositories;
+
 public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IRepositorioAvaliacoes
 {
     public Task<Viagem?> ObterViagemAsync(Guid id, CancellationToken ct) => db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, ct);

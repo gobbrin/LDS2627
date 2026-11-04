@@ -6,13 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Repositories;
 
-public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : IRepositorioParticipacoes {
+public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : IRepositorioParticipacoes
+{
 
     /// <summary>
     /// Obtém uma participação pelo identificador.
     /// A entidade permanece rastreada para permitir alterações posteriores.
     /// </summary>
-    public async Task<Participacao?> ObterPorIdAsync(Guid participacaoId, CancellationToken ct) {
+    public async Task<Participacao?> ObterPorIdAsync(Guid participacaoId, CancellationToken ct)
+    {
         return await context.Participacoes.FirstOrDefaultAsync(p => p.Id == participacaoId, ct);
     }
 
@@ -23,7 +25,7 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
             .AsNoTracking()
             .Where(p => p.ViagemId == viagemId);
 
-        if(estado.HasValue)
+        if (estado.HasValue)
         {
             query = query.Where(p => p.Estado == estado.Value);
         }

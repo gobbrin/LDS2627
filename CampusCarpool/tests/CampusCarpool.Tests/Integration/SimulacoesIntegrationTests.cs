@@ -42,15 +42,22 @@ public sealed class SimulacoesIntegrationTests
             Db.Utilizadores.AddRange(Condutor, Passageiro, Terceiro);
             Viagem = new Viagem
             {
-                CondutorId = Condutor.Id, Origem = "Porto", Destino = "Felgueiras",
-                PartidaEm = DateTime.UtcNow.AddDays(3), LugaresOferecidos = 3,
-                LugaresDisponiveis = 3, Estado = "Ativa"
+                CondutorId = Condutor.Id,
+                Origem = "Porto",
+                Destino = "Felgueiras",
+                PartidaEm = DateTime.UtcNow.AddDays(3),
+                LugaresOferecidos = 3,
+                LugaresDisponiveis = 3,
+                Estado = "Ativa"
             };
             Db.Viagens.Add(Viagem);
             Pedido = new Participacao
             {
-                ViagemId = Viagem.Id, PassageiroId = Passageiro.Id,
-                Estado = EstadoParticipacao.Pendente, Recolha = "Lousada", Destino = "Penafiel"
+                ViagemId = Viagem.Id,
+                PassageiroId = Passageiro.Id,
+                Estado = EstadoParticipacao.Pendente,
+                Recolha = "Lousada",
+                Destino = "Penafiel"
             };
             Db.Participacoes.Add(Pedido);
             Db.SaveChanges();
@@ -102,8 +109,13 @@ public sealed class SimulacoesIntegrationTests
                 var nome = index >= 0 ? query[(index + 5)..].Split('&')[0] : "";
                 var pos = nome switch
                 {
-                    "Porto" => 1, "Felgueiras" => 2, "Lousada" => 3,
-                    "Penafiel" => 4, "Amarante" => 5, "Trofa" => 6, _ => 7
+                    "Porto" => 1,
+                    "Felgueiras" => 2,
+                    "Lousada" => 3,
+                    "Penafiel" => 4,
+                    "Amarante" => 5,
+                    "Trofa" => 6,
+                    _ => 7
                 };
                 return Json(new { features = new[] { new { geometry = new { coordinates = new[] { (double)pos, 41.0 } } } } });
             }
@@ -164,8 +176,15 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_05_PedidoDeOutraViagem_Devolve404()
     {
         using var f = new Fixture();
-        var outra = new Viagem { CondutorId = f.Condutor.Id, Origem = "A", Destino = "B",
-            PartidaEm = DateTime.UtcNow.AddDays(2), LugaresOferecidos = 2, LugaresDisponiveis = 2 };
+        var outra = new Viagem
+        {
+            CondutorId = f.Condutor.Id,
+            Origem = "A",
+            Destino = "B",
+            PartidaEm = DateTime.UtcNow.AddDays(2),
+            LugaresOferecidos = 2,
+            LugaresDisponiveis = 2
+        };
         f.Db.Viagens.Add(outra);
         await f.Db.SaveChangesAsync();
         Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(outra.Id,
@@ -238,7 +257,7 @@ public sealed class SimulacoesIntegrationTests
         Assert.Equal("Porto", resposta.OrdemSimulada[0]);
         Assert.Equal("Felgueiras", resposta.OrdemSimulada[^1]);
         f.Db.ChangeTracker.Clear();
-        Assert.Equal(antesLugares, (await f.Db.Viagens.SingleAsync()) .LugaresDisponiveis);
+        Assert.Equal(antesLugares, (await f.Db.Viagens.SingleAsync()).LugaresDisponiveis);
         Assert.Equal(antesEstado, (await f.Db.Participacoes.SingleAsync()).Estado);
     }
 
@@ -264,8 +283,11 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Db.Participacoes.Add(new Participacao
         {
-            ViagemId = f.Viagem.Id, PassageiroId = f.Terceiro.Id,
-            Estado = EstadoParticipacao.Aceite, Recolha = "Amarante", Destino = "Trofa"
+            ViagemId = f.Viagem.Id,
+            PassageiroId = f.Terceiro.Id,
+            Estado = EstadoParticipacao.Aceite,
+            Recolha = "Amarante",
+            Destino = "Trofa"
         });
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,

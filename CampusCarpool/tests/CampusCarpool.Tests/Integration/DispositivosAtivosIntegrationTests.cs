@@ -1,10 +1,10 @@
 
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -66,74 +66,74 @@ public sealed class DispositivosAtivosIntegrationTests
     }
 
     [Fact]
-public async Task IT039_TokenDesativado_NaoOriginaEnvioPush()
-{
-    using var connection = new SqliteConnection("Data Source=:memory:");
-    await connection.OpenAsync();
-
-    var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-        .UseSqlite(connection)
-        .Options;
-
-    await using var db = new CampusCarpoolDbContext(options);
-    await db.Database.EnsureCreatedAsync();
-
-    var utilizador = new Utilizador
+    public async Task IT039_TokenDesativado_NaoOriginaEnvioPush()
     {
-        Nome = "Passageiro teste",
-        Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
-        EmailConfirmado = true
-    };
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
 
-    db.Utilizadores.Add(utilizador);
-    await db.SaveChangesAsync();
+        var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+            .UseSqlite(connection)
+            .Options;
 
-    var repositorio = new RepositorioDispositivo(db);
+        await using var db = new CampusCarpoolDbContext(options);
+        await db.Database.EnsureCreatedAsync();
 
-    const string token = "token-fcm-desativado";
+        var utilizador = new Utilizador
+        {
+            Nome = "Passageiro teste",
+            Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
+            EmailConfirmado = true
+        };
 
-    await repositorio.RegistarAsync(
-        utilizador.Id, token, CancellationToken.None);
+        db.Utilizadores.Add(utilizador);
+        await db.SaveChangesAsync();
 
-    await repositorio.DesativarAsync(
-        utilizador.Id, token, CancellationToken.None);
+        var repositorio = new RepositorioDispositivo(db);
 
-    var pedidosHttp = 0;
+        const string token = "token-fcm-desativado";
 
-    using var http = new HttpClient(
-        new HandlerHttpFalso(() => pedidosHttp++));
+        await repositorio.RegistarAsync(
+            utilizador.Id, token, CancellationToken.None);
 
-    var configuracao = new ConfigurationBuilder()
-        .AddInMemoryCollection(new Dictionary<string, string?>())
-        .Build();
+        await repositorio.DesativarAsync(
+            utilizador.Id, token, CancellationToken.None);
 
-    var push = new ServicoPush(
-        http,
-        configuracao,
-        repositorio,
-        NullLogger<ServicoPush>.Instance);
+        var pedidosHttp = 0;
 
-    await push.EnviarAsync(
-        utilizador.Id,
-        "Pedido aceite",
-        "O teu pedido foi aceite.",
-        "PedidoAceite",
-        CancellationToken.None);
+        using var http = new HttpClient(
+            new HandlerHttpFalso(() => pedidosHttp++));
 
-    Assert.Equal(0, pedidosHttp);
-}
+        var configuracao = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>())
+            .Build();
 
-private sealed class HandlerHttpFalso(Action registarPedido)
-    : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken)
-    {
-        registarPedido();
+        var push = new ServicoPush(
+            http,
+            configuracao,
+            repositorio,
+            NullLogger<ServicoPush>.Instance);
 
-        return Task.FromResult(
-            new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        await push.EnviarAsync(
+            utilizador.Id,
+            "Pedido aceite",
+            "O teu pedido foi aceite.",
+            "PedidoAceite",
+            CancellationToken.None);
+
+        Assert.Equal(0, pedidosHttp);
     }
-}
+
+    private sealed class HandlerHttpFalso(Action registarPedido)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            registarPedido();
+
+            return Task.FromResult(
+                new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        }
+    }
 }

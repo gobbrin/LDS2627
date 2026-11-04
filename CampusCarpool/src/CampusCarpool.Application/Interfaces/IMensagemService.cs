@@ -2,8 +2,9 @@ using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Interfaces;
 
-public interface IMensagemService {
-    
+public interface IMensagemService
+{
+
     //Envia uma mensagem em nome do utilizador autenticado.
     Task<Mensagem> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct);
 

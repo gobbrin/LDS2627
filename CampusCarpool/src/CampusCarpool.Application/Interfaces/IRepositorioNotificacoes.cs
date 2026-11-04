@@ -2,8 +2,9 @@ using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Interfaces;
 
-public interface IRepositorioNotificacoes {
-    
+public interface IRepositorioNotificacoes
+{
+
     //Guarda uma nova notificação na base de dados.
     Task AdicionarAsync(Notificacao notificacao, CancellationToken ct);
 

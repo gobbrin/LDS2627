@@ -31,7 +31,8 @@ public sealed class NotificadorPedidosFalso : INotificadorPedidosTempoReal
 public sealed class ServicoPushRegistador : IServicoPush
 {
     public List<(Guid UtilizadorId, string Titulo,
-        string Mensagem, string Tipo)> Envios { get; } = new();
+        string Mensagem, string Tipo)> Envios
+    { get; } = new();
 
     public bool SimularFalha { get; set; }
 

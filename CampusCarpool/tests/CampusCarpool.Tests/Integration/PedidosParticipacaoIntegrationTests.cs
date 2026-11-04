@@ -1,5 +1,8 @@
+using System.Net;
 using System.Security.Claims;
+using System.Text;
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Application.Services;
 using CampusCarpool.Domain.Entities;
@@ -10,11 +13,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
-using CampusCarpool.Api.Services;
 using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Text;
+using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
@@ -432,130 +432,130 @@ public sealed class PedidosParticipacaoIntegrationTests
         Assert.Null(pedido.Destino);
     }
     [Fact]
-public async Task PontoInexistente_Devolve422()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-
-    var controller = CriarController(
-        f.Db,
-        passageiro.Id,
-        new MapasSimulados(localEncontrado: false));
-
-    var resultado = await controller.Criar(
-        new(viagem.Id, "Local inexistente", null),
-        default);
-
-    Assert.Equal(
-        422,
-        Assert.IsType<UnprocessableEntityObjectResult>(resultado)
-            .StatusCode);
-
-    Assert.Empty(f.Db.Participacoes);
-}
-
-[Fact]
-public async Task ServicoMapasIndisponivel_Devolve502()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-
-    var controller = CriarController(
-        f.Db,
-        passageiro.Id,
-        new MapasSimulados(HttpStatusCode.ServiceUnavailable));
-
-    var resultado = await controller.Criar(
-        new(viagem.Id, "Maia", null),
-        default);
-
-    Assert.Equal(
-        502,
-        Assert.IsType<ObjectResult>(resultado).StatusCode);
-
-    Assert.Empty(f.Db.Participacoes);
-}
-
-[Fact]
-public async Task SemChaveMapas_ComPonto_Devolve503()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-
-    var configuracao = new ConfigurationBuilder().Build();
-
-    var mapas = new MapasService(
-        new HttpClient(),
-        configuracao);
-
-    var repositorioNotificacoes = new RepositorioNotificacoes(f.Db);
-    var filaPushFalsa = new FilaNotificacoesPushFalsa();
-
-    var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
-
-    var controller = new PedidosController(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
-
-    controller.ControllerContext = new ControllerContext
+    public async Task PontoInexistente_Devolve422()
     {
-        HttpContext = new DefaultHttpContext
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var controller = CriarController(
+            f.Db,
+            passageiro.Id,
+            new MapasSimulados(localEncontrado: false));
+
+        var resultado = await controller.Criar(
+            new(viagem.Id, "Local inexistente", null),
+            default);
+
+        Assert.Equal(
+            422,
+            Assert.IsType<UnprocessableEntityObjectResult>(resultado)
+                .StatusCode);
+
+        Assert.Empty(f.Db.Participacoes);
+    }
+
+    [Fact]
+    public async Task ServicoMapasIndisponivel_Devolve502()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var controller = CriarController(
+            f.Db,
+            passageiro.Id,
+            new MapasSimulados(HttpStatusCode.ServiceUnavailable));
+
+        var resultado = await controller.Criar(
+            new(viagem.Id, "Maia", null),
+            default);
+
+        Assert.Equal(
+            502,
+            Assert.IsType<ObjectResult>(resultado).StatusCode);
+
+        Assert.Empty(f.Db.Participacoes);
+    }
+
+    [Fact]
+    public async Task SemChaveMapas_ComPonto_Devolve503()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var configuracao = new ConfigurationBuilder().Build();
+
+        var mapas = new MapasService(
+            new HttpClient(),
+            configuracao);
+
+        var repositorioNotificacoes = new RepositorioNotificacoes(f.Db);
+        var filaPushFalsa = new FilaNotificacoesPushFalsa();
+
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+
+        var controller = new PedidosController(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
+
+        controller.ControllerContext = new ControllerContext
         {
-            User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    new[]
-                    {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
                         new Claim(
                             ClaimTypes.NameIdentifier,
                             passageiro.Id.ToString())
-                    },
-                    "Test"))
-        }
-    };
+                        },
+                        "Test"))
+            }
+        };
 
-    var resultado = await controller.Criar(
-        new(viagem.Id, "Maia", null),
-        default);
+        var resultado = await controller.Criar(
+            new(viagem.Id, "Maia", null),
+            default);
 
-    Assert.Equal(
-        503,
-        Assert.IsType<ObjectResult>(resultado).StatusCode);
+        Assert.Equal(
+            503,
+            Assert.IsType<ObjectResult>(resultado).StatusCode);
 
-    Assert.Empty(f.Db.Participacoes);
-}
-[Fact]
-public async Task PedidosAtivosDuplicados_BaseDadosRejeitaSegundo()
-{
-    using var f = new Fixture();
-
-    var condutor = await f.CriarUtilizador();
-    var passageiro = await f.CriarUtilizador();
-    var viagem = await f.CriarViagem(condutor.Id);
-
-    f.Db.Participacoes.Add(new Participacao
+        Assert.Empty(f.Db.Participacoes);
+    }
+    [Fact]
+    public async Task PedidosAtivosDuplicados_BaseDadosRejeitaSegundo()
     {
-        ViagemId = viagem.Id,
-        PassageiroId = passageiro.Id,
-        Estado = EstadoParticipacao.Pendente
-    });
+        using var f = new Fixture();
 
-    await f.Db.SaveChangesAsync();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
 
-    f.Db.Participacoes.Add(new Participacao
-    {
-        ViagemId = viagem.Id,
-        PassageiroId = passageiro.Id,
-        Estado = EstadoParticipacao.Aceite
-    });
+        f.Db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = EstadoParticipacao.Pendente
+        });
 
-    await Assert.ThrowsAsync<DbUpdateException>(
-        () => f.Db.SaveChangesAsync());
-}
+        await f.Db.SaveChangesAsync();
+
+        f.Db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = EstadoParticipacao.Aceite
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => f.Db.SaveChangesAsync());
+    }
 }

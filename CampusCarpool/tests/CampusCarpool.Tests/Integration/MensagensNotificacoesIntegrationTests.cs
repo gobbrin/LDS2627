@@ -10,9 +10,11 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 //Testes de integração das notificações geradas por mensagens individuais.
-public sealed class MensagensNotificacoesIntegrationTests {
+public sealed class MensagensNotificacoesIntegrationTests
+{
     [Fact]
-    public async Task EnviarMensagem_CriaNotificacaoNovaMensagemParaDestinatario() {
+    public async Task EnviarMensagem_CriaNotificacaoNovaMensagemParaDestinatario()
+    {
         //Prepara uma base de dados SQLite isolada para o teste.
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -25,13 +27,15 @@ public sealed class MensagensNotificacoesIntegrationTests {
         await db.Database.EnsureCreatedAsync();
 
         //Cria os utilizadores que vão participar na conversa.
-        var remetente = new Utilizador {
+        var remetente = new Utilizador
+        {
             Nome = "Remetente de teste",
             Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
             EmailConfirmado = true
         };
 
-        var destinatario = new Utilizador {
+        var destinatario = new Utilizador
+        {
             Nome = "Destinatário de teste",
             Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
             EmailConfirmado = true
@@ -78,5 +82,5 @@ public sealed class MensagensNotificacoesIntegrationTests {
         //O remetente não deve receber a notificação da própria mensagem.
         Assert.DoesNotContain(await db.Notificacoes.ToListAsync(), n => n.UtilizadorId == remetente.Id);
     }
-    
+
 }

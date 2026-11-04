@@ -11,11 +11,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -78,10 +78,10 @@ public sealed class HistoricoHttpIntegrationTests
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<CampusCarpoolDbContext>>();
-services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
+                services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
 
-services.AddDbContext<CampusCarpoolDbContext>(options =>
-    options.UseSqlite(connection));
+                services.AddDbContext<CampusCarpoolDbContext>(options =>
+                    options.UseSqlite(connection));
                 services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = "Test";

@@ -1,10 +1,10 @@
+using System.Security.Claims;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace CampusCarpool.Api.Controllers;
 

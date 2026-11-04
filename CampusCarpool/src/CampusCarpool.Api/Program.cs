@@ -1,7 +1,7 @@
 using System.Text;
 using CampusCarpool.Api.Hubs;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Api.Middleware;
+using CampusCarpool.Api.Services;
 using CampusCarpool.Application.DependencyInjection;
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Infrastructure.DependencyInjection;

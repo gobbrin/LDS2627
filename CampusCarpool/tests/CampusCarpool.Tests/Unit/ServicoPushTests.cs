@@ -154,7 +154,7 @@ public sealed class ServicoPushTests
         Assert.Equal(0, repositorio.Desativacoes);
     }
 
-    
+
     [Fact]
     public async Task EnviarAsync_ComErroUnregistered_DesativaToken()
     {

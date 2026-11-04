@@ -1,4 +1,5 @@
 namespace CampusCarpool.Domain.Entities;
+
 using CampusCarpool.Domain.Enums;
 
 /// <summary>Notificação persistida e dirigida a um utilizador.</summary>
@@ -9,5 +10,9 @@ using CampusCarpool.Domain.Enums;
 /// </remarks>
 public sealed class Notificacao
 {
- public Guid Id {get;set;} = Guid.NewGuid(); public Guid UtilizadorId {get;set;} public Guid? ViagemId {get;set;} public TipoNotificacao Tipo {get;set;} public string Titulo {get;set;} = ""; public string Conteudo {get;set;} = ""; public DateTime? LidaEm {get;set;} public DateTime CriadaEm {get;set;} = DateTime.UtcNow;
+    public Guid Id { get; set; } = Guid.NewGuid(); public Guid UtilizadorId { get; set; }
+    public Guid? ViagemId { get; set; }
+    public TipoNotificacao Tipo { get; set; }
+    public string Titulo { get; set; } = ""; public string Conteudo { get; set; } = ""; public DateTime? LidaEm { get; set; }
+    public DateTime CriadaEm { get; set; } = DateTime.UtcNow;
 }

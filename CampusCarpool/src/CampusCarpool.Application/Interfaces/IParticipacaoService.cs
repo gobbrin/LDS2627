@@ -3,12 +3,12 @@ namespace CampusCarpool.Application.Interfaces;
 /// <summary>Resultados possíveis das operações de gestão de participações.</summary>
 public enum ResultadoGestaoParticipacao
 {
-	Sucesso,
-	NaoEncontrada,
-	NaoAutorizado,
-	Conflito,
-	SemCapacidade,
-	DadosInconsistentes
+    Sucesso,
+    NaoEncontrada,
+    NaoAutorizado,
+    Conflito,
+    SemCapacidade,
+    DadosInconsistentes
 }
 
 /// <summary>
@@ -21,10 +21,10 @@ public enum ResultadoGestaoParticipacao
 /// </remarks>
 public interface IParticipacaoService
 {
-	/// <summary>Solicita a aceitação de uma participação.</summary>
-	Task<ResultadoGestaoParticipacao> AceitarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
-	/// <summary>Solicita a rejeição de uma participação pendente.</summary>
-	Task<ResultadoGestaoParticipacao> RejeitarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
-	/// <summary>Solicita o cancelamento de uma participação.</summary>
-	Task<ResultadoGestaoParticipacao> CancelarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
+    /// <summary>Solicita a aceitação de uma participação.</summary>
+    Task<ResultadoGestaoParticipacao> AceitarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
+    /// <summary>Solicita a rejeição de uma participação pendente.</summary>
+    Task<ResultadoGestaoParticipacao> RejeitarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
+    /// <summary>Solicita o cancelamento de uma participação.</summary>
+    Task<ResultadoGestaoParticipacao> CancelarAsync(Guid participacaoId, Guid utilizadorId, CancellationToken ct);
 }

@@ -62,8 +62,8 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
         var end = destino.Longitude.ToString(c) + "," +
                   destino.Latitude.ToString(c);
 
-       var url = "https://api.heigit.org/openrouteservice/v2/directions/driving-car?start=" +
-          start + "&end=" + end;
+        var url = "https://api.heigit.org/openrouteservice/v2/directions/driving-car?start=" +
+           start + "&end=" + end;
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
@@ -159,12 +159,14 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     {
         var apiKey = config["Maps:ApiKey"]?.Trim();
 
-        if (string.IsNullOrWhiteSpace(apiKey)) {
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
             throw new InvalidOperationException(
                 "Maps:ApiKey não configurada.");
         }
 
-        if (pontos.Count < 2) {
+        if (pontos.Count < 2)
+        {
             throw new ArgumentException(
                 "São necessários pelo menos dois pontos.",
                 nameof(pontos));

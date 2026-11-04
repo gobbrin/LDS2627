@@ -186,7 +186,8 @@ public sealed class ViagensController(
         await db.SaveChangesAsync(ct);
 
         //Notifica os passageiros com participação aceite na viagem alterada.
-        if (notificacaoService is not null) {
+        if (notificacaoService is not null)
+        {
             var passageiros = await db.Participacoes
                 .Where(p =>
                     p.ViagemId == id &&
@@ -224,7 +225,8 @@ public sealed class ViagensController(
         await db.SaveChangesAsync(ct);
 
         // Notifica os passageiros com participação aceite.
-        if (notificacaoService is not null) {
+        if (notificacaoService is not null)
+        {
             var passageiros = await db.Participacoes
                 .Where(p =>
                     p.ViagemId == id &&
@@ -233,7 +235,8 @@ public sealed class ViagensController(
                 .Distinct()
                 .ToListAsync(ct);
 
-            foreach (var passageiroId in passageiros) {
+            foreach (var passageiroId in passageiros)
+            {
                 await notificacaoService.CriarAsync(
                     passageiroId,
                     TipoNotificacao.AlteracaoViagem,
@@ -260,5 +263,5 @@ public sealed class ViagensController(
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
-    
+
 }

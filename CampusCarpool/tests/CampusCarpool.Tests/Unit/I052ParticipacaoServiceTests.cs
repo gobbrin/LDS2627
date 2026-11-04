@@ -26,14 +26,16 @@ public sealed class I052ParticipacaoServiceTests
         return (pedido, viagem, condutor);
     }
 
-    [Fact] public async Task Aceitar_PedidoInexistente_NaoEncontrada()
+    [Fact]
+    public async Task Aceitar_PedidoInexistente_NaoEncontrada()
     {
         var resultado = await CriarServico().AceitarAsync(Guid.NewGuid(), Guid.NewGuid(), default);
         Assert.Equal(ResultadoGestaoParticipacao.NaoEncontrada, resultado);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
-    [Fact] public async Task Aceitar_OutroUtilizador_NaoAutorizado()
+    [Fact]
+    public async Task Aceitar_OutroUtilizador_NaoAutorizado()
     {
         var (pedido, _, _) = Preparar();
         var resultado = await CriarServico().AceitarAsync(pedido.Id, Guid.NewGuid(), default);
@@ -41,7 +43,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Empty(notificacoes.Enviadas);
     }
 
-    [Fact] public async Task Aceitar_SemLugares_NaoAlteraEstado()
+    [Fact]
+    public async Task Aceitar_SemLugares_NaoAlteraEstado()
     {
         var (pedido, viagem, condutor) = Preparar();
         viagem.LugaresOferecidos = 0;
@@ -52,7 +55,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
-    [Fact] public async Task Aceitar_CapacidadeInconsistente_NaoConfirma()
+    [Fact]
+    public async Task Aceitar_CapacidadeInconsistente_NaoConfirma()
     {
         var (pedido, viagem, condutor) = Preparar();
         viagem.LugaresDisponiveis = 1;
@@ -60,7 +64,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
-    [Fact] public async Task Aceitar_PedidoValido_DescontaLugarENotificaPassageiro()
+    [Fact]
+    public async Task Aceitar_PedidoValido_DescontaLugarENotificaPassageiro()
     {
         var (pedido, viagem, condutor) = Preparar();
         var resultado = await CriarServico().AceitarAsync(pedido.Id, condutor, default);
@@ -71,7 +76,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Contains(notificacoes.Enviadas, n => n.id == pedido.PassageiroId && n.tipo == TipoNotificacao.PedidoAceite);
     }
 
-    [Fact] public async Task Rejeitar_PedidoValido_NotificaSemOcuparLugar()
+    [Fact]
+    public async Task Rejeitar_PedidoValido_NotificaSemOcuparLugar()
     {
         var (pedido, viagem, condutor) = Preparar();
         Assert.Equal(ResultadoGestaoParticipacao.Sucesso, await CriarServico().RejeitarAsync(pedido.Id, condutor, default));
@@ -81,7 +87,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Contains(notificacoes.Enviadas, n => n.tipo == TipoNotificacao.PedidoRejeitado && n.id == pedido.PassageiroId);
     }
 
-    [Fact] public async Task Rejeitar_PedidoJaAceite_Conflito()
+    [Fact]
+    public async Task Rejeitar_PedidoJaAceite_Conflito()
     {
         var (pedido, _, condutor) = Preparar();
         pedido.Estado = EstadoParticipacao.Aceite;
@@ -89,7 +96,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
-    [Fact] public async Task Cancelar_PendentePeloPassageiro_NaoAlteraCapacidade()
+    [Fact]
+    public async Task Cancelar_PendentePeloPassageiro_NaoAlteraCapacidade()
     {
         var (pedido, viagem, _) = Preparar();
         Assert.Equal(ResultadoGestaoParticipacao.Sucesso, await CriarServico().CancelarAsync(pedido.Id, pedido.PassageiroId, default));
@@ -98,7 +106,8 @@ public sealed class I052ParticipacaoServiceTests
         Assert.Equal(1, trabalho.Confirmacoes);
     }
 
-    [Fact] public async Task Cancelar_PorTerceiro_NaoAutorizado()
+    [Fact]
+    public async Task Cancelar_PorTerceiro_NaoAutorizado()
     {
         var (pedido, _, _) = Preparar();
         Assert.Equal(ResultadoGestaoParticipacao.NaoAutorizado, await CriarServico().CancelarAsync(pedido.Id, Guid.NewGuid(), default));

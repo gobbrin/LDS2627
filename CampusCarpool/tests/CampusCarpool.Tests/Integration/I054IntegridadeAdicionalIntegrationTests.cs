@@ -49,9 +49,12 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
     {
         using var a = new Ambiente();
         var (condutor, _, viagem) = await a.PrepararAsync();
-        a.Db.Mensagens.Add(new Mensagem {
-            RemetenteId = condutor.Id, DestinatarioId = Guid.NewGuid(),
-            ViagemId = viagem.Id, Conteudo = "Olá"
+        a.Db.Mensagens.Add(new Mensagem
+        {
+            RemetenteId = condutor.Id,
+            DestinatarioId = Guid.NewGuid(),
+            ViagemId = viagem.Id,
+            Conteudo = "Olá"
         });
         await Assert.ThrowsAsync<DbUpdateException>(() => a.Db.SaveChangesAsync());
     }
@@ -61,9 +64,12 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
     {
         using var a = new Ambiente();
         var (condutor, _, viagem) = await a.PrepararAsync();
-        a.Db.Avaliacoes.Add(new Avaliacao {
-            ViagemId = viagem.Id, AvaliadorId = condutor.Id,
-            AvaliadoId = Guid.NewGuid(), Classificacao = 5
+        a.Db.Avaliacoes.Add(new Avaliacao
+        {
+            ViagemId = viagem.Id,
+            AvaliadorId = condutor.Id,
+            AvaliadoId = Guid.NewGuid(),
+            Classificacao = 5
         });
         await Assert.ThrowsAsync<DbUpdateException>(() => a.Db.SaveChangesAsync());
     }
@@ -72,8 +78,11 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
     public async Task IT036_NotificacaoComUtilizadorInexistente_FalhaChaveEstrangeira()
     {
         using var a = new Ambiente();
-        a.Db.Notificacoes.Add(new Notificacao {
-            UtilizadorId = Guid.NewGuid(), Titulo = "Pedido", Conteudo = "Novo pedido"
+        a.Db.Notificacoes.Add(new Notificacao
+        {
+            UtilizadorId = Guid.NewGuid(),
+            Titulo = "Pedido",
+            Conteudo = "Novo pedido"
         });
         await Assert.ThrowsAsync<DbUpdateException>(() => a.Db.SaveChangesAsync());
     }
@@ -83,9 +92,12 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
     {
         using var a = new Ambiente();
         var (condutor, passageiro, viagem) = await a.PrepararAsync();
-        var mensagem = new Mensagem {
-            RemetenteId = condutor.Id, DestinatarioId = passageiro.Id,
-            ViagemId = viagem.Id, Conteudo = "Ponto de encontro"
+        var mensagem = new Mensagem
+        {
+            RemetenteId = condutor.Id,
+            DestinatarioId = passageiro.Id,
+            ViagemId = viagem.Id,
+            Conteudo = "Ponto de encontro"
         };
         a.Db.Mensagens.Add(mensagem);
         await a.Db.SaveChangesAsync();
@@ -103,9 +115,12 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
     {
         using var a = new Ambiente();
         var (condutor, passageiro, viagem) = await a.PrepararAsync();
-        var avaliacao = new Avaliacao {
-            ViagemId = viagem.Id, AvaliadorId = passageiro.Id,
-            AvaliadoId = condutor.Id, Classificacao = 4
+        var avaliacao = new Avaliacao
+        {
+            ViagemId = viagem.Id,
+            AvaliadorId = passageiro.Id,
+            AvaliadoId = condutor.Id,
+            Classificacao = 4
         };
         a.Db.Avaliacoes.Add(avaliacao);
         await a.Db.SaveChangesAsync();

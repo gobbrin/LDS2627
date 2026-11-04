@@ -10,5 +10,5 @@ namespace CampusCarpool.Application.Interfaces;
 /// </remarks>
 public interface IServicoEmail
 {
-	Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct);
+    Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct);
 }

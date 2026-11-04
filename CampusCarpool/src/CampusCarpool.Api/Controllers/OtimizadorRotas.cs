@@ -54,12 +54,12 @@ public static class OtimizadorRotas
         var distancia = new double[total, n + 1];
         var anterior = new int[total, n + 1];
         for (var m = 0; m < total; m++)
-            for (var j = 0; j <= n; j++) { dp[m,j] = double.PositiveInfinity; anterior[m,j] = -1; }
-        dp[0,0] = 0;
+            for (var j = 0; j <= n; j++) { dp[m, j] = double.PositiveInfinity; anterior[m, j] = -1; }
+        dp[0, 0] = 0;
         for (var mask = 0; mask < total; mask++)
             for (var last = 0; last <= n; last++)
             {
-                if (double.IsPositiveInfinity(dp[mask,last])) continue;
+                if (double.IsPositiveInfinity(dp[mask, last])) continue;
                 for (var k = 0; k < n; k++)
                 {
                     if ((mask & (1 << k)) != 0) continue;
@@ -68,11 +68,11 @@ public static class OtimizadorRotas
                     var next = k + 1;
                     var seg = matriz.DuracoesSegundos[last][next];
                     if (seg is null) continue;
-                    var candidate = dp[mask,last] + seg.Value;
-                    if (candidate >= dp[mask | (1 << k),next]) continue;
-                    dp[mask | (1 << k),next] = candidate;
-                    distancia[mask | (1 << k),next] = distancia[mask,last] + matriz.DistanciasMetros[last][next]!.Value;
-                    anterior[mask | (1 << k),next] = last;
+                    var candidate = dp[mask, last] + seg.Value;
+                    if (candidate >= dp[mask | (1 << k), next]) continue;
+                    dp[mask | (1 << k), next] = candidate;
+                    distancia[mask | (1 << k), next] = distancia[mask, last] + matriz.DistanciasMetros[last][next]!.Value;
+                    anterior[mask | (1 << k), next] = last;
                 }
             }
         var fim = total - 1;
@@ -82,24 +82,24 @@ public static class OtimizadorRotas
         {
             var seg = matriz.DuracoesSegundos[j][n + 1];
             if (seg is null) continue;
-            var valor = dp[fim,j] + seg.Value;
+            var valor = dp[fim, j] + seg.Value;
             if (valor < melhor) { melhor = valor; melhorUltimo = j; }
         }
         if (melhorUltimo < 0 || double.IsPositiveInfinity(melhor))
             throw new InvalidOperationException("Não existe uma sequência de paragens viável.");
-        var metros = distancia[fim,melhorUltimo] + matriz.DistanciasMetros[melhorUltimo][n + 1]!.Value;
+        var metros = distancia[fim, melhorUltimo] + matriz.DistanciasMetros[melhorUltimo][n + 1]!.Value;
         var ordem = new List<string> { destino };
         var atual = melhorUltimo;
         var estado = fim;
         while (atual > 0)
         {
             ordem.Add(nomes[atual]);
-            var prev = anterior[estado,atual];
+            var prev = anterior[estado, atual];
             estado &= ~(1 << (atual - 1));
             atual = prev;
         }
         ordem.Add(origem);
         ordem.Reverse();
-        return new RotaOtimizada(Math.Round((decimal)(metros / 1000d),2), (int)Math.Ceiling(melhor / 60d), ordem);
+        return new RotaOtimizada(Math.Round((decimal)(metros / 1000d), 2), (int)Math.Ceiling(melhor / 60d), ordem);
     }
 }

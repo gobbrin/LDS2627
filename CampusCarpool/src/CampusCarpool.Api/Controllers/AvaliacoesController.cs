@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Api.Controllers;
+
 [ApiController, Authorize, Route("api/v1/avaliacoes")]
 public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : ControllerBase
 {

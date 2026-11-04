@@ -1,5 +1,6 @@
 using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Interfaces;
+
 public interface IRepositorioAvaliacoes
 {
     Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct);

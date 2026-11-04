@@ -2,9 +2,11 @@ using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Services;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
+using CampusCarpool.Infrastructure.Repositories;
 using CampusCarpool.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,8 +14,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Xunit;
-using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Application.Services;
 
 namespace CampusCarpool.Tests.Integration;
 /// <summary>
@@ -133,55 +133,55 @@ public sealed class ParticipacoesGestaoIntegrationTests
     }
 
     /// <summary>Cria o controller com o utilizador autenticado simulado no claim JWT.</summary>
- 
-private static GestaoParticipacoesController CriarController(
-    CampusCarpoolDbContext db,
-    Guid? utilizadorId,
-    IFilaNotificacoesPush? filaPush = null)
-{
-    var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-    var fila = filaPush ?? new FilaNotificacoesPushFalsa();
+    private static GestaoParticipacoesController CriarController(
+        CampusCarpoolDbContext db,
+        Guid? utilizadorId,
+        IFilaNotificacoesPush? filaPush = null)
+    {
+        var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-    var notificacaoService = new NotificacaoService(
-        repositorioNotificacoes,
-        fila);
+        var fila = filaPush ?? new FilaNotificacoesPushFalsa();
 
-    var repositorioParticipacoes = new RepositorioParticipacoes(db);
-    var repositorioViagens = new RepositorioViagens(db);
-    var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
+        var notificacaoService = new NotificacaoService(
+            repositorioNotificacoes,
+            fila);
 
-    var participacaoService = new ParticipacaoService(
-        repositorioParticipacoes,
-        repositorioViagens,
-        unidadeDeTrabalho,
-        notificacaoService,
-        new NotificadorPedidosTempoRealFalso());
+        var repositorioParticipacoes = new RepositorioParticipacoes(db);
+        var repositorioViagens = new RepositorioViagens(db);
+        var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
 
-    var controller = new GestaoParticipacoesController(participacaoService);
+        var participacaoService = new ParticipacaoService(
+            repositorioParticipacoes,
+            repositorioViagens,
+            unidadeDeTrabalho,
+            notificacaoService,
+            new NotificadorPedidosTempoRealFalso());
 
-    var claims = utilizadorId.HasValue
-        ? new[]
-        {
+        var controller = new GestaoParticipacoesController(participacaoService);
+
+        var claims = utilizadorId.HasValue
+            ? new[]
+            {
             new Claim(
                 ClaimTypes.NameIdentifier,
                 utilizadorId.Value.ToString())
-        }
-        : Array.Empty<Claim>();
+            }
+            : Array.Empty<Claim>();
 
-    controller.ControllerContext = new ControllerContext
-    {
-        HttpContext = new DefaultHttpContext
+        controller.ControllerContext = new ControllerContext
         {
-            User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    claims,
-                    utilizadorId.HasValue ? "Test" : null))
-        }
-    };
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        claims,
+                        utilizadorId.HasValue ? "Test" : null))
+            }
+        };
 
-    return controller;
-}
+        return controller;
+    }
 
     [Fact]
     /// <summary>Verifica que o condutor aceita um pedido e perde um lugar disponível.</summary>
@@ -401,7 +401,8 @@ private static GestaoParticipacoesController CriarController(
     }
 
     [Fact]
-    public async Task CancelamentoAceite_NotificaRestantesPassageirosAceites() {
+    public async Task CancelamentoAceite_NotificaRestantesPassageirosAceites()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
@@ -451,7 +452,8 @@ private static GestaoParticipacoesController CriarController(
     }
 
     [Fact]
-    public async Task AceitarPedido_NotificaRestantesPassageirosAceites() {
+    public async Task AceitarPedido_NotificaRestantesPassageirosAceites()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
@@ -484,7 +486,7 @@ private static GestaoParticipacoesController CriarController(
         var notificacoes = await f.Db.Notificacoes
             .AsNoTracking()
             .ToListAsync();
-        
+
         Assert.Equal(2, notificacoes.Count);
 
         var notificacaoPedidoAceite = Assert.Single(notificacoes.Where(n => n.Tipo == TipoNotificacao.PedidoAceite));

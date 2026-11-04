@@ -23,16 +23,21 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
             return null;
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var header = B64(Encoding.UTF8.GetBytes("{\"alg\":\"RS256\",\"typ\":\"JWT\"}"));
-        var claims = B64(JsonSerializer.SerializeToUtf8Bytes(new {
-            iss = email, scope = "https://www.googleapis.com/auth/firebase.messaging",
-            aud = "https://oauth2.googleapis.com/token", iat = now, exp = now + 3600
+        var claims = B64(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            iss = email,
+            scope = "https://www.googleapis.com/auth/firebase.messaging",
+            aud = "https://oauth2.googleapis.com/token",
+            iat = now,
+            exp = now + 3600
         }));
         var signingInput = header + "." + claims;
         using var rsa = RSA.Create();
         rsa.ImportFromPem(key);
         var signature = B64(rsa.SignData(Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
         using var tokenResponse = await http.PostAsync("https://oauth2.googleapis.com/token",
-            new FormUrlEncodedContent(new Dictionary<string, string> {
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
                 ["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer",
                 ["assertion"] = signingInput + "." + signature
             }), ct);
@@ -46,7 +51,8 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         if (tokens.Count == 0) return;
         string? accessToken;
         try { accessToken = await ObterAccessTokenAsync(ct); }
-        catch (Exception ex) when (ex is not OperationCanceledException) {
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
             logger.LogError(ex, "Falha ao autenticar Firebase Cloud Messaging"); return;
         }
         if (accessToken is null) { logger.LogWarning("Firebase não configurado; push não enviado"); return; }
@@ -58,10 +64,13 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                 using var request = new HttpRequestMessage(HttpMethod.Post,
                     $"https://fcm.googleapis.com/v1/projects/{Uri.EscapeDataString(project!)}/messages:send");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                request.Content = new StringContent(JsonSerializer.Serialize(new {
-                    message = new { token = dispositivo.Token,
+                request.Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    message = new
+                    {
+                        token = dispositivo.Token,
                         notification = new { title = titulo, body = mensagem },
-                        data = new Dictionary<string,string> { ["tipo"] = tipo },
+                        data = new Dictionary<string, string> { ["tipo"] = tipo },
                         android = new { priority = "HIGH" }
                     }
                 }), Encoding.UTF8, "application/json");

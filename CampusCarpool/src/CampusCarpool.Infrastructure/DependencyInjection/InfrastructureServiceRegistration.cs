@@ -24,7 +24,7 @@ public static class InfrastructureServiceRegistration
         // Configura o Entity Framework Core para SQL Server.
         services.AddDbContext<CampusCarpoolDbContext>(
             options => options.UseSqlServer(connection));
-            
+
 
         // Repositórios de mensagens e utilizadores.
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
@@ -33,7 +33,7 @@ public static class InfrastructureServiceRegistration
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
         services.AddScoped<IRepositorioDispositivos, RepositorioDispositivo>();
-        
+
 
         // Repositório de participações.
         services.AddScoped<IRepositorioParticipacoes, RepositorioParticipacoes>();
@@ -65,5 +65,5 @@ public static class InfrastructureServiceRegistration
     }
 }
 
-     
+
 

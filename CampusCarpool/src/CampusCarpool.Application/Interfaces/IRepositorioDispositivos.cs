@@ -1,5 +1,6 @@
 using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Interfaces;
+
 public interface IRepositorioDispositivos
 {
     Task<IReadOnlyList<Dispositivo>> ListarAtivosAsync(Guid utilizadorId, CancellationToken ct);

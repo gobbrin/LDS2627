@@ -3,6 +3,7 @@ using CampusCarpool.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace CampusCarpool.Api.Controllers;
+
 [ApiController, Authorize, Route("api/v1/dispositivos")]
 public sealed class DispositivosController(IRepositorioDispositivos repositorio) : ControllerBase
 {

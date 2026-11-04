@@ -14,5 +14,9 @@ namespace CampusCarpool.Domain.Entities;
 /// </remarks>
 public sealed class Participacao
 {
- public Guid Id {get;set;} = Guid.NewGuid(); public Guid ViagemId {get;set;} public Viagem Viagem {get;set;} = null!; public Guid PassageiroId {get;set;} public Utilizador Passageiro {get;set;} = null!; [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado {get;set;} = EstadoParticipacao.Pendente; public string? Recolha {get;set;} public string? Destino {get;set;} public DateTime CriadoEm {get;set;} = DateTime.UtcNow;
+    public Guid Id { get; set; } = Guid.NewGuid(); public Guid ViagemId { get; set; }
+    public Viagem Viagem { get; set; } = null!; public Guid PassageiroId { get; set; }
+    public Utilizador Passageiro { get; set; } = null!; [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente; public string? Recolha { get; set; }
+    public string? Destino { get; set; }
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 }

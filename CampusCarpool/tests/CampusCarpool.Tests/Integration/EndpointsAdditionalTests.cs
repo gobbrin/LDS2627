@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Text.Json;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
@@ -10,8 +12,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
-using System.Text.Json;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;

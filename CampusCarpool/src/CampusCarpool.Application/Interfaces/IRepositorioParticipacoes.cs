@@ -7,8 +7,9 @@ namespace CampusCarpool.Application.Interfaces;
 /// Define as operações de acesso a dados relativas às participações.
 /// A implementação concreta pertence à camada Infrastructure.
 /// </summary>
-public interface IRepositorioParticipacoes {
-    
+public interface IRepositorioParticipacoes
+{
+
     ///<summary>
     /// Obtém uma participação pelo identificador.
     /// A implementação deve permitir atualizar a entidade obtida.

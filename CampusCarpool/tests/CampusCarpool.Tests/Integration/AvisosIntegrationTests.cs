@@ -102,7 +102,7 @@ public sealed class AvisosIntegrationTests
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
         var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
-    
+
 
         var controller = new NotificacoesController(notificacaoService);
         AplicarIdentidade(controller, utilizadorId);
@@ -381,25 +381,29 @@ public sealed class AvisosIntegrationTests
         Assert.Null((await f.Db.Notificacoes.FindAsync(notificacao.Id))!.LidaEm);
     }
 
-    
+
     [Fact]
-    public async Task UtilizadorPodeMarcarTodasAsNotificacoesComoLidas() {
+    public async Task UtilizadorPodeMarcarTodasAsNotificacoesComoLidas()
+    {
         using var f = new Fixture();
         var utilizador = await f.CriarUtilizador();
         var outroUtilizador = await f.CriarUtilizador();
 
         f.Db.Notificacoes.AddRange(
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = utilizador.Id,
                 Tipo = TipoNotificacao.Aviso,
                 Conteudo = "Primeiro aviso"
             },
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = utilizador.Id,
                 Tipo = TipoNotificacao.NovaMensagem,
                 Conteudo = "Nova mensagem"
             },
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = outroUtilizador.Id,
                 Tipo = TipoNotificacao.Aviso,
                 Conteudo = "Aviso de outro utilizador"
@@ -426,9 +430,10 @@ public sealed class AvisosIntegrationTests
         Assert.Null(notificacaoDoOutro.LidaEm);
     }
 
-        
+
     [Fact]
-    public async Task MarcarTodasComoLidasSemIdentidade_Devolve401() {
+    public async Task MarcarTodasComoLidasSemIdentidade_Devolve401()
+    {
         using var f = new Fixture();
 
         var resultado = await CriarNotificacoesController(f.Db, null)

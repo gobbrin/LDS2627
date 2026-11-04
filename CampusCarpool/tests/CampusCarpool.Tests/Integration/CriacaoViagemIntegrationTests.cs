@@ -1,7 +1,7 @@
 
 using System.Net;
-using System.Text;
 using System.Security.Claims;
+using System.Text;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
@@ -90,9 +90,9 @@ public sealed class CriacaoViagemIntegrationTests
             .Build();
 
         using var http = new HttpClient(new MapasHandlerFalso())
-{
-    BaseAddress = new Uri("https://api.heigit.org/")
-};
+        {
+            BaseAddress = new Uri("https://api.heigit.org/")
+        };
 
         var mapas = new MapasService(http, configuracao);
 

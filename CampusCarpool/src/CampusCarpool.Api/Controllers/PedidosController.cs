@@ -192,8 +192,8 @@ public sealed class PedidosController(
 
         //Notifica o condutor após o registo bem-sucedido do pedido.
         await notificacaoService.CriarAsync(
-            viagem.CondutorId, 
-            TipoNotificacao.PedidoRecebido, 
+            viagem.CondutorId,
+            TipoNotificacao.PedidoRecebido,
             "Recebeste um novo pedido de participação numa viagem.",
             ct);
 

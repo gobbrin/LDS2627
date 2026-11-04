@@ -1,3 +1,7 @@
+using System.Net;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
@@ -9,10 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
@@ -164,7 +164,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.IsType<UnauthorizedResult>(result);
     }
 
-    
+
     [Fact]
     public async Task F001_AtualizacaoPerfilValida_AtualizaDadosDoUtilizador()
     {
@@ -331,7 +331,7 @@ public sealed class I051ValidacoesControllersTests
             fim.AddHours(24).AddSeconds(2));
     }
 
-    
+
     [Fact]
     public async Task UT007_TokenValidoConfirmaContaEImpedeReutilizacao()
     {
@@ -512,7 +512,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Null(confirmacao.ConsumidoEm);
     }
 
-    
+
     [Fact]
     public async Task F002_IndisponibilizarViagemValida_AlteraEstado()
     {
@@ -579,7 +579,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal("Indisponibilizada", viagemAtualizada.Estado);
     }
 
-    
+
     [Fact]
     public async Task F002_EditarViagemValida_AtualizaDataELugares()
     {
@@ -764,7 +764,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(30, viagem.DuracaoMinutos);
         Assert.Equal("Ativa", viagem.Estado);
     }
- 
+
     [Fact]
     public async Task F003_PesquisaValida_FiltraOrdenaEPaginaResultados()
     {
@@ -871,7 +871,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(partidaMaisProxima, partidaDevolvida);
     }
 
-    
+
     [Fact]
     public async Task F003_PesquisaSemFiltros_DevolveApenasViagensElegiveis()
     {
@@ -964,7 +964,7 @@ public sealed class I051ValidacoesControllersTests
             viagens[0].GetProperty("Destino").GetString());
     }
 
-    
+
     [Fact]
     public async Task F003_FiltroDataEHora_DevolveApenasPartidasCorrespondentes()
     {
@@ -1116,7 +1116,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal("Origem 2", viagens1[1].GetProperty("Origem").GetString());
         Assert.Equal("Origem 3", viagens2[0].GetProperty("Origem").GetString());
         Assert.Equal("Origem 4", viagens2[1].GetProperty("Origem").GetString());
-        
+
         var idsPagina1 = viagens1.EnumerateArray()
             .Select(v => v.GetProperty("Id").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
@@ -1145,7 +1145,7 @@ public sealed class I051ValidacoesControllersTests
         }
     }
 
-    
+
     private sealed class FakeMapasHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

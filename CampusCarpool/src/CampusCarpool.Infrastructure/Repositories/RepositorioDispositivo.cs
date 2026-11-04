@@ -3,6 +3,7 @@ using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Infrastructure.Repositories;
+
 public sealed class RepositorioDispositivo(CampusCarpoolDbContext db) : IRepositorioDispositivos
 {
     public async Task<IReadOnlyList<Dispositivo>> ListarAtivosAsync(Guid id, CancellationToken ct) =>

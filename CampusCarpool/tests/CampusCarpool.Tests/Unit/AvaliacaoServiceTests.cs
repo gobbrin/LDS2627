@@ -24,7 +24,11 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData(1)] [InlineData(2)] [InlineData(3)] [InlineData(4)] [InlineData(5)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
     public async Task Criar_AceitaTodasAsClassificacoesValidas(int valor)
     {
         var servico = CriarServico();
@@ -34,7 +38,10 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData(-1)] [InlineData(0)] [InlineData(6)] [InlineData(100)]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(100)]
     public async Task Criar_RejeitaClassificacaoInvalida(int valor)
     {
         var servico = CriarServico();
@@ -50,7 +57,8 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData("Ativa")] [InlineData("Indisponibilizada")]
+    [InlineData("Ativa")]
+    [InlineData("Indisponibilizada")]
     public async Task Criar_RejeitaViagemNaoConcluida(string estado)
     {
         var servico = CriarServico(estado);
@@ -58,7 +66,8 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData("Concluída")] [InlineData("Concluida")]
+    [InlineData("Concluída")]
+    [InlineData("Concluida")]
     public async Task Criar_AceitaEstadosDeViagemConcluida(string estado)
     {
         var servico = CriarServico(estado);
@@ -152,7 +161,9 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData(0)] [InlineData(6)] [InlineData(-2)]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(-2)]
     public async Task Alterar_RejeitaClassificacaoInvalida(int valor)
     {
         var servico = CriarServico();

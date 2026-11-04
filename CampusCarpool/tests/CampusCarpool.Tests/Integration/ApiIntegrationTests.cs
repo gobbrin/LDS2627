@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
@@ -8,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.Security.Claims;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -224,7 +224,7 @@ public sealed class MapasAndValidationTests
 
         return new EstimativaCustoService(configuracao);
     }
-        
+
     [Fact]
     public async Task CT032_MapasSemChave_Devolve503()
     {

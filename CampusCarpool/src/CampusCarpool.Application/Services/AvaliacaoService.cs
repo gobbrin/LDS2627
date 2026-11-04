@@ -1,6 +1,7 @@
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Services;
+
 public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAvaliacaoService
 {
     private static void ValidarClassificacao(int classificacao)

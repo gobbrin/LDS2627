@@ -64,25 +64,25 @@ public static class OrdenadorPontosRota
 
         return ordenados;
     }
-private static double DistanciaAproximada(
-    Coordenadas a,
-    Coordenadas b)
-{
-    const double kmPorGrauLatitude = 111.32;
+    private static double DistanciaAproximada(
+        Coordenadas a,
+        Coordenadas b)
+    {
+        const double kmPorGrauLatitude = 111.32;
 
-    var latitudeMedia = (double)(
-        (a.Latitude + b.Latitude) / 2m);
+        var latitudeMedia = (double)(
+            (a.Latitude + b.Latitude) / 2m);
 
-    var diferencaLatitude =
-        (double)(a.Latitude - b.Latitude)
-        * kmPorGrauLatitude;
+        var diferencaLatitude =
+            (double)(a.Latitude - b.Latitude)
+            * kmPorGrauLatitude;
 
-    var diferencaLongitude =
-        (double)(a.Longitude - b.Longitude)
-        * kmPorGrauLatitude
-        * Math.Cos(latitudeMedia * Math.PI / 180);
+        var diferencaLongitude =
+            (double)(a.Longitude - b.Longitude)
+            * kmPorGrauLatitude
+            * Math.Cos(latitudeMedia * Math.PI / 180);
 
-    return diferencaLatitude * diferencaLatitude +
-           diferencaLongitude * diferencaLongitude;
-}
+        return diferencaLatitude * diferencaLatitude +
+               diferencaLongitude * diferencaLongitude;
+    }
 }
