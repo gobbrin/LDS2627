@@ -13,7 +13,7 @@ Projetos: Api, Application, Domain, Infrastructure e Tests. Documentação em [`
 
 Sem configuração de JWT, a aplicação falha ao arrancar intencionalmente para evitar configuração insegura. Sem base de dados configurada, endpoints que usam DbContext não funcionam.
 
-Não enviar segredos para o GitLab. Verificar `docs/IMPLEMENTACAO-STATUS.md` antes de apresentar qualquer funcionalidade como concluída.
+Não enviar segredos para o repositório. Verificar `docs/IMPLEMENTACAO-STATUS.md` antes de apresentar qualquer funcionalidade como concluída.
 
 ## Documentação
 
