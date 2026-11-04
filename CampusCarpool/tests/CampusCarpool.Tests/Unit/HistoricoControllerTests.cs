@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>O <c>HistoricoController</c> passa ao serviço o id do utilizador do token e responde 401 sem ele. Serviço falso.</summary>
 public sealed class HistoricoControllerTests
 {
     private sealed class HistoricoServiceFalso : IHistoricoService

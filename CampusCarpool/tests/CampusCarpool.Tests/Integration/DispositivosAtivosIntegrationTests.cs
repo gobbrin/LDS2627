@@ -11,6 +11,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-039: um dispositivo desativado deixa de aparecer nos ativos e não recebe push.</summary>
+/// <remarks>
+/// SQLite em memória; o FCM é simulado por um <c>HttpMessageHandler</c> que regista os pedidos.
+/// </remarks>
 public sealed class DispositivosAtivosIntegrationTests
 {
     [Fact]

@@ -6,6 +6,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>MapasService</c> com respostas HTTP simuladas: configuração, geocodificação, rota e erros do serviço.</summary>
 public sealed class MapasServiceTests
 {
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

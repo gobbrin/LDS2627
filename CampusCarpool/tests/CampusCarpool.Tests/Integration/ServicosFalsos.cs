@@ -2,6 +2,7 @@ using CampusCarpool.Application.Interfaces;
 
 namespace CampusCarpool.Tests;
 
+/// <summary>Serviço de push que não faz nada (para testes que não verificam o push).</summary>
 public sealed class ServicoPushFalso : IServicoPush
 {
     public Task EnviarAsync(
@@ -13,6 +14,7 @@ public sealed class ServicoPushFalso : IServicoPush
         => Task.CompletedTask;
 }
 
+/// <summary>Notificador em tempo real falso: regista os eventos para o teste os verificar.</summary>
 public sealed class NotificadorPedidosFalso : INotificadorPedidosTempoReal
 {
     public Task PedidoRecebidoAsync(
@@ -28,6 +30,7 @@ public sealed class NotificadorPedidosFalso : INotificadorPedidosTempoReal
         => Task.CompletedTask;
 }
 
+/// <summary>Serviço de push falso que guarda cada envio, para verificar destinatários e conteúdo.</summary>
 public sealed class ServicoPushRegistador : IServicoPush
 {
     public List<(Guid UtilizadorId, string Titulo,

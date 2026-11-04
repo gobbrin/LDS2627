@@ -21,6 +21,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Avaliações por HTTP (IT-034, IT-035): criação, duplicado, elegibilidade e valor inválido.</summary>
+/// <remarks>
+/// Usa <c>WebApplicationFactory&lt;Program&gt;</c> com a BD trocada por SQLite e o JwtBearer trocado por um esquema de teste (<c>TestAuthHandler</c>, utilizador no cabeçalho <c>X-Test-User-Id</c>): o pipeline HTTP corre, mas a validação real dos tokens não.
+/// </remarks>
 public sealed class AvaliacoesHttpIntegrationTests
 {
     private sealed class TestAuthHandler(

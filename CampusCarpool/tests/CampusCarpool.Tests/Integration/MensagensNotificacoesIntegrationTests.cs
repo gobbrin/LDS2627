@@ -10,6 +10,10 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 //Testes de integração das notificações geradas por mensagens individuais.
+/// <summary>Enviar uma mensagem cria a notificação <c>NovaMensagem</c> para o destinatário (RF-F006-06).</summary>
+/// <remarks>
+/// SQLite em memória; <c>MensagemService</c>, <c>NotificacaoService</c> e repositórios reais, com uma fila de push falsa.
+/// </remarks>
 public sealed class MensagensNotificacoesIntegrationTests
 {
     [Fact]

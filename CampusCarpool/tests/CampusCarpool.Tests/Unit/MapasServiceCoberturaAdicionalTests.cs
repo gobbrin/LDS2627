@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Casos adicionais do <c>MapasService</c> (rota com paragens e matriz) com respostas HTTP simuladas.</summary>
 public sealed class MapasServiceCoberturaAdicionalTests
 {
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

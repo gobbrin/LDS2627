@@ -8,6 +8,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-040: se a gravação falhar (chave estrangeira inválida), nenhuma alteração parcial fica gravada.</summary>
+/// <remarks>
+/// SQLite em memória com chaves estrangeiras ativas.
+/// </remarks>
 public sealed class FalhaTransacaoIntegrationTests
 {
     [Fact]

@@ -11,6 +11,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>ServicoPush</c> (FCM) com respostas HTTP simuladas e uma chave RSA gerada no teste: sem dispositivos, envio, tokens inválidos desativados e Firebase por configurar.</summary>
 public sealed class ServicoPushTests
 {
     [Fact]

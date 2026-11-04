@@ -15,6 +15,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-008: criar uma viagem válida devolve 201 e grava as coordenadas, a distância e a duração da rota.</summary>
+/// <remarks>
+/// SQLite em memória; o OpenRouteService é simulado por um <c>HttpMessageHandler</c> falso.
+/// </remarks>
 public sealed class CriacaoViagemIntegrationTests
 {
     private sealed class MapasHandlerFalso : HttpMessageHandler

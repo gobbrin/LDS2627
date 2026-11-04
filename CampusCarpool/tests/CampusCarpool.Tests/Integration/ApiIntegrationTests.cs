@@ -13,6 +13,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Casos do plano I031 (CTnnn): registo, confirmação, login, perfil, viagens, pesquisa e mapas.</summary>
+/// <remarks>
+/// Infraestrutura: SQLite em memória (<c>EnsureCreated</c>, não as migrations), controllers instanciados diretamente com o utilizador simulado por claims no <c>ControllerContext</c> e serviços externos falsos (email, mapas sem chave).
+/// </remarks>
 public sealed class ApiIntegrationTests
 {
     private sealed class DatabaseFixture : IDisposable
@@ -211,6 +215,7 @@ public sealed class ApiIntegrationTests
 
 }
 
+/// <summary>Casos do I031 que não precisam de base de dados: geocodificação e mapas sem chave (503) e divisão do custo.</summary>
 public sealed class MapasAndValidationTests
 {
     private static EstimativaCustoService CriarCustos()

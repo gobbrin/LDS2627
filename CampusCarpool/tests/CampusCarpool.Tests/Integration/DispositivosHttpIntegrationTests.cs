@@ -20,6 +20,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Registo e remoção de dispositivos por HTTP (I047), incluindo tokens repetidos e de outro utilizador.</summary>
+/// <remarks>
+/// <c>WebApplicationFactory&lt;Program&gt;</c> com SQLite e autenticação de teste (<c>X-Test-User-Id</c>), sem JwtBearer real.
+/// </remarks>
 public sealed class DispositivosHttpIntegrationTests
 {
     private sealed class TestAuthHandler(

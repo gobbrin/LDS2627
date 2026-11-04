@@ -7,6 +7,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>PedidosUserIdProvider</c>: obtém o id das claims <c>NameIdentifier</c> ou <c>sub</c> e devolve <c>null</c> se não for um GUID.</summary>
 public class PedidosUserIdProviderTests
 {
     [Fact]

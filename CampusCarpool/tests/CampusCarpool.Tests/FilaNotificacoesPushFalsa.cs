@@ -3,6 +3,7 @@ using CampusCarpool.Application.Models;
 
 namespace CampusCarpool.Tests;
 
+/// <summary>Fila de push falsa, em memória, para os testes: guarda o que é enfileirado para o teste poder verificar se houve (ou não) push.</summary>
 public sealed class FilaNotificacoesPushFalsa : IFilaNotificacoesPush
 {
     private readonly List<NotificacaoPushPendente> _notificacoes = [];

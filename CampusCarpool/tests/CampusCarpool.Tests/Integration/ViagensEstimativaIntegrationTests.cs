@@ -15,6 +15,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Estimativa de custo nos detalhes da viagem: distância guardada sem passageiros, rota recalculada com passageiros e ausência de estimativa sem distância.</summary>
+/// <remarks>
+/// SQLite em memória; OpenRouteService simulado por <c>HttpMessageHandler</c>.
+/// </remarks>
 public sealed class ViagensEstimativaIntegrationTests
 {
     private sealed class Fixture : IDisposable

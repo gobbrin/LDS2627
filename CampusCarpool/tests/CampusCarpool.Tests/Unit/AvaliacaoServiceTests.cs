@@ -5,6 +5,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Regras do <c>AvaliacaoService</c> (F007): valores, auto-avaliação, estado da viagem, elegibilidade (P-16), unicidade do par, alteração e média.</summary>
+/// <remarks>
+/// Teste unitário: o repositório é um falso em memória, sem base de dados.
+/// </remarks>
 public sealed class AvaliacaoServiceTests
 {
     private readonly Guid _condutor = Guid.NewGuid();

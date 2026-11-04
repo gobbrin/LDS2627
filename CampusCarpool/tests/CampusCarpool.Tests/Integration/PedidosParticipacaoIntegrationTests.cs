@@ -18,6 +18,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Submissão de pedidos de participação (F004): pedido válido, autenticação, conta, estado da viagem, duplicados, lugares, pontos e notificação ao condutor.</summary>
+/// <remarks>
+/// SQLite em memória; <c>PedidosController</c> instanciado diretamente; mapas simulados por <c>HttpMessageHandler</c>; tempo real e push falsos.
+/// </remarks>
 public sealed class PedidosParticipacaoIntegrationTests
 {
     private sealed class NotificadorPedidosTempoRealFalso : INotificadorPedidosTempoReal

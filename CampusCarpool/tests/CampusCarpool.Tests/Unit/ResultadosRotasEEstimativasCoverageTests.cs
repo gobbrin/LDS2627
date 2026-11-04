@@ -3,6 +3,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Testes de cobertura dos <c>record</c> de rotas e estimativas (só leem propriedades; TE-09).</summary>
 public sealed class ResultadosRotasEEstimativasCoverageTests
 {
     [Fact]

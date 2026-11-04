@@ -16,6 +16,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Hub SignalR: ligação sem autenticação recusada e eventos entregues só ao destinatário.</summary>
+/// <remarks>
+/// Constrói uma aplicação mínima própria (Kestrel numa porta livre, esquema de autenticação de teste, só o hub), não o <c>Program.cs</c>: não testa o <c>access_token</c> na query string nem o JwtBearer real (TE-04).
+/// </remarks>
 public sealed class PedidosHubIntegrationTests
 {
     private static readonly Guid UtilizadorA =

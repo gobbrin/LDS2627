@@ -18,6 +18,9 @@ using Xunit;
 namespace CampusCarpool.Tests.Unit;
 
 /// <summary>Testes unitários das validações executadas antes de aceder às dependências externas.</summary>
+/// <remarks>
+/// Plano I050/I051 (<c>F00n_</c>, <c>UTnnn_</c>). Cada teste cria a sua BD SQLite em memória e instancia os controllers diretamente, com email e mapas falsos.
+/// </remarks>
 public sealed class I051ValidacoesControllersTests
 {
     [Theory]

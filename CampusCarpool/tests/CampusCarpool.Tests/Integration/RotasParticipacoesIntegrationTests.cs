@@ -16,6 +16,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Rota da viagem com os pontos das participações aceites (RF-F008-03 a RF-F008-05, RF-F008-09): pendentes fora, aceites dentro, ordem e permissões.</summary>
+/// <remarks>
+/// SQLite em memória; OpenRouteService simulado por <c>HttpMessageHandler</c>.
+/// </remarks>
 public sealed class RotasParticipacoesIntegrationTests
 {
     private sealed class Fixture : IDisposable

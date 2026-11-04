@@ -9,6 +9,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-023: duas aceitações em simultâneo para o último lugar; só uma pode ficar gravada (coluna <c>Versao</c>).</summary>
+/// <remarks>
+/// É o único teste com SQL Server real (o <c>rowversion</c> não existe em SQLite). Corre só com a variável <c>CAMPUSCARPOOL_TESTES_SQLSERVER</c> (ver <see cref="SqlServerFactAttribute"/>); sem ela fica "saltado", também na CI.
+/// </remarks>
 public sealed class ConcorrenciaSqlServerIntegrationTests
 {
     [SqlServerFact]

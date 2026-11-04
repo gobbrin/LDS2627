@@ -6,6 +6,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Regras do <c>ParticipacaoService</c> (aceitar, rejeitar, cancelar) com repositórios, unidade de trabalho e notificações falsos (I052).</summary>
+/// <remarks>
+/// Teste unitário: verifica também que nada é gravado nem notificado quando a operação é recusada.
+/// </remarks>
 public sealed class I052ParticipacaoServiceTests
 {
     private readonly ParticipacoesFake participacoes = new();

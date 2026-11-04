@@ -2,6 +2,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Teste inicial do projeto de testes. Sem valor de verificação (TE-09).</summary>
 public class StarterTests
 {
     [Fact]

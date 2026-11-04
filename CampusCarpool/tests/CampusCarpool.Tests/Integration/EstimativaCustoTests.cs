@@ -5,6 +5,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Regra da estimativa de custo (P-06, RF-F008-10) através do <c>EstimativaCustoService</c>, com o preço por km em configuração de memória. Sem base de dados.</summary>
 public sealed class EstimativaCustoTests
 {
     private static EstimativaCustoService CriarServico(

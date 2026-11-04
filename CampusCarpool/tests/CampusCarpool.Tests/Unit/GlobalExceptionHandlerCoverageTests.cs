@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>O <c>GlobalExceptionHandler</c> escreve um <c>ProblemDetails</c> com o código e os textos esperados.</summary>
 public sealed class GlobalExceptionHandlerCoverageTests
 {
     private sealed class ProblemDetailsRecorder(bool escrever) : IProblemDetailsService

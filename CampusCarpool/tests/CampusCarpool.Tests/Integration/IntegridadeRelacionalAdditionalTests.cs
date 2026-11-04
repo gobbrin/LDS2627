@@ -6,6 +6,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Restrições da BD: índices únicos (email, token de dispositivo, <c>jti</c>, hash de confirmação, avaliação) e chaves estrangeiras.</summary>
+/// <remarks>
+/// SQLite em memória com <c>EnsureCreated</c>, por isso testa o modelo do <c>DbContext</c>, não as migrations: o teste da avaliação duplicada usa o índice triplo (viagem, avaliador, avaliado), que as BD migradas já não têm (IN-01).
+/// </remarks>
 public sealed class IntegridadeRelacionalAdditionalTests
 {
     private sealed class Fixture : IDisposable

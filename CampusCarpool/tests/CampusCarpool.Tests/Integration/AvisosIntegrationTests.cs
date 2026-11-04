@@ -16,6 +16,9 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 /// <summary>Testes da comunicação do condutor e das notificações persistidas da I044.</summary>
+/// <remarks>
+/// SQLite em memória; <c>AvisosController</c> e <c>AvisoService</c> reais, utilizador simulado por claims. Cobre RF-F005-05 a RF-F005-07, RF-F005-10 e RF-F006-05.
+/// </remarks>
 public sealed class AvisosIntegrationTests
 {
     private sealed class Fixture : IDisposable

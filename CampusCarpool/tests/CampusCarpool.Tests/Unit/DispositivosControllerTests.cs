@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Validações do <c>DispositivosController</c> com um repositório falso e o utilizador simulado por claims.</summary>
 public sealed class DispositivosControllerTests
 {
     private sealed class RepositorioDispositivosFalso : IRepositorioDispositivos

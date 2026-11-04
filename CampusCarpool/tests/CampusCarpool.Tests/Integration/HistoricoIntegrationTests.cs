@@ -11,6 +11,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Histórico pessoal (F009) através do <c>HistoricoService</c>: listas vazias, viagens como condutor e passageiro, pedidos, notificações, avisos e isolamento.</summary>
+/// <remarks>
+/// SQLite em memória; os dados são inseridos diretamente no <c>DbContext</c>.
+/// </remarks>
 public sealed class HistoricoIntegrationTests
 {
     private sealed class Fixture : IDisposable

@@ -16,6 +16,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Testes adicionais de cobertura dos endpoints: autenticação, perfil, viagens (criar, editar, indisponibilizar, concluir), pesquisa e mapas.</summary>
+/// <remarks>
+/// SQLite em memória; controllers instanciados diretamente, utilizador simulado por claims; serviços externos falsos.
+/// </remarks>
 public sealed class EndpointsAdditionalTests
 {
 

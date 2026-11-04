@@ -15,6 +15,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Notificações de alteração da viagem: editar notifica só os aceites (RF-F006-04); indisponibilizar cancela e notifica aceites e pendentes (P-25, RF-F006-03).</summary>
+/// <remarks>
+/// SQLite em memória; <c>ViagensController</c> com o <c>NotificacaoService</c> real e uma fila de push falsa.
+/// </remarks>
 public sealed class ViagensNotificacoesIntegrationTests
 {
 

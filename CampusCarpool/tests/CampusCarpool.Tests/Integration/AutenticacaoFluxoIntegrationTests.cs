@@ -11,6 +11,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Fluxo completo registo → confirmação → login (IT-001, IT-003, IT-004 do plano I053).</summary>
+/// <remarks>
+/// SQLite em memória e <c>AutenticacaoController</c> instanciado diretamente, com um serviço de email falso que captura o token.
+/// </remarks>
 public sealed class AutenticacaoFluxoIntegrationTests
 {
     private sealed class EmailFalso : IServicoEmail

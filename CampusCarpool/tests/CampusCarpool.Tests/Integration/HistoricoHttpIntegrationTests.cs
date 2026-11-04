@@ -20,6 +20,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-033: histórico por HTTP (sem sessão 401, com sessão 200, isolamento entre utilizadores).</summary>
+/// <remarks>
+/// <c>WebApplicationFactory&lt;Program&gt;</c> com SQLite e autenticação de teste (<c>X-Test-User-Id</c>).
+/// </remarks>
 public sealed class HistoricoHttpIntegrationTests
 {
     private sealed class TestAuthHandler(

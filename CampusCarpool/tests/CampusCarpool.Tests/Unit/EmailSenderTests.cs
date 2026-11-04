@@ -7,6 +7,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Testes do <c>EmailSender</c> da Api, que é código morto (IN-04): apagar com ele no m4. O envio real é testado em <see cref="ServicoEmailBrevoCoverageTests"/>.</summary>
 public sealed class EmailSenderTests
 {
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

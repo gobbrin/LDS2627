@@ -4,6 +4,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>OrdenadorPontosRota</c>: a recolha de cada passageiro vem antes do seu destino. Não verifica a optimalidade (P-07), que o algoritmo não garante (DEF-BE-022).</summary>
 public class OrdenadorPontosRotaTests
 {
     private static PontoRota Ponto(
