@@ -1,6 +1,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,6 +63,54 @@ public sealed class UtilizadoresController(
             });
 
         return Ok(perfil);
+    }
+
+    /// <summary>
+    /// Perfil público de um utilizador (RF-F001-17, RF-F001-19, RF-F007-10; DEF-BE-006).
+    /// Devolve só os campos de P-10: nome, curso, instituição, ligações externas e
+    /// classificação média (1 casa decimal; <c>null</c> com 0 avaliações, "sem avaliações").
+    /// Nunca devolve o email. 200; 401 sem sessão; 404 se o utilizador não existir.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> ConsultarPerfilPublico(
+        Guid id,
+        [FromServices] IAvaliacaoService avaliacoes,
+        CancellationToken ct)
+    {
+        if (ObterUtilizadorId() is null)
+            return Unauthorized();
+
+        var utilizador = await db.Utilizadores
+            .AsNoTracking()
+            .Where(u => u.Id == id)
+            .Select(u => new { u.Id, u.Nome, u.Curso, u.Instituicao })
+            .FirstOrDefaultAsync(ct);
+
+        if (utilizador is null)
+            return NotFound(new
+            {
+                erro = "Utilizador não encontrado."
+            });
+
+        var ligacoes = await db.LigacoesExternas
+            .AsNoTracking()
+            .Where(l => l.UtilizadorId == id)
+            .OrderBy(l => l.Ordem)
+            .Select(l => new { l.Url, l.Descricao })
+            .ToListAsync(ct);
+
+        var resumo = await avaliacoes.ConsultarAsync(id, ct);
+
+        return Ok(new
+        {
+            utilizador.Id,
+            utilizador.Nome,
+            utilizador.Curso,
+            utilizador.Instituicao,
+            LigacoesExternas = ligacoes,
+            ClassificacaoMedia = resumo.Media,
+            TotalAvaliacoes = resumo.Total
+        });
     }
 
     // PUT /api/v1/utilizadores/me
