@@ -11,15 +11,43 @@ namespace CampusCarpool.Domain.Entities;
 /// Apenas participações <see cref="EstadoParticipacao.Aceite"/> ocupam lugares.
 /// A conversão EF mantém o estado persistido como texto para compatibilidade
 /// com o esquema existente.
+/// As transições de estado (aceitar, rejeitar, cancelar) estão em <c>ParticipacaoService</c>, e a
+/// indisponibilização em <c>ViagensController</c>; não nesta entidade (DO-01).
+/// Ao contrário da <see cref="Viagem"/>, não tem coluna de versão: aceitar e cancelar o mesmo pedido em
+/// simultâneo não gera conflito (DO-03, fica para m4).
+/// Os pontos de recolha e de destino só são guardados como texto; as coordenadas são descartadas depois
+/// da validação e a rota volta a geocodificá-los em cada consulta (DO-05).
 /// </remarks>
 public sealed class Participacao
 {
-    public Guid Id { get; set; } = Guid.NewGuid(); public Guid ViagemId { get; set; }
-    public Viagem Viagem { get; set; } = null!; public Guid PassageiroId { get; set; }
-    public Utilizador Passageiro { get; set; } = null!; [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente; public string? Recolha { get; set; }
+    /// <summary>Identificador da participação.</summary>
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    /// <summary>Viagem pedida.</summary>
+    public Guid ViagemId { get; set; }
+
+    /// <summary>Navegação para a viagem.</summary>
+    public Viagem Viagem { get; set; } = null!;
+
+    /// <summary>Passageiro que fez o pedido.</summary>
+    public Guid PassageiroId { get; set; }
+
+    /// <summary>Navegação para o passageiro.</summary>
+    public Utilizador Passageiro { get; set; } = null!;
+
+    /// <summary>Estado do pedido; serializado em JSON como texto (<c>"Pendente"</c>, <c>"Aceite"</c>, ...).</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente;
+
+    /// <summary>Ponto de recolha indicado pelo passageiro (texto); <c>null</c> significa a origem da viagem (P-20).</summary>
+    public string? Recolha { get; set; }
+
+    /// <summary>Ponto de destino indicado pelo passageiro (texto); <c>null</c> significa o destino da viagem (P-20).</summary>
     public string? Destino { get; set; }
+
+    /// <summary>Data do pedido (UTC).</summary>
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
     /// <summary>Momento em que o condutor aceitou o pedido; fica preenchido mesmo depois de a participação ser cancelada.</summary>
+    /// <remarks>Mantém no histórico do passageiro as viagens indisponibilizadas depois da aceitação (RF-F009-08).</remarks>
     public DateTime? AceiteEm { get; set; }
 }
