@@ -1,4 +1,5 @@
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Persistence;
@@ -27,6 +28,10 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         b.Entity<Viagem>().Property(x => x.OrigemLongitude).HasPrecision(9, 6);
         b.Entity<Viagem>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
         b.Entity<Viagem>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
+        // Modelo de dados v06: o estado só aceita os nomes de EstadoViagem, sem acento (DC-32).
+        b.Entity<Viagem>().ToTable(t => t.HasCheckConstraint(
+            "CK_Viagens_Estado",
+            $"[Estado] IN ('{nameof(EstadoViagem.Ativa)}', '{nameof(EstadoViagem.Indisponibilizada)}', '{nameof(EstadoViagem.Concluida)}')"));
 
         // Controlo de concorrência otimista na base de dados SQL Server.
         if (Database.IsSqlServer())

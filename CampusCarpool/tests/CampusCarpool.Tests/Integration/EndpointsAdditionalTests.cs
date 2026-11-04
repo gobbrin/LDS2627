@@ -267,7 +267,7 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id,
             partida: DateTime.UtcNow.AddDays(-1)); var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<NoContentResult>(await c.Concluir(v.Id, default));
-        Assert.Equal("Concluída", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
+        Assert.Equal("Concluida", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
     }
     [Fact]
     public async Task PesquisaExcluiViagensSemLugaresEPassadas()

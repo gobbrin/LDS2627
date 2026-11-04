@@ -170,7 +170,7 @@ public sealed class ViagensController(
         var v = await db.Viagens.FindAsync([id], ct);
         if (v is null) return NotFound();
         if (v.CondutorId != userId) return Forbid();
-        if (v.Estado != "Ativa" || v.PartidaEm <= DateTime.UtcNow)
+        if (v.Estado != nameof(EstadoViagem.Ativa) || v.PartidaEm <= DateTime.UtcNow)
             return Conflict(new { erro = "Viagem não editável." });
         if (input.PartidaEm.Kind != DateTimeKind.Utc || input.PartidaEm <= DateTime.UtcNow ||
             input.Lugares is < 1 or > 8)
@@ -216,8 +216,8 @@ public sealed class ViagensController(
         var v = await db.Viagens.FindAsync([id], ct);
         if (v is null) return NotFound();
         if (v.CondutorId != userId) return Forbid();
-        if (v.Estado != "Ativa") return Conflict();
-        v.Estado = "Indisponibilizada";
+        if (v.Estado != nameof(EstadoViagem.Ativa)) return Conflict();
+        v.Estado = nameof(EstadoViagem.Indisponibilizada);
         var pendentes = await db.Participacoes
             .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Pendente)
             .ToListAsync(ct);
@@ -254,8 +254,8 @@ public sealed class ViagensController(
         var v = await db.Viagens.FindAsync([id], ct);
         if (v is null) return NotFound();
         if (v.CondutorId != userId) return Forbid();
-        if (v.Estado != "Ativa" || v.PartidaEm > DateTime.UtcNow) return Conflict();
-        v.Estado = "Concluída";
+        if (v.Estado != nameof(EstadoViagem.Ativa) || v.PartidaEm > DateTime.UtcNow) return Conflict();
+        v.Estado = nameof(EstadoViagem.Concluida);
         var pendentes = await db.Participacoes
             .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Pendente)
             .ToListAsync(ct);

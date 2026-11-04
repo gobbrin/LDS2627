@@ -20,7 +20,7 @@ public sealed class HistoricoService(
             .AsNoTracking()
             .Where(v =>
                 v.CondutorId == utilizadorId &&
-                (v.PartidaEm <= agora || v.Estado != "Ativa"))
+                (v.PartidaEm <= agora || v.Estado != nameof(EstadoViagem.Ativa)))
             .OrderByDescending(v => v.PartidaEm)
             .Select(v => new ViagemHistorico(
                 v.Id,
@@ -41,7 +41,7 @@ public sealed class HistoricoService(
                 p.PassageiroId == utilizadorId &&
                 p.Estado == EstadoParticipacao.Aceite &&
                 (p.Viagem.PartidaEm <= agora ||
-                 p.Viagem.Estado != "Ativa"))
+                 p.Viagem.Estado != nameof(EstadoViagem.Ativa)))
                     .OrderByDescending(p => p.Viagem.PartidaEm)
                     .Select(p => new
                     {

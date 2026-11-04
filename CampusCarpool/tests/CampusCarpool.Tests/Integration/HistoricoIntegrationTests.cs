@@ -74,7 +74,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Porto",
             Destino = "Braga",
             PartidaEm = DateTime.UtcNow.AddDays(-2),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3
         };
@@ -115,7 +115,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Felgueiras",
             Destino = "Porto",
             PartidaEm = DateTime.UtcNow.AddDays(-1),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 2,
             LugaresDisponiveis = 2
         });
@@ -157,7 +157,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Felgueiras",
             Destino = "Porto",
             PartidaEm = DateTime.UtcNow.AddDays(-2),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2
         };
@@ -204,7 +204,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Porto",
             Destino = "Braga",
             PartidaEm = DateTime.UtcNow.AddDays(-10),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 2,
             LugaresDisponiveis = 2
         };
@@ -215,7 +215,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Porto",
             Destino = "Felgueiras",
             PartidaEm = DateTime.UtcNow.AddDays(-1),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 2,
             LugaresDisponiveis = 2
         };
@@ -464,7 +464,7 @@ public sealed class HistoricoIntegrationTests
             Origem = "Felgueiras",
             Destino = "Porto",
             PartidaEm = DateTime.UtcNow.AddDays(-2),
-            Estado = "Concluída",
+            Estado = "Concluida",
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3
         };

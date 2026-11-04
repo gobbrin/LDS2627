@@ -14,7 +14,7 @@ public sealed class AvaliacaoServiceTests
     private readonly Guid _viagemId = Guid.NewGuid();
     private readonly RepositorioEmMemoria _repo = new();
 
-    private AvaliacaoService CriarServico(string estado = "Concluída", bool aceitarA = true, bool aceitarB = true)
+    private AvaliacaoService CriarServico(string estado = "Concluida", bool aceitarA = true, bool aceitarB = true)
     {
         _repo.Viagens[_viagemId] = new Viagem { Id = _viagemId, CondutorId = _condutor, Estado = estado };
         _repo.Utilizadores.UnionWith(new[] { _condutor, _passageiroA, _passageiroB, _externo });
@@ -59,18 +59,18 @@ public sealed class AvaliacaoServiceTests
     [Theory]
     [InlineData("Ativa")]
     [InlineData("Indisponibilizada")]
+    // DC-32 (I110): a grafia com acento já não é um estado válido; a migration converte-a.
+    [InlineData("Concluída")]
     public async Task Criar_RejeitaViagemNaoConcluida(string estado)
     {
         var servico = CriarServico(estado);
         await Assert.ThrowsAsync<InvalidOperationException>(() => servico.CriarAsync(_viagemId, _condutor, _passageiroA, 5, CancellationToken.None));
     }
 
-    [Theory]
-    [InlineData("Concluída")]
-    [InlineData("Concluida")]
-    public async Task Criar_AceitaEstadosDeViagemConcluida(string estado)
+    [Fact]
+    public async Task Criar_AceitaViagemConcluida()
     {
-        var servico = CriarServico(estado);
+        var servico = CriarServico("Concluida");
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 5, CancellationToken.None);
         Assert.Single(_repo.Avaliacoes);
     }
@@ -134,7 +134,7 @@ public sealed class AvaliacaoServiceTests
         var servico = CriarServico();
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 3, CancellationToken.None);
         var outra = Guid.NewGuid();
-        _repo.Viagens[outra] = new Viagem { Id = outra, CondutorId = _condutor, Estado = "Concluída" };
+        _repo.Viagens[outra] = new Viagem { Id = outra, CondutorId = _condutor, Estado = "Concluida" };
         _repo.Aceites.Add((outra, _passageiroA));
         await Assert.ThrowsAsync<InvalidOperationException>(() => servico.CriarAsync(outra, _condutor, _passageiroA, 5, CancellationToken.None));
         Assert.Single(_repo.Avaliacoes);

@@ -33,7 +33,7 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
         var viagem = await db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == viagemId, ct);
         if (viagem is null) return NotFound(new { erro = "Viagem não encontrada." });
         if (viagem.CondutorId != utilizadorId) return Forbid();
-        if (viagem.Estado != "Ativa" || viagem.PartidaEm <= DateTime.UtcNow)
+        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm <= DateTime.UtcNow)
             return Conflict(new { erro = "A viagem não está ativa ou já começou." });
 
         var pedido = await db.Participacoes.AsNoTracking()

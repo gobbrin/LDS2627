@@ -1,3 +1,5 @@
+using CampusCarpool.Domain.Enums;
+
 namespace CampusCarpool.Domain.Entities;
 
 public sealed class Viagem
@@ -10,7 +12,7 @@ public sealed class Viagem
     public DateTime PartidaEm { get; set; }
     public int LugaresOferecidos { get; set; }
     public int LugaresDisponiveis { get; set; }
-    public string Estado { get; set; } = "Ativa"; public decimal? DistanciaKm { get; set; }
+    public string Estado { get; set; } = nameof(EstadoViagem.Ativa); public decimal? DistanciaKm { get; set; }
     public int? DuracaoMinutos { get; set; }
 
     public byte[] Versao { get; set; } = Array.Empty<byte>();

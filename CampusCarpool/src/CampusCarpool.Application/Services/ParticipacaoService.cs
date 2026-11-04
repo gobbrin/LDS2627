@@ -33,7 +33,7 @@ public sealed class ParticipacaoService(
             return ResultadoGestaoParticipacao.NaoAutorizado;
 
         if (participacao.Estado != EstadoParticipacao.Pendente
-            || viagem.Estado != "Ativa"
+            || viagem.Estado != nameof(EstadoViagem.Ativa)
             || viagem.PartidaEm <= DateTime.UtcNow)
         {
             return ResultadoGestaoParticipacao.Conflito;

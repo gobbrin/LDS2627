@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 namespace CampusCarpool.Application.Services;
 
 public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAvaliacaoService
@@ -15,7 +16,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         var viagem = await repositorio.ObterViagemAsync(viagemId, ct) ?? throw new KeyNotFoundException("Viagem não encontrada.");
         if (!await repositorio.UtilizadorExisteAsync(avaliadorId, ct) || !await repositorio.UtilizadorExisteAsync(avaliadoId, ct))
             throw new KeyNotFoundException("Utilizador não encontrado.");
-        if (viagem.Estado != "Concluída" && viagem.Estado != "Concluida")
+        if (viagem.Estado != nameof(EstadoViagem.Concluida))
             throw new InvalidOperationException("Só é possível avaliar viagens concluídas.");
         var avaliadorElegivel = viagem.CondutorId == avaliadorId || await repositorio.ParticipacaoAceiteAsync(viagemId, avaliadorId, ct);
         var avaliadoElegivel = viagem.CondutorId == avaliadoId || await repositorio.ParticipacaoAceiteAsync(viagemId, avaliadoId, ct);

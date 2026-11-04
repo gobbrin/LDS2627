@@ -55,7 +55,7 @@ public sealed class PedidosController(
         if (viagem is null)
             return NotFound(new { erro = "Viagem não encontrada." });
 
-        if (viagem.Estado != "Ativa" || viagem.PartidaEm <= DateTime.UtcNow)
+        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm <= DateTime.UtcNow)
             return Conflict(new { erro = "Viagem indisponível." });
 
         if (viagem.CondutorId == passageiroId)

@@ -1,3 +1,4 @@
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
         [FromQuery] int tamanho = 20, CancellationToken ct = default)
     {
         if (pagina < 1 || tamanho is < 1 or > 100 || (long)(pagina - 1) * tamanho > int.MaxValue) return BadRequest(new { erro = "Paginação inválida." });
-        var q = db.Viagens.AsNoTracking().Where(v => v.Estado == "Ativa" && v.LugaresDisponiveis > 0 && v.PartidaEm > DateTime.UtcNow);
+        var q = db.Viagens.AsNoTracking().Where(v => v.Estado == nameof(EstadoViagem.Ativa) && v.LugaresDisponiveis > 0 && v.PartidaEm > DateTime.UtcNow);
         if (!string.IsNullOrWhiteSpace(origem)) q = q.Where(v => v.Origem.Contains(origem.Trim()));
         if (!string.IsNullOrWhiteSpace(destino)) q = q.Where(v => v.Destino.Contains(destino.Trim()));
         if (data.HasValue) { var inicio = data.Value.ToDateTime(TimeOnly.MinValue); var fim = inicio.AddDays(1); q = q.Where(v => v.PartidaEm >= inicio && v.PartidaEm < fim); }

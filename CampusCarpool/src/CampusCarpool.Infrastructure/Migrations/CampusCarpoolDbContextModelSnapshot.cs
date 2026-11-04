@@ -397,7 +397,10 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("CondutorId");
 
-                    b.ToTable("Viagens");
+                    b.ToTable("Viagens", t =>
+                        {
+                            t.HasCheckConstraint("CK_Viagens_Estado", "[Estado] IN ('Ativa', 'Indisponibilizada', 'Concluida')");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Avaliacao", b =>
