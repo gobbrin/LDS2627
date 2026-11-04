@@ -3,6 +3,7 @@ using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Exceptions;
 using CampusCarpool.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -10,16 +11,18 @@ namespace CampusCarpool.Tests.Integration;
 
 public sealed class ConcorrenciaSqlServerIntegrationTests
 {
-    [Fact]
+    [SqlServerFact]
     public async Task IT023_DuasAceitacoes_UltimoLugar_ApenasUmaPersiste()
     {
         var nomeBaseDados = $"CampusCarpool_IT023_{Guid.NewGuid():N}";
 
-        var connectionString =
-            $@"Server=(localdb)\MSSQLLocalDB;" +
-            $"Database={nomeBaseDados};" +
-            "Trusted_Connection=True;" +
-            "TrustServerCertificate=True;";
+        // O servidor vem da variável de ambiente (ver SqlServerFactAttribute);
+        // a base de dados tem um nome único por execução.
+        var connectionString = new SqlConnectionStringBuilder(
+            SqlServerFactAttribute.ObterConnectionString())
+        {
+            InitialCatalog = nomeBaseDados
+        }.ConnectionString;
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
             .UseSqlServer(connectionString)
