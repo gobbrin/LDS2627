@@ -123,6 +123,29 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
             expires: DateTime.UtcNow.AddMinutes(60), signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
         return Ok(new { accessToken = new JwtSecurityTokenHandler().WriteToken(jwt), expiresIn = 3600 });
     }
+    /// <summary>
+    /// Termina a sessão: revoga o token atual, que deixa de ser aceite (401) até expirar
+    /// (RF-F001-12, DEF-BE-004). Devolve 204; sem token válido, 401.
+    /// </summary>
+    [Authorize, HttpPost("logout")]
+    public async Task<IActionResult> TerminarSessao(CancellationToken ct)
+    {
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        if (string.IsNullOrEmpty(jti)) return Unauthorized();
+
+        // Sem "exp" legível, guarda-se pela duração máxima do token (60 min).
+        var expiraEm = long.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Exp), out var exp)
+            ? DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime
+            : DateTime.UtcNow.AddMinutes(60);
+
+        // Limpeza: um token expirado já é recusado pela validação da data.
+        var agora = DateTime.UtcNow;
+        await db.TokensRevogados.Where(t => t.ExpiraEm < agora).ExecuteDeleteAsync(ct);
+
+        db.TokensRevogados.Add(new TokenRevogado { Jti = jti, ExpiraEm = expiraEm });
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
     [Authorize, HttpGet("me")]
     public IActionResult Me() => Ok(new { id = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") });
 }

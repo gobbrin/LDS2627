@@ -94,7 +94,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
             }
 
             return Task.CompletedTask;
-        }
+        },
+
+        // Fim de sessão (I110, DEF-BE-004): recusa os tokens revogados.
+        OnTokenValidated = ValidacaoTokensRevogados.ValidarAsync
     };
 });
 
