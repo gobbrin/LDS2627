@@ -38,6 +38,9 @@ public interface IRepositorioParticipacoes
     /// <remarks>RF-F004-06. O índice único filtrado <c>(ViagemId, PassageiroId)</c> garante o mesmo na BD (I038).</remarks>
     Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
 
+    /// <summary>Indica se o passageiro tem algum pedido na viagem, em qualquer estado.</summary>
+    Task<bool> ExistePedidoAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
+
     /// <summary>Indica se o passageiro tem participação aceite na viagem.</summary>
     Task<bool> ExisteAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
 

@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +23,7 @@ public sealed class RotasController(
     IServicoMapasRotas maps,
     EstimativaCustoService custos,
     IRotaService rotas,
+    IConsultaViagensService consultas,
     CampusCarpoolDbContext? db = null) : ControllerBase
 {
     /// <summary>Corpo de <c>POST calcular</c>: dois locais em texto.</summary>
@@ -133,7 +134,7 @@ public sealed class RotasController(
             .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Aceite)
             .ToListAsync(ct);
 
-        if (!await ConsultaViagens.PodeConsultarAsync(db, viagem, utilizadorId, ct))
+        if (!await consultas.PodeConsultarAsync(viagem, utilizadorId, ct))
             return NotFound(new { erro = "Viagem não encontrada." });
 
         // Apenas o condutor ou um passageiro aceite pode ver os pontos detalhados.

@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -66,7 +66,7 @@ public sealed class ConsultasViagemTests : IDisposable
 
     private static readonly IServicoMapasRotas Mapas = new MapasFalsos().CriarServico();
 
-    private ViagensController Controller(Guid utilizadorId) => new(db, Mapas, ServicosDeTeste.CriarRotas(db, Mapas))
+    private ViagensController Controller(Guid utilizadorId) => new(db, Mapas, ServicosDeTeste.CriarRotas(db, Mapas), ServicosDeTeste.CriarConsultas(db))
     {
         ControllerContext = new ControllerContext
         {
@@ -129,7 +129,7 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal(4.5m, condutorDetalhes.ClassificacaoMedia);
         Assert.Equal(1, Campo<int>(detalhes, "PontosAdicionais"));
 
-        var pesquisa = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar(null, null, null, null)).Value!;
+        var pesquisa = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar(null, null, null, null)).Value!;
         var resultado = Assert.Single((System.Collections.IEnumerable)pesquisa.GetType().GetProperty("viagens")!.GetValue(pesquisa)!);
         Assert.Equal(condutorDetalhes, Campo<CondutorViagem>(resultado, "Condutor"));
         Assert.Equal(1, Campo<int>(resultado, "PontosAdicionais"));
@@ -203,7 +203,7 @@ public sealed class ConsultasViagemTests : IDisposable
         });
         await db.SaveChangesAsync();
 
-        var resposta = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar(origem, destino, null, null)).Value!;
+        var resposta = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar(origem, destino, null, null)).Value!;
 
         Assert.Equal(1, Campo<int>(resposta, "total"));
     }
@@ -216,7 +216,7 @@ public sealed class ConsultasViagemTests : IDisposable
         viagem.Origem = "Guimarães";
         await db.SaveChangesAsync();
 
-        var resposta = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar("guimaraes", null, null, null)).Value!;
+        var resposta = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar("guimaraes", null, null, null)).Value!;
 
         Assert.Equal(1, Campo<int>(resposta, "total"));
     }

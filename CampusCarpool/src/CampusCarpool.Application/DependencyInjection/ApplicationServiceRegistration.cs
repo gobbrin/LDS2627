@@ -30,6 +30,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IRotaService, RotaService>();
         services.AddScoped<EstimativaCustoService>();
         services.AddScoped<IConclusaoViagensService, ConclusaoViagensService>();
+        services.AddScoped<IConsultaViagensService, ConsultaViagensService>();
 
         // I048 - Avaliações
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();

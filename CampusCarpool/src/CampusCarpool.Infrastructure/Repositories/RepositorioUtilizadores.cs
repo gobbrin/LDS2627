@@ -20,4 +20,13 @@ public sealed class RepositorioUtilizadores(CampusCarpoolDbContext context) : IR
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == utilizadorId, ct);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, string>> ObterNomesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct)
+    {
+        return await context.Utilizadores
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Nome, ct);
+    }
 }

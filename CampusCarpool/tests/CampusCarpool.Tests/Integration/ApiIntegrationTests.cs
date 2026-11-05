@@ -174,7 +174,7 @@ public sealed class ApiIntegrationTests
     public async Task CT038_PaginacaoInvalida_Devolve400()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new PesquisaController(fixture.Db);
+        var controller = ServicosDeTeste.CriarPesquisaController(fixture.Db);
         Assert.IsType<BadRequestObjectResult>(await controller.Pesquisar(
             null, null, null, null, -1, 99999, default));
     }
@@ -206,7 +206,7 @@ public sealed class ApiIntegrationTests
                 LugaresDisponiveis = 2
             });
         await fixture.Db.SaveChangesAsync();
-        var controller = new PesquisaController(fixture.Db);
+        var controller = ServicosDeTeste.CriarPesquisaController(fixture.Db);
         var result = Assert.IsType<OkObjectResult>(await controller.Pesquisar(
             null, null, null, null, 1, 20, default));
         var total = result.Value!.GetType().GetProperty("total")!.GetValue(result.Value);

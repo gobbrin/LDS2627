@@ -128,6 +128,7 @@ public sealed class I052ParticipacaoServiceTests
         public Task<IReadOnlyList<Participacao>> ListarPorViagemAsync(Guid id, EstadoParticipacao? estado, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Item is not null && Item.ViagemId == id && (estado is null || Item.Estado == estado) ? new[] { Item } : Array.Empty<Participacao>());
         public Task<IReadOnlyList<Participacao>> ListarPorPassageiroAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
         public Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
+        public Task<bool> ExistePedidoAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
         public Task<bool> ExisteAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
         public Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
     }

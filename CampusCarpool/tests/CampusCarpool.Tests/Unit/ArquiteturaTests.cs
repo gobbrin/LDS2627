@@ -36,7 +36,6 @@ public class ArquiteturaTests
         "SimulacoesController",
         "UtilizadoresController",
         "ViagensController",
-        "ConsultaViagens",
     ];
 
     private static string[] Referencias(Assembly assembly) =>

@@ -59,6 +59,12 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
     }
 
     /// <inheritdoc />
+    public async Task<bool> ExistePedidoAsync(Guid viagemId, Guid passageiroId, CancellationToken ct)
+    {
+        return await context.Participacoes.AnyAsync(p => p.ViagemId == viagemId && p.PassageiroId == passageiroId, ct);
+    }
+
+    /// <inheritdoc />
     public async Task<bool> ExisteAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct)
     {
         return await context.Participacoes.AnyAsync(

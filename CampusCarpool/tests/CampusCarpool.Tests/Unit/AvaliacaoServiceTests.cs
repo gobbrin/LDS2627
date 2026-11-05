@@ -280,5 +280,10 @@ public sealed class AvaliacaoServiceTests
         }
         public Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<Avaliacao>>(Avaliacoes.Where(a => a.AvaliadoId == utilizadorId).ToList());
+        public Task<IReadOnlyList<ClassificacaoRecebida>> ListarClassificacoesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ClassificacaoRecebida>>(Avaliacoes
+                .Where(a => ids.Contains(a.AvaliadoId))
+                .Select(a => new ClassificacaoRecebida(a.AvaliadoId, a.Classificacao))
+                .ToList());
     }
 }

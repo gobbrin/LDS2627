@@ -5,6 +5,7 @@ using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Application.Historico;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
@@ -118,6 +119,13 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
 /// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
 public static class ServicosDeTeste
 {
+    public static ConsultaViagensService CriarConsultas(CampusCarpoolDbContext db) => new(
+        new RepositorioParticipacoes(db),
+        new RepositorioUtilizadores(db),
+        new RepositorioAvaliacoes(db));
+
+    public static PesquisaController CriarPesquisaController(CampusCarpoolDbContext db) => new(db, CriarConsultas(db));
+
     public static HistoricoService CriarHistorico(CampusCarpoolDbContext db) => new(new RepositorioHistorico(db));
 
     public static AvisoService CriarAvisos(CampusCarpoolDbContext db) => new(
@@ -138,7 +146,7 @@ public static class ServicosDeTeste
         IServicoMapasRotas mapas,
         EstimativaCustoService? custos = null,
         INotificacaoService? notificacaoService = null) =>
-        new(db, mapas, CriarRotas(db, mapas), custos, notificacaoService);
+        new(db, mapas, CriarRotas(db, mapas), CriarConsultas(db), custos, notificacaoService);
 
     public static SimulacoesController CriarSimulacoesController(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
         new(db, mapas, CriarRotas(db, mapas));
@@ -147,7 +155,7 @@ public static class ServicosDeTeste
         IServicoMapasRotas mapas,
         EstimativaCustoService custos,
         CampusCarpoolDbContext? db = null) =>
-        new(mapas, custos, db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas), db);
+        new(mapas, custos, db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas), db is null ? null! : CriarConsultas(db), db);
 }
 
 /// <summary>

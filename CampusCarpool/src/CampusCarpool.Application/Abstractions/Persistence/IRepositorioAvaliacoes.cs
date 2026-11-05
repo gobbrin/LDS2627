@@ -17,4 +17,9 @@ public interface IRepositorioAvaliacoes
     Task<Avaliacao> GuardarAsync(Avaliacao avaliacao, CancellationToken ct);
     /// <summary>Lista as avaliações recebidas pelo utilizador, das mais recentes para as mais antigas.</summary>
     Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct);
+    /// <summary>Lista as classificações recebidas pelos utilizadores indicados, para calcular as médias em memória.</summary>
+    Task<IReadOnlyList<ClassificacaoRecebida>> ListarClassificacoesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
 }
+
+/// <summary>Classificação recebida por um utilizador.</summary>
+public sealed record ClassificacaoRecebida(Guid AvaliadoId, byte Classificacao);

@@ -271,14 +271,14 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id, available: 0); await f.Trip(u.Id, partida: DateTime.UtcNow.AddDays(-1));
         await f.Trip(u.Id);
-        Assert.Equal(1, Total(await new PesquisaController(f.Db).Pesquisar(null, null, null, null, 1, 20, default)));
+        Assert.Equal(1, Total(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(null, null, null, null, 1, 20, default)));
     }
     [Fact]
     public async Task PesquisaFiltraOrigemDestino()
     {
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id); await f.Trip(u.Id, origem: "Lisboa", destino: "Coimbra");
-        Assert.Equal(1, Total(await new PesquisaController(f.Db).Pesquisar(
+        Assert.Equal(1, Total(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(
             "Porto", "Braga", null, null, 1, 20, default)));
     }
     [Fact]
@@ -286,7 +286,7 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id); await f.Trip(u.Id);
-        var result = Assert.IsType<OkObjectResult>(await new PesquisaController(f.Db).Pesquisar(
+        var result = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(
             null, null, null, null, 2, 1, default));
         Assert.Equal(2, Total(result));
         var items = (System.Collections.IEnumerable)result.Value!.GetType().GetProperty("viagens")!.GetValue(result.Value)!;

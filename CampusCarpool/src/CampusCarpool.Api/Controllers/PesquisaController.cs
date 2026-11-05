@@ -1,5 +1,5 @@
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;
 using CampusCarpool.Infrastructure.Persistence;
@@ -11,7 +11,7 @@ namespace CampusCarpool.Api.Controllers;
 /// <summary>Pesquisa de viagens (F003). Rota <c>GET /api/v1/pesquisa/viagens</c>.</summary>
 /// <remarks>Usa o <see cref="CampusCarpoolDbContext"/> diretamente.</remarks>
 [ApiController, Authorize, Route("api/v1/pesquisa")]
-public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBase
+public sealed class PesquisaController(CampusCarpoolDbContext db, IConsultaViagensService consultas) : ControllerBase
 {
     /// <summary>Pesquisa viagens ativas, futuras e com lugares (RF-F003-01, RF-F003-02, RF-F003-05, P-12).</summary>
     /// <remarks>
@@ -46,7 +46,7 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
             .Select(v => new { v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresDisponiveis, v.DistanciaKm, v.DuracaoMinutos, v.CondutorId, v.RotaPontos }).ToListAsync(ct);
 
         // RF-F003-03 e RF-F003-04: pontos adicionais, nome e classificação média do condutor.
-        var condutores = await ConsultaViagens.CondutoresAsync(db, resultados.Select(v => v.CondutorId).Distinct().ToList(), ct);
+        var condutores = await consultas.CondutoresAsync(resultados.Select(v => v.CondutorId).Distinct().ToList(), ct);
         var viagens = resultados.Select(v => new
         {
             v.Id,

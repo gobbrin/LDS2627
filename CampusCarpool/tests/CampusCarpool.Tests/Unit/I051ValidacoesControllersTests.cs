@@ -129,7 +129,7 @@ public sealed class I051ValidacoesControllersTests
     [Fact]
     public async Task F002_CriarViagemSemIdentidade_Devolve401()
     {
-        var controller = new ViagensController(null!, null!, null!)
+        var controller = new ViagensController(null!, null!, null!, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
@@ -144,7 +144,7 @@ public sealed class I051ValidacoesControllersTests
     [InlineData(-1, 20)]
     public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho)
     {
-        var controller = new PesquisaController(null!);
+        var controller = new PesquisaController(null!, null!);
         var result = await controller.Pesquisar(null, null, null, null, pagina, tamanho);
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -567,7 +567,7 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico(configurado: false);
-        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas), ServicosDeTeste.CriarConsultas(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -638,7 +638,7 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico();
-        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas), ServicosDeTeste.CriarConsultas(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -742,7 +742,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas), ServicosDeTeste.CriarConsultas(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -838,7 +838,7 @@ public sealed class I051ValidacoesControllersTests
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(
             "Porto",
@@ -954,7 +954,7 @@ public sealed class I051ValidacoesControllersTests
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(null, null, null, null, 1, 20, CancellationToken.None);
 
@@ -1038,7 +1038,7 @@ public sealed class I051ValidacoesControllersTests
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(
             null, null, dataPartida, new TimeOnly(12, 0),
@@ -1101,7 +1101,7 @@ public sealed class I051ValidacoesControllersTests
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultadoPagina1 = await controller.Pesquisar(null, null, null, null, 1, 2, CancellationToken.None);
 

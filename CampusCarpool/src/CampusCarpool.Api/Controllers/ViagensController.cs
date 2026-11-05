@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;
@@ -27,6 +27,7 @@ public sealed class ViagensController(
     CampusCarpoolDbContext db,
     IServicoMapasRotas maps,
     IRotaService rotas,
+    IConsultaViagensService consultas,
     EstimativaCustoService? custos = null,
     INotificacaoService? notificacaoService = null) : ControllerBase
 {
@@ -125,7 +126,7 @@ public sealed class ViagensController(
         // Seguida pelo contexto: uma rota por recalcular é gravada ao ser obtida.
         var viagem = await db.Viagens.FirstOrDefaultAsync(v => v.Id == id, ct);
 
-        if (viagem is null || !await ConsultaViagens.PodeConsultarAsync(db, viagem, Id, ct))
+        if (viagem is null || !await consultas.PodeConsultarAsync(viagem, Id, ct))
             return NotFound();
 
         var participacoesAceites = await db.Participacoes.AsNoTracking()
@@ -174,7 +175,7 @@ public sealed class ViagensController(
             }
         }
 
-        var condutores = await ConsultaViagens.CondutoresAsync(db, [viagem.CondutorId], ct);
+        var condutores = await consultas.CondutoresAsync([viagem.CondutorId], ct);
 
         return Ok(new
         {

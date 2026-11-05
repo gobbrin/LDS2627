@@ -71,7 +71,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
     private static readonly IServicoMapasRotas MapasSemConfiguracao = new MapasFalsos().CriarServico(configurado: false);
 
     private ViagensController CriarController(Guid utilizadorId) =>
-        new(_db, MapasSemConfiguracao, ServicosDeTeste.CriarRotas(_db, MapasSemConfiguracao))
+        new(_db, MapasSemConfiguracao, ServicosDeTeste.CriarRotas(_db, MapasSemConfiguracao), ServicosDeTeste.CriarConsultas(_db))
         {
             ControllerContext = new ControllerContext
             {
