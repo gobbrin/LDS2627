@@ -1,6 +1,4 @@
-using System.Net;
 using System.Security.Claims;
-using System.Text;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;

@@ -1,7 +1,7 @@
 
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Historico;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;

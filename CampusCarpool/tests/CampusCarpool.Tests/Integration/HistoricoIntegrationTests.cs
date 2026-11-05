@@ -1,5 +1,4 @@
 
-using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;

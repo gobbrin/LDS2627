@@ -1,4 +1,4 @@
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 

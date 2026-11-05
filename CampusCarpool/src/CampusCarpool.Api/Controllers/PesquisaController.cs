@@ -1,6 +1,6 @@
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

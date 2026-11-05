@@ -1,8 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using CampusCarpool.Api.Hubs;
-using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

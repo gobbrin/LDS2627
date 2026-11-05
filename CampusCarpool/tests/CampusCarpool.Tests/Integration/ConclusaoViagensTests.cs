@@ -1,5 +1,6 @@
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Services;
 using Microsoft.Data.Sqlite;

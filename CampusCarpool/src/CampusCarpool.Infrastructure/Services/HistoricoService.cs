@@ -1,5 +1,5 @@
 
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Historico;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

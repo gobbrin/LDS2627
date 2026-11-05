@@ -1,5 +1,5 @@
 using System.Text.Json;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

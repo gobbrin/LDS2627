@@ -1,4 +1,4 @@
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;

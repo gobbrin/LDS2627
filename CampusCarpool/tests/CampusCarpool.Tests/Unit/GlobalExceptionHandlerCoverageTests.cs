@@ -1,8 +1,6 @@
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Domain.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 

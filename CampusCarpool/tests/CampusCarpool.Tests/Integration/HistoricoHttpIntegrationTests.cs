@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;

@@ -1,9 +1,10 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

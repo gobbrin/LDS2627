@@ -1,7 +1,7 @@
 
 namespace CampusCarpool.Api.Services;
 
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 
 /// <summary>Estimativa de custo devolvida ao cliente (RF-F008-10, RF-F008-11).</summary>
 /// <remarks><c>Indicativo</c> é sempre <c>true</c>: o valor é só uma referência para dividir despesas, não um preço.</remarks>

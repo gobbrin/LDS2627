@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -10,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;

@@ -1,5 +1,6 @@
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using Xunit;

@@ -1,5 +1,4 @@
 using CampusCarpool.Api.Hubs;
-using CampusCarpool.Api.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

@@ -1,7 +1,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;

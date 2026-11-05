@@ -1,5 +1,4 @@
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Application.Models;
+using CampusCarpool.Application.Abstractions.Integrations;
 
 namespace CampusCarpool.Tests;
 

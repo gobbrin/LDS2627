@@ -1,9 +1,11 @@
 using System.Text;
+using CampusCarpool.Api.Configuration;
 using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.DependencyInjection;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Infrastructure.DependencyInjection;
 using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -55,7 +57,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // I049 - Historico pessoal
 builder.Services.AddScoped<
-    CampusCarpool.Application.Interfaces.IHistoricoService,
+    CampusCarpool.Application.Historico.IHistoricoService,
     CampusCarpool.Infrastructure.Services.HistoricoService>();
 
 

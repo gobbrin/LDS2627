@@ -1,7 +1,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;

@@ -1,6 +1,6 @@
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Persistence;

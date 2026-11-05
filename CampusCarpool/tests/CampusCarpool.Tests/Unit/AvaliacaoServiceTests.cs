@@ -1,5 +1,5 @@
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Domain.Entities;
 using Xunit;
 

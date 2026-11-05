@@ -3,7 +3,8 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Abstractions.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 

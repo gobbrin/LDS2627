@@ -2,7 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.Extensions.Configuration;

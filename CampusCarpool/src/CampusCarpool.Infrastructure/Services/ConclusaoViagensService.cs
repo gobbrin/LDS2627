@@ -1,4 +1,4 @@
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

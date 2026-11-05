@@ -1,4 +1,5 @@
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Rotas;
 using Microsoft.Extensions.Configuration;
 
 namespace CampusCarpool.Tests;

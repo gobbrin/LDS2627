@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -255,12 +255,12 @@ public sealed class MapasAndValidationTests
     [Fact]
     public void Custo_DivisaoPorCondutorEMaisUmPassageiro()
     {
-        Assert.Equal(2.50m, Domain.Services.CalculadoraDeCusto.Calcular(50m, 0.10m, 1));
+        Assert.Equal(2.50m, Domain.Rules.CalculadoraDeCusto.Calcular(50m, 0.10m, 1));
     }
 
     [Fact]
     public void Custo_RejeitaPassageirosNegativos()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Domain.Services.CalculadoraDeCusto.Calcular(50m, 0.10m, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Domain.Rules.CalculadoraDeCusto.Calcular(50m, 0.10m, -1));
     }
 }

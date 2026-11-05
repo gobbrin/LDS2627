@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;

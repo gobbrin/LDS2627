@@ -1,6 +1,5 @@
 using System.Security.Claims;
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Domain.Enums;
+using CampusCarpool.Application.Participacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace CampusCarpool.Api.Controllers;
@@ -11,7 +10,7 @@ namespace CampusCarpool.Api.Controllers;
 /// <remarks>
 /// Este controller limita-se a autenticar o utilizador, chamar
 /// <see cref="IParticipacaoService"/> e converter o resultado para HTTP.
-/// As regras de negócio vivem em <c>Application/Services/ParticipacaoService.cs</c> e o acesso a EF Core nos
+/// As regras de negócio vivem em <c>Application/Participacoes/ParticipacaoService.cs</c> e o acesso a EF Core nos
 /// repositórios da Infrastructure. Rotas em <c>/api/v1/participacoes/{id}</c>; respostas: 204 sucesso, 401 sem
 /// sessão, 403 sem permissão, 404 inexistente, 409 estado não permite, sem lugares ou lugares inconsistentes,
 /// 503 ao aceitar sem o Serviço de Mapas (P-19).

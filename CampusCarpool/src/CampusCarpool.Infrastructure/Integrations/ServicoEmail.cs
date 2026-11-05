@@ -1,6 +1,5 @@
-using System.Net.Http;
 using System.Net.Http.Json;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using Microsoft.Extensions.Configuration;
 
 namespace CampusCarpool.Infrastructure.Integrations;

@@ -1,5 +1,8 @@
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Infrastructure.Integrations;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Viagens;
+using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using CampusCarpool.Infrastructure.Services;

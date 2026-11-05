@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

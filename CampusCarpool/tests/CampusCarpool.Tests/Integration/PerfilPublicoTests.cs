@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;

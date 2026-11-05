@@ -1,4 +1,5 @@
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;

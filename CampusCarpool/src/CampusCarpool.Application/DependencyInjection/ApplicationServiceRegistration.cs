@@ -1,5 +1,7 @@
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Avaliacoes;
+using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Participacoes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CampusCarpool.Application.DependencyInjection;

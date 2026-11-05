@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace CampusCarpool.Api.Controllers;

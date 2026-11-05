@@ -1,6 +1,6 @@
 
 using System.Security.Claims;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Historico;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
