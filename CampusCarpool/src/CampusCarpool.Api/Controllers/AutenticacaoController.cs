@@ -8,6 +8,7 @@ using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 namespace CampusCarpool.Api.Controllers;
@@ -173,12 +174,18 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
             expires: DateTime.UtcNow.AddMinutes(60), signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
         return Ok(new { accessToken = new JwtSecurityTokenHandler().WriteToken(jwt), expiresIn = 3600 });
     }
+    /// <summary>Corpo opcional de <c>POST logout</c>: a aplicação Android indica o seu token FCM; o web não envia nada.</summary>
+    public sealed record TerminarSessaoPedido(string? TokenDispositivo);
+
     /// <summary>
     /// Termina a sessão: revoga o token atual, que deixa de ser aceite (401) até expirar
-    /// (RF-F001-12, DEF-BE-004). Devolve 204; sem token válido, 401.
+    /// (RF-F001-12, DEF-BE-004), e desativa o dispositivo indicado, sem afetar os outros (RF-F006-18, D-020).
+    /// Devolve 204; sem token válido, 401.
     /// </summary>
     [Authorize, HttpPost("logout")]
-    public async Task<IActionResult> TerminarSessao(CancellationToken ct)
+    public async Task<IActionResult> TerminarSessao(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] TerminarSessaoPedido? input,
+        CancellationToken ct)
     {
         var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
         if (string.IsNullOrEmpty(jti)) return Unauthorized();
@@ -191,6 +198,15 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
         // Limpeza: um token expirado já é recusado pela validação da data.
         var agora = DateTime.UtcNow;
         await db.TokensRevogados.Where(t => t.ExpiraEm < agora).ExecuteDeleteAsync(ct);
+
+        if (!string.IsNullOrWhiteSpace(input?.TokenDispositivo)
+            && Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var utilizadorId))
+        {
+            var dispositivo = input.TokenDispositivo.Trim();
+            await db.Dispositivos
+                .Where(d => d.UtilizadorId == utilizadorId && d.Token == dispositivo)
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Ativo, false), ct);
+        }
 
         db.TokensRevogados.Add(new TokenRevogado { Jti = jti, ExpiraEm = expiraEm });
         await db.SaveChangesAsync(ct);

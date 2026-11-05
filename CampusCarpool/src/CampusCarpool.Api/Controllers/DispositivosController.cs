@@ -6,8 +6,8 @@ namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Registo dos dispositivos Android para push (RF-F006-10). Rota <c>/api/v1/dispositivos</c>.</summary>
 /// <remarks>
-/// A aplicação Android chama <c>POST</c> depois do login com o token FCM e <c>DELETE</c> antes de terminar a sessão.
-/// O fim de sessão no backend ainda não desativa o dispositivo por si (DEF-BE-021, fica para m4).
+/// A aplicação Android chama <c>POST</c> depois do login com o token FCM. Ao terminar a sessão indica esse token
+/// em <c>POST /autenticacao/logout</c>, que desativa o dispositivo (RF-F006-18); o <c>DELETE</c> também o desativa.
 /// </remarks>
 [ApiController, Authorize, Route("api/v1/dispositivos")]
 public sealed class DispositivosController(IRepositorioDispositivos repositorio) : ControllerBase

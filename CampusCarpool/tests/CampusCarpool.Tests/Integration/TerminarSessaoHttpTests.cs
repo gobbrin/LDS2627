@@ -113,6 +113,37 @@ public sealed class TerminarSessaoHttpTests : IDisposable
     }
 
     [Fact]
+    /// <summary>RF-F006-18 / D-020: só o dispositivo indicado deixa de receber push; os outros continuam ativos.</summary>
+    public async Task I110_41_TerminarSessao_DesativaSoODispositivoIndicado()
+    {
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>();
+            var id = (await db.Utilizadores.SingleAsync()).Id;
+            db.Dispositivos.AddRange(
+                new Dispositivo { UtilizadorId = id, Token = "telemovel-a", Ativo = true },
+                new Dispositivo { UtilizadorId = id, Token = "telemovel-b", Ativo = true });
+            await db.SaveChangesAsync();
+        }
+
+        var token = await IniciarSessaoAsync();
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, "/api/v1/autenticacao/logout")
+        {
+            Content = JsonContent.Create(new { tokenDispositivo = "telemovel-a" })
+        };
+        pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var resposta = await _cliente.SendAsync(pedido);
+
+        Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
+        using var verificacao = _factory.Services.CreateScope();
+        var dispositivos = await verificacao.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>()
+            .Dispositivos.AsNoTracking().ToListAsync();
+        Assert.False(dispositivos.Single(d => d.Token == "telemovel-a").Ativo);
+        Assert.True(dispositivos.Single(d => d.Token == "telemovel-b").Ativo);
+    }
+
+    [Fact]
     public async Task I110_19_TerminarSessaoSemToken_Devolve401()
     {
         using var resposta = await _cliente.PostAsync("/api/v1/autenticacao/logout", null);
