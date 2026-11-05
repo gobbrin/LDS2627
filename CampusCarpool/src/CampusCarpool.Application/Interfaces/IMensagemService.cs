@@ -6,7 +6,6 @@ namespace CampusCarpool.Application.Interfaces;
 /// <remarks>
 /// Os erros saem como exceções genéricas: o <c>MensagensController</c> converte
 /// <see cref="ArgumentException"/> e <see cref="InvalidOperationException"/> em 400 (DO-09).
-/// Não há operação para listar as conversas (DEF-BE-018, fica para m4).
 /// </remarks>
 public interface IMensagemService
 {
@@ -25,4 +24,15 @@ public interface IMensagemService
     /// <exception cref="ArgumentException">Conversa consigo próprio.</exception>
     /// <exception cref="InvalidOperationException">O outro utilizador não existe ou não tem a conta confirmada.</exception>
     Task<IReadOnlyList<Mensagem>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct);
+
+    /// <summary>Lista as conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08).</summary>
+    /// <remarks>Só inclui conversas em que o utilizador é remetente ou destinatário (RF-F005-04).</remarks>
+    Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct);
 }
+
+/// <summary>Entrada da lista de conversas: o outro utilizador e a última mensagem trocada.</summary>
+public sealed record ResumoConversa(
+    Guid OutroUtilizadorId,
+    string OutroUtilizadorNome,
+    string UltimaMensagem,
+    DateTime UltimaMensagemEm);

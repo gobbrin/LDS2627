@@ -91,4 +91,8 @@ public sealed class MensagemService(
             outroUtilizadorId,
             ct);
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct) =>
+        repositorioMensagens.ListarConversasAsync(utilizadorId, ct);
 }

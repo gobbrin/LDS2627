@@ -11,7 +11,6 @@ namespace CampusCarpool.Api.Controllers;
 /// F005, rotas em <c>/api/v1/mensagens</c>. Os erros do <see cref="IMensagemService"/> (argumento inválido ou
 /// utilizador inexistente/por confirmar) dão sempre 400 (DO-09). A resposta devolve a entidade
 /// <see cref="Mensagem"/> tal como está (inclui os ids do remetente e do destinatário).
-/// Falta a lista das conversas do utilizador (RF-F005-08; DEF-BE-018, fica para m4).
 /// </remarks>
 [ApiController]
 [Authorize]
@@ -55,6 +54,18 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
             //Indica que não foi possível executar a operação solicitada.
             return BadRequest(new { erro = ex.Message });
         }
+    }
+
+    /// <summary>Conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08, DEF-BE-018). 200; 401.</summary>
+    [HttpGet("conversas")]
+    public async Task<IActionResult> ListarConversas(CancellationToken ct)
+    {
+        if (UtilizadorId is not Guid utilizadorId)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await mensagemService.ListarConversasAsync(utilizadorId, ct));
     }
 
     //Obtém o histórico entre o utilizador autenticado e outro utilizador.

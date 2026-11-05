@@ -45,6 +45,9 @@ public sealed class MensagensControllerTests
             if (ErroConsulta is not null) throw ErroConsulta;
             return Task.FromResult(Historico);
         }
+
+        public Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ResumoConversa>>([]);
     }
 
     private static MensagensController CriarController(ServicoMensagensFalso servico, Guid? utilizadorId)

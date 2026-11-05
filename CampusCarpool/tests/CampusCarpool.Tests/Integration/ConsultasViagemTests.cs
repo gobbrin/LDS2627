@@ -218,6 +218,28 @@ public sealed class ConsultasViagemTests : IDisposable
     }
 
     [Fact]
+    /// <summary>RF-F005-08 / DEF-BE-018: uma entrada por interlocutor, com a última mensagem, e nada de terceiros.</summary>
+    public async Task I110_58_ListaDeConversas_UmaEntradaPorInterlocutor()
+    {
+        var agora = DateTime.UtcNow;
+        db.Mensagens.AddRange(
+            new Mensagem { RemetenteId = condutor.Id, DestinatarioId = passageiro.Id, Conteudo = "primeira", EnviadoEm = agora.AddMinutes(-30) },
+            new Mensagem { RemetenteId = passageiro.Id, DestinatarioId = condutor.Id, Conteudo = "resposta", EnviadoEm = agora.AddMinutes(-20) },
+            new Mensagem { RemetenteId = pendente.Id, DestinatarioId = condutor.Id, Conteudo = "mais recente", EnviadoEm = agora.AddMinutes(-10) },
+            new Mensagem { RemetenteId = pendente.Id, DestinatarioId = outro.Id, Conteudo = "de terceiros", EnviadoEm = agora });
+        await db.SaveChangesAsync();
+
+        var conversas = await new CampusCarpool.Infrastructure.Repositories.RepositorioMensagens(db)
+            .ListarConversasAsync(condutor.Id, default);
+
+        Assert.Equal(2, conversas.Count);
+        Assert.Equal("Pendente", conversas[0].OutroUtilizadorNome);
+        Assert.Equal("mais recente", conversas[0].UltimaMensagem);
+        Assert.Equal("Passageiro", conversas[1].OutroUtilizadorNome);
+        Assert.Equal("resposta", conversas[1].UltimaMensagem);
+    }
+
+    [Fact]
     public async Task I110_47_ViagemPesquisavel_QualquerUtilizadorConsulta()
     {
         var viagem = await CriarViagem();
