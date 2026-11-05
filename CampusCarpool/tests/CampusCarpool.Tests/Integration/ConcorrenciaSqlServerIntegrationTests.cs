@@ -11,7 +11,7 @@ namespace CampusCarpool.Tests.Integration;
 
 /// <summary>IT-023: duas aceitações em simultâneo para o último lugar; só uma pode ficar gravada (coluna <c>Versao</c>).</summary>
 /// <remarks>
-/// É o único teste com SQL Server real (o <c>rowversion</c> não existe em SQLite). Corre só com a variável <c>CAMPUSCARPOOL_TESTES_SQLSERVER</c> (ver <see cref="SqlServerFactAttribute"/>); sem ela fica "saltado", também na CI.
+/// Usa SQL Server real, porque o <c>rowversion</c> não existe em SQLite. Corre só com a variável <c>CAMPUSCARPOOL_TESTES_SQLSERVER</c> (ver <see cref="SqlServerFactAttribute"/>): a CI arranca um contentor; sem a variável, fica "saltado".
 /// </remarks>
 public sealed class ConcorrenciaSqlServerIntegrationTests
 {
@@ -34,11 +34,11 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
         await using var preparacao = new CampusCarpoolDbContext(options);
 
-        // Esta base de dados tem um nome único para o teste.
-        await preparacao.Database.EnsureCreatedAsync();
-
         try
         {
+            // Esta base de dados tem um nome único para o teste; o esquema é o das migrations (TE-05).
+            await preparacao.Database.MigrateAsync();
+
             var condutor = new Utilizador
             {
                 Nome = "Condutor IT023",
