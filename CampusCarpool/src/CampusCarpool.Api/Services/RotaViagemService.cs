@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
@@ -15,7 +16,7 @@ namespace CampusCarpool.Api.Services;
 /// significa «por recalcular»: acontece quando um cancelamento não conseguiu recalcular (P-19), e a rota é
 /// recalculada na consulta seguinte em que o serviço responda.
 /// </remarks>
-public sealed class RotaViagemService(MapasService mapas) : IRotaViagemService
+public sealed class RotaViagemService(IServicoMapasRotas mapas) : IRotaViagemService
 {
     /// <summary>Calcula a rota da viagem com os pontos das participações indicadas, sem gravar nada.</summary>
     /// <param name="viagem">Viagem.</param>

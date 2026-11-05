@@ -6,6 +6,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -81,7 +82,7 @@ public sealed class SimulacoesIntegrationTests
             {
                 BaseAddress = new Uri("https://api.heigit.org/openrouteservice/")
             };
-            var controller = new SimulacoesController(Db, new MapasService(http, config));
+            var controller = new SimulacoesController(Db, new ServicoMapasRotas(http, config));
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext

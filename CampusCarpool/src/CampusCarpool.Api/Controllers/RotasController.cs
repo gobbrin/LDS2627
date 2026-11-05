@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -12,7 +13,7 @@ namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Serviço de Mapas e Rotas exposto ao frontend (F008). Rotas em <c>/api/v1/rotas</c>.</summary>
 /// <remarks>
-/// Todos os métodos dependem do <see cref="MapasService"/> (OpenRouteService) e respondem 503 se não estiver
+/// Todos os métodos dependem do <see cref="IServicoMapasRotas"/> (OpenRouteService) e respondem 503 se não estiver
 /// configurado, 502 se falhar e 504 se exceder o tempo (RF-F008-12). Os parâmetros opcionais (<c>= null</c>)
 /// existem para os testes que criam o controller sem DI.
 /// </remarks>
@@ -20,7 +21,7 @@ namespace CampusCarpool.Api.Controllers;
 [Authorize]
 [Route("api/v1/rotas")]
 public sealed class RotasController(
-    MapasService maps,
+    IServicoMapasRotas maps,
     EstimativaCustoService custos,
     CampusCarpoolDbContext? db = null,
     RotaViagemService? rotaViagem = null) : ControllerBase

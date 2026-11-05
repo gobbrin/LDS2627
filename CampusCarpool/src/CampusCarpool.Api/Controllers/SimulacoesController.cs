@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,7 @@ namespace CampusCarpool.Api.Controllers;
 [Route("api/v1/viagens/{viagemId:guid}/simulacao")]
 public sealed class SimulacoesController(
     CampusCarpoolDbContext db,
-    MapasService mapas,
+    IServicoMapasRotas mapas,
     RotaViagemService? rotaViagem = null) : ControllerBase
 {
     /// <summary>Corpo do pedido: o pedido pendente a simular.</summary>

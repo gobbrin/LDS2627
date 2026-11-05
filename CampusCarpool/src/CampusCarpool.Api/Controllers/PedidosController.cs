@@ -24,7 +24,7 @@ namespace CampusCarpool.Api.Controllers;
 [Route("api/v1/pedidos")]
 public sealed class PedidosController(
     CampusCarpoolDbContext db,
-    MapasService mapas,
+    IServicoMapasRotas mapas,
     INotificacaoService notificacaoService,
     INotificadorPedidosTempoReal notificadorPedidosTempoReal) : ControllerBase
 {

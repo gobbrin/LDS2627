@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -96,7 +98,7 @@ public sealed class ViagensEstimativaIntegrationTests
         {
             BaseAddress = new Uri("https://api.openrouteservice.org/")
         };
-        var mapas = new MapasService(cliente, configuracao);
+        var mapas = new ServicoMapasRotas(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
         return ComUtilizador(new ViagensController(db, mapas, custos, new RotaViagemService(mapas)));
     }
@@ -194,7 +196,7 @@ public sealed class ViagensEstimativaIntegrationTests
         var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = ComUtilizador(new ViagensController(
             f.Db,
-            new MapasService(new HttpClient(), new ConfigurationBuilder().Build()),
+            new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()),
             new EstimativaCustoService(new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {

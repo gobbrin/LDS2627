@@ -2,13 +2,14 @@ using System.Net;
 using System.Text;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
-/// <summary><c>MapasService</c> com respostas HTTP simuladas: configuração, geocodificação, rota e erros do serviço.</summary>
-public sealed class MapasServiceTests
+/// <summary><c>ServicoMapasRotas</c> com respostas HTTP simuladas: configuração, geocodificação, rota e erros do serviço.</summary>
+public sealed class ServicoMapasRotasTests
 {
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
@@ -16,12 +17,12 @@ public sealed class MapasServiceTests
             Task.FromResult(responder(request));
     }
 
-    private static MapasService Criar(string? chave, Func<HttpRequestMessage, HttpResponseMessage> responder)
+    private static ServicoMapasRotas Criar(string? chave, Func<HttpRequestMessage, HttpResponseMessage> responder)
     {
         var values = new Dictionary<string, string?> { ["Maps:ApiKey"] = chave };
         var config = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
         var http = new HttpClient(new FakeHandler(responder)) { BaseAddress = new Uri("https://example.test/") };
-        return new MapasService(http, config);
+        return new ServicoMapasRotas(http, config);
     }
 
     private static HttpResponseMessage Json(string content, HttpStatusCode status = HttpStatusCode.OK) =>

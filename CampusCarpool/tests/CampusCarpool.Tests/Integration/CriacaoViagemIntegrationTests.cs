@@ -5,6 +5,7 @@ using System.Text;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -99,7 +100,7 @@ public sealed class CriacaoViagemIntegrationTests
             BaseAddress = new Uri("https://api.heigit.org/")
         };
 
-        var mapas = new MapasService(http, configuracao);
+        var mapas = new ServicoMapasRotas(http, configuracao);
 
         var controller = new ViagensController(db, mapas);
 

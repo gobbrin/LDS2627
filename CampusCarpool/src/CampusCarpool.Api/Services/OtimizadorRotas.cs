@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 
 using CampusCarpool.Domain.Entities;
@@ -24,7 +25,7 @@ public static class OtimizadorRotas
     /// <returns>A rota; <c>null</c> se o serviço não devolver matriz ou não houver nenhuma sequência viável.</returns>
     /// <exception cref="ArgumentException">Mais pontos adicionais do que os possíveis numa viagem.</exception>
     public static async Task<ResultadoRotaComPontos?> CalcularAsync(
-        MapasService mapas,
+        IServicoMapasRotas mapas,
         PontoRota origem,
         PontoRota destino,
         IReadOnlyList<PontoRota> adicionais,

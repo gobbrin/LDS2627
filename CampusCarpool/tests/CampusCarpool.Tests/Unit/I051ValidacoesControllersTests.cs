@@ -6,6 +6,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -727,7 +728,7 @@ public sealed class I051ValidacoesControllersTests
             BaseAddress = new Uri("https://example.test/")
         };
 
-        var mapas = new MapasService(httpClient, configuracao);
+        var mapas = new ServicoMapasRotas(httpClient, configuracao);
 
         var httpContext = new DefaultHttpContext();
         httpContext.User = new System.Security.Claims.ClaimsPrincipal(

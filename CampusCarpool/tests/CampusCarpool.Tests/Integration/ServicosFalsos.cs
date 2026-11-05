@@ -88,7 +88,7 @@ public sealed class MapasFalsos : HttpMessageHandler
     public Dictionary<string, (double Latitude, double Longitude)> Locais { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Cria o cliente de mapas que usa este simulador.</summary>
-    public CampusCarpool.Api.Services.MapasService CriarServico(bool configurado = true)
+    public CampusCarpool.Infrastructure.Integrations.ServicoMapasRotas CriarServico(bool configurado = true)
     {
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -97,7 +97,7 @@ public sealed class MapasFalsos : HttpMessageHandler
             })
             .Build();
 
-        return new CampusCarpool.Api.Services.MapasService(new HttpClient(this, disposeHandler: false), configuracao);
+        return new CampusCarpool.Infrastructure.Integrations.ServicoMapasRotas(new HttpClient(this, disposeHandler: false), configuracao);
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

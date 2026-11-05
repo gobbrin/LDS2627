@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
@@ -24,7 +25,7 @@ namespace CampusCarpool.Api.Controllers;
 [ApiController, Authorize, Route("api/v1/viagens")]
 public sealed class ViagensController(
     CampusCarpoolDbContext db,
-    MapasService maps,
+    IServicoMapasRotas maps,
     EstimativaCustoService? custos = null,
     RotaViagemService? rotaViagem = null,
     INotificacaoService? notificacaoService = null) : ControllerBase

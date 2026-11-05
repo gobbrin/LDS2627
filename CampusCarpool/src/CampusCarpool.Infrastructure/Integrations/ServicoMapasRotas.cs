@@ -1,20 +1,11 @@
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Text.Json;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using Microsoft.Extensions.Configuration;
 
-namespace CampusCarpool.Api.Services;
-
-/// <summary>Rota entre dois pontos: distância em km (2 casas) e duração em minutos (arredondada para cima).</summary>
-public sealed record ResultadoRota(
-    decimal DistanciaKm,
-    int DuracaoMinutos,
-    Coordenadas Origem,
-    Coordenadas Destino);
-
-/// <summary>Matriz da Matrix API: [i][j] é a duração (s) ou distância (m) do ponto i ao j; <c>null</c> se não houver rota.</summary>
-public sealed record MatrizRotas(
-    double?[][] DuracoesSegundos,
-    double?[][] DistanciasMetros);
+namespace CampusCarpool.Infrastructure.Integrations;
 
 /// <summary>
 /// Cliente do Serviço de Mapas e Rotas: OpenRouteService alojado pela HeiGIT (<c>api.heigit.org</c>), perfil
@@ -27,7 +18,7 @@ public sealed record MatrizRotas(
 /// Erros HTTP saem como <see cref="HttpRequestException"/> (<c>EnsureSuccessStatusCode</c>) e o tempo esgotado
 /// como <see cref="TaskCanceledException"/>; os controllers convertem-nos em 502 e 504.
 /// </remarks>
-public sealed class MapasService(HttpClient http, IConfiguration config)
+public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : IServicoMapasRotas
 {
     private static readonly string[] MetricasMatriz = ["duration", "distance"];
 
@@ -117,7 +108,7 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     }
 
     /// <summary>Calcular matriz de distâncias e durações entre todos os pares de pontos (Matrix API), num só pedido.</summary>
-    /// <remarks>Usado pelo <c>OtimizadorRotas</c>, na rota guardada e na simulação.</remarks>
+    /// <remarks>Usada na rota guardada e na simulação, para ordenar os pontos.</remarks>
     /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<MatrizRotas?> CalcularMatrizAsync(

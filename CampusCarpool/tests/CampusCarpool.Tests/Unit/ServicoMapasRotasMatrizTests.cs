@@ -3,13 +3,14 @@ using System.Text;
 using System.Text.Json;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
-/// <summary>Casos adicionais do <c>MapasService</c> (matriz) com respostas HTTP simuladas.</summary>
-public sealed class MapasServiceCoberturaAdicionalTests
+/// <summary>Casos adicionais do <c>ServicoMapasRotas</c> (matriz) com respostas HTTP simuladas.</summary>
+public sealed class ServicoMapasRotasMatrizTests
 {
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
@@ -17,11 +18,11 @@ public sealed class MapasServiceCoberturaAdicionalTests
             => Task.FromResult(responder(request));
     }
 
-    private static MapasService Criar(string? chave, Func<HttpRequestMessage, HttpResponseMessage> responder)
+    private static ServicoMapasRotas Criar(string? chave, Func<HttpRequestMessage, HttpResponseMessage> responder)
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["Maps:ApiKey"] = chave }).Build();
-        return new MapasService(new HttpClient(new Handler(responder))
+        return new ServicoMapasRotas(new HttpClient(new Handler(responder))
         {
             BaseAddress = new Uri("https://api.heigit.org/")
         }, config);

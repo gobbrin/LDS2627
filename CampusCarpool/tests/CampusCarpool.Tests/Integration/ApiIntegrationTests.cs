@@ -3,6 +3,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -141,7 +142,7 @@ public sealed class ApiIntegrationTests
     public async Task CT026_ConsultarViagemInexistente_Devolve404()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new ViagensController(fixture.Db, new MapasService(
+        var controller = new ViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Assert.IsType<NotFoundResult>(await controller.Consultar(Guid.NewGuid(), default));
     }
@@ -163,7 +164,7 @@ public sealed class ApiIntegrationTests
         };
         fixture.Db.Viagens.Add(trip);
         await fixture.Db.SaveChangesAsync();
-        var controller = new ViagensController(fixture.Db, new MapasService(
+        var controller = new ViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
         Assert.IsType<ForbidResult>(await controller.Editar(trip.Id,
@@ -233,7 +234,7 @@ public sealed class MapasAndValidationTests
     [Fact]
     public async Task CT032_MapasSemChave_Devolve503()
     {
-        var service = new MapasService(new HttpClient(), new ConfigurationBuilder().Build());
+        var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
         var controller = new RotasController(service, CriarCustos());
 
@@ -245,7 +246,7 @@ public sealed class MapasAndValidationTests
     [Fact]
     public async Task CT030_GeocodificarTextoVazio_Devolve400()
     {
-        var service = new MapasService(new HttpClient(), new ConfigurationBuilder().Build());
+        var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
         var controller = new RotasController(service, CriarCustos());
 

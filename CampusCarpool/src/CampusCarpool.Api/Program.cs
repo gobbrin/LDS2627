@@ -34,8 +34,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();
 builder.Services.AddHttpClient<IServicoPush, ServicoPush>();
 
-// O BaseAddress não tem efeito: o MapasService usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
-builder.Services.AddHttpClient<MapasService>((sp, client) =>
+// O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
+builder.Services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
     client.BaseAddress = new Uri(

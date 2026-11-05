@@ -5,6 +5,7 @@ using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -105,7 +106,7 @@ public sealed class RotasParticipacoesIntegrationTests
                 new Uri("https://api.openrouteservice.org/")
         };
 
-        var mapas = new MapasService(cliente, configuracao);
+        var mapas = new ServicoMapasRotas(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
         var controller = new RotasController(mapas, custos, db);
 

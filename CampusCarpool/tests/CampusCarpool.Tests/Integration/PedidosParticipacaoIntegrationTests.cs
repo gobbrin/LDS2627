@@ -7,6 +7,7 @@ using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -122,7 +123,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         httpClient.BaseAddress =
             new Uri("https://api.openrouteservice.org/");
 
-        var mapas = new MapasService(httpClient, configuracao);
+        var mapas = new ServicoMapasRotas(httpClient, configuracao);
 
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
@@ -564,7 +565,7 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         var configuracao = new ConfigurationBuilder().Build();
 
-        var mapas = new MapasService(
+        var mapas = new ServicoMapasRotas(
             new HttpClient(),
             configuracao);
 

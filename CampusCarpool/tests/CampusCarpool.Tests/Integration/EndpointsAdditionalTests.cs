@@ -4,6 +4,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -76,7 +77,7 @@ public sealed class EndpointsAdditionalTests
             new[] { new Claim(ClaimTypes.NameIdentifier, id.ToString()) }, "Test"))
         }
     };
-    private static MapasService Maps() => new(new HttpClient(), new ConfigurationBuilder().Build());
+    private static ServicoMapasRotas Maps() => new(new HttpClient(), new ConfigurationBuilder().Build());
     private static ViagensController Trips(Fixture f) => new(f.Db, Maps());
     private sealed class EmailFake : IServicoEmail
     {
