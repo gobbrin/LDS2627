@@ -3,6 +3,7 @@ using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Services;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,8 +15,8 @@ namespace CampusCarpool.Api.Controllers;
 /// <summary>Submissão de pedidos de participação (F004). Rota <c>/api/v1/pedidos</c>.</summary>
 /// <remarks>
 /// Só cria o pedido; aceitar, rejeitar e cancelar estão no <c>GestaoParticipacoesController</c>. Usa o
-/// <see cref="CampusCarpoolDbContext"/> diretamente. Faltam, e ficam para m4: a lista dos pedidos pendentes de uma
-/// viagem para o condutor (DEF-BE-016) e as regras de P-20 e RF-F004-18 (ver o método).
+/// <see cref="CampusCarpoolDbContext"/> diretamente. Falta a lista dos pedidos pendentes de uma viagem para o
+/// condutor (DEF-BE-016).
 /// </remarks>
 [ApiController]
 [Authorize]
@@ -28,6 +29,20 @@ public sealed class PedidosController(
 {
     // Índice único filtrado (pendente ou aceite) criado no DbContext (I038); usado para reconhecer a violação.
     private const string IndicePedidosAtivos = "IX_Participacoes_ViagemId_PassageiroId";
+
+    private const string MensagemPontosIncompativeis =
+        "A recolha e o destino não podem ser o mesmo local, a recolha não pode ser o destino da viagem e o destino não pode ser a origem da viagem.";
+
+    // RF-F004-18: recolha e destino efetivos; RF-F004-20: recolha no destino da viagem; RF-F004-21: destino na origem.
+    private static bool PontosIncompativeis<T>(
+        T recolha,
+        T destino,
+        T origemViagem,
+        T destinoViagem,
+        Func<T, T, bool> mesmoLocal) =>
+        mesmoLocal(recolha, destino)
+        || mesmoLocal(recolha, destinoViagem)
+        || mesmoLocal(destino, origemViagem);
 
     /// <summary>Corpo de <c>POST /pedidos</c>. Pontos omitidos (<c>null</c>) significam a origem/o destino da viagem.</summary>
     public sealed record CriarPedido(
@@ -49,11 +64,10 @@ public sealed class PedidosController(
     /// Não reserva lugar (só a aceitação o faz). Os pontos indicados são geocodificados e as coordenadas ficam na
     /// participação, para a rota não voltar a pedi-las (A8, DC-34). Depois de gravar, cria a notificação "Pedido
     /// recebido" para o condutor (com push, RF-F006-13) e envia o evento em tempo real (RF-F006-15).
-    /// DEF-BE-014 (fica para m4): P-20 exige pelo menos um ponto, mas um pedido sem nenhum é aceite.
-    /// DEF-BE-015 (fica para m4): não recusa recolha e destino efetivos iguais (RF-F004-18).
     /// </remarks>
     /// <returns>
-    /// 201 pedido criado; 400 pontos vazios ou com mais de 250 caracteres; 401; 403 conta por confirmar; 404 viagem
+    /// 201 pedido criado; 400 sem nenhum ponto (P-20), pontos vazios ou com mais de 250 caracteres, ou pontos no
+    /// mesmo local (RF-F004-18, RF-F004-20, RF-F004-21); 401; 403 conta por confirmar; 404 viagem
     /// inexistente; 409 viagem não ativa ou já partida, própria viagem (RF-F004-05), pedido repetido (RF-F004-06) ou
     /// sem lugares; 422 ponto não encontrado; 502/503/504 problema no serviço de mapas.
     /// </returns>
@@ -115,7 +129,15 @@ public sealed class PedidosController(
             });
         }
 
-        // Os pontos são opcionais, mas os valores fornecidos devem ser válidos.
+        // P-20: pelo menos um dos dois pontos; os valores fornecidos devem ser válidos.
+        if (input.Recolha is null && input.Destino is null)
+        {
+            return BadRequest(new
+            {
+                erro = "Indica um ponto de recolha ou de destino."
+            });
+        }
+
         if ((input.Recolha is not null &&
              (string.IsNullOrWhiteSpace(input.Recolha) || input.Recolha.Length > 250)) ||
             (input.Destino is not null &&
@@ -127,64 +149,86 @@ public sealed class PedidosController(
             });
         }
 
+        // Primeiro só pelo texto, para não chamar o serviço de mapas sem necessidade.
+        if (PontosIncompativeis(
+            input.Recolha ?? viagem.Origem,
+            input.Destino ?? viagem.Destino,
+            viagem.Origem,
+            viagem.Destino,
+            RegraMesmoLocal.MesmoTexto))
+        {
+            return BadRequest(new { erro = MensagemPontosIncompativeis });
+        }
+
         // Verificar se os locais fornecidos podem ser identificados pelo serviço de mapas.
         Coordenadas? coordenadasRecolha = null;
         Coordenadas? coordenadasDestino = null;
 
-        if (input.Recolha is not null || input.Destino is not null)
+        if (!mapas.Configurado)
         {
-            if (!mapas.Configurado)
+            return StatusCode(503, new
             {
-                return StatusCode(503, new
-                {
-                    erro = "Serviço de mapas não configurado."
-                });
-            }
+                erro = "Serviço de mapas não configurado."
+            });
+        }
 
-            try
+        try
+        {
+            if (input.Recolha is not null)
             {
-                if (input.Recolha is not null)
+                coordenadasRecolha = await mapas.GeocodificarAsync(
+                    input.Recolha.Trim(), ct);
+
+                if (coordenadasRecolha is null)
                 {
-                    coordenadasRecolha = await mapas.GeocodificarAsync(
-                        input.Recolha.Trim(), ct);
-
-                    if (coordenadasRecolha is null)
+                    return UnprocessableEntity(new
                     {
-                        return UnprocessableEntity(new
-                        {
-                            erro = "Ponto de recolha não encontrado."
-                        });
-                    }
-                }
-
-                if (input.Destino is not null)
-                {
-                    coordenadasDestino = await mapas.GeocodificarAsync(
-                        input.Destino.Trim(), ct);
-
-                    if (coordenadasDestino is null)
-                    {
-                        return UnprocessableEntity(new
-                        {
-                            erro = "Ponto de destino não encontrado."
-                        });
-                    }
+                        erro = "Ponto de recolha não encontrado."
+                    });
                 }
             }
-            catch (HttpRequestException)
+
+            if (input.Destino is not null)
             {
-                return StatusCode(502, new
+                coordenadasDestino = await mapas.GeocodificarAsync(
+                    input.Destino.Trim(), ct);
+
+                if (coordenadasDestino is null)
                 {
-                    erro = "Serviço de mapas indisponível."
-                });
+                    return UnprocessableEntity(new
+                    {
+                        erro = "Ponto de destino não encontrado."
+                    });
+                }
             }
-            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(502, new
             {
-                return StatusCode(504, new
-                {
-                    erro = "Tempo de resposta dos mapas excedido."
-                });
-            }
+                erro = "Serviço de mapas indisponível."
+            });
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return StatusCode(504, new
+            {
+                erro = "Tempo de resposta dos mapas excedido."
+            });
+        }
+
+        // As mesmas regras, agora pelas coordenadas. Um ponto omitido usa as coordenadas da viagem (P-20).
+        var origemViagem = new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
+        var destinoViagem = new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);
+
+        if (PontosIncompativeis(
+            coordenadasRecolha ?? origemViagem,
+            coordenadasDestino ?? destinoViagem,
+            origemViagem,
+            destinoViagem,
+            (a, b) => RegraMesmoLocal.MesmasCoordenadas(a.Latitude, a.Longitude, b.Latitude, b.Longitude)))
+        {
+            return BadRequest(new { erro = MensagemPontosIncompativeis });
         }
 
         // Criar a participação pendente sem descontar lugares.

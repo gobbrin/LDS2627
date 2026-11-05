@@ -35,8 +35,9 @@ public sealed class CriacaoViagemIntegrationTests
                 var url = Uri.UnescapeDataString(
                     request.RequestUri.ToString());
 
-                resposta = url.Contains(
-                    "Porto", StringComparison.OrdinalIgnoreCase)
+                // "Porto" e "Invicta" são o mesmo sítio: servem para testar a regra pelas coordenadas.
+                resposta = url.Contains("Porto", StringComparison.OrdinalIgnoreCase)
+                    || url.Contains("Invicta", StringComparison.OrdinalIgnoreCase)
                     ? """
                       {"features":[{"geometry":{"coordinates":[-8.61,41.15]}}]}
                       """
@@ -144,5 +145,13 @@ public sealed class CriacaoViagemIntegrationTests
 
         Assert.Equal("Ativa", viagem.Estado);
         Assert.True(viagem.PartidaEm > DateTime.UtcNow);
+
+        // DEF-BE-030 / D-008: textos diferentes com as mesmas coordenadas são o mesmo local.
+        var mesmoLocal = await controller.Criar(
+            new ViagensController.CriarViagem("Porto", "Invicta", partida, 3),
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(mesmoLocal);
+        Assert.Equal(1, await db.Viagens.CountAsync());
     }
 }

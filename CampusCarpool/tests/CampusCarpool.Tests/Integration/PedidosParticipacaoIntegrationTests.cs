@@ -80,6 +80,10 @@ public sealed class PedidosParticipacaoIntegrationTests
                 CondutorId = condutorId,
                 Origem = "Porto",
                 Destino = "Braga",
+                OrigemLatitude = 41.15m,
+                OrigemLongitude = -8.61m,
+                DestinoLatitude = 41.55m,
+                DestinoLongitude = -8.42m,
                 PartidaEm = partida ?? DateTime.UtcNow.AddDays(3),
                 LugaresOferecidos = lugares,
                 LugaresDisponiveis = lugares,
@@ -166,13 +170,19 @@ public sealed class PedidosParticipacaoIntegrationTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            // "Maia" e "Mesmo sítio da Maia" dão as mesmas coordenadas; os outros textos dão coordenadas próprias.
+            var texto = Uri.UnescapeDataString(request.RequestUri!.Query);
+            var coordenadas = texto.Contains("Maia", StringComparison.Ordinal)
+                ? "[-8.6, 41.1]"
+                : "[-8.7, 41.2]";
+
             var resposta = _localEncontrado
-                ? """
+                ? $$"""
               {
                 "features": [
                   {
                     "geometry": {
-                      "coordinates": [-8.6, 41.1]
+                      "coordinates": {{coordenadas}}
                     }
                   }
                 ]
@@ -433,7 +443,8 @@ public sealed class PedidosParticipacaoIntegrationTests
     }
 
     [Fact]
-    public async Task PontosOpcionais_PermiteValoresNulos()
+    /// <summary>P-20 / DEF-BE-014: um pedido sem recolha nem destino é rejeitado (este teste fixava o contrário).</summary>
+    public async Task I110_26_PedidoSemPontos_Devolve400()
     {
         using var f = new Fixture();
 
@@ -447,14 +458,50 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, null, null),
             default);
 
-        Assert.Equal(
-            201,
-            Assert.IsType<ObjectResult>(resultado).StatusCode);
-
-        var pedido = Assert.Single(f.Db.Participacoes);
-        Assert.Null(pedido.Recolha);
-        Assert.Null(pedido.Destino);
+        Assert.IsType<BadRequestObjectResult>(resultado);
+        Assert.Empty(f.Db.Participacoes);
     }
+
+    [Theory]
+    [InlineData(" braga ", null)]            // RF-F004-18 e RF-F004-20: recolha no destino da viagem (texto).
+    [InlineData(null, "PORTO")]              // RF-F004-18 e RF-F004-21: destino na origem da viagem (texto).
+    [InlineData("Maia", "maia")]             // RF-F004-18: recolha e destino com o mesmo texto.
+    [InlineData("Maia", "Mesmo sítio da Maia")] // RF-F004-18: textos diferentes, coordenadas iguais.
+    /// <summary>DEF-BE-015: recusa pontos no mesmo local, pelo texto e pelas coordenadas (D-008).</summary>
+    public async Task I110_27_PontosNoMesmoLocal_Devolve400(string? recolha, string? destino)
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var resultado = await CriarController(f.Db, passageiro.Id, new MapasSimulados())
+            .Criar(new(viagem.Id, recolha, destino), default);
+
+        Assert.IsType<BadRequestObjectResult>(resultado);
+        Assert.Empty(f.Db.Participacoes);
+    }
+
+    [Fact]
+    public async Task PontosOpcionais_AceitaSoRecolhaOuSoDestino()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var outro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var soRecolha = await CriarController(f.Db, passageiro.Id, new MapasSimulados())
+            .Criar(new(viagem.Id, "Maia", null), default);
+        var soDestino = await CriarController(f.Db, outro.Id, new MapasSimulados())
+            .Criar(new(viagem.Id, null, "Trofa"), default);
+
+        Assert.Equal(201, Assert.IsType<ObjectResult>(soRecolha).StatusCode);
+        Assert.Equal(201, Assert.IsType<ObjectResult>(soDestino).StatusCode);
+    }
+
     [Fact]
     public async Task PontoInexistente_Devolve422()
     {

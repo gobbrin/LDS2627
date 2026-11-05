@@ -690,16 +690,18 @@ public sealed class I051ValidacoesControllersTests
             })
             .Build();
 
+        // A origem e o destino têm coordenadas diferentes (RF-F002-04, «mesmo local»).
+        var chamadas = 0;
         var handler = new FakeMapasHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(
-                    """
+                    $$"""
                     {
                     "features": [
                         {
                         "geometry": {
-                            "coordinates": [-8.61, 41.15]
+                            "coordinates": {{(chamadas++ % 2 == 0 ? "[-8.61, 41.15]" : "[-8.43, 41.55]")}}
                         },
                         "properties": {
                             "summary": {

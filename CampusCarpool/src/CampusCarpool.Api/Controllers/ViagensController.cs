@@ -3,6 +3,7 @@ using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Services;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -46,8 +47,8 @@ public sealed class ViagensController(
     /// criação é recusada (RF-F002-17, P-19). Guarda as coordenadas, a distância e a duração.
     /// </remarks>
     /// <returns>
-    /// 201 viagem criada; 400 dados inválidos (vazios, mais de 250 caracteres, origem igual ao destino só pelo
-    /// texto, data passada ou não UTC, lugares fora de 1 a 8); 401; 403 conta por confirmar; 422 local ou rota não
+    /// 201 viagem criada; 400 dados inválidos (vazios, mais de 250 caracteres, origem e destino no mesmo local,
+    /// data passada ou não UTC, lugares fora de 1 a 8); 401; 403 conta por confirmar; 422 local ou rota não
     /// encontrados; 502 serviço de mapas com erro; 503 serviço de mapas não configurado; 504 tempo esgotado.
     /// </returns>
     [HttpPost]
@@ -56,10 +57,10 @@ public sealed class ViagensController(
         if (Id is not Guid id) return Unauthorized();
         if (!await db.Utilizadores.AnyAsync(u => u.Id == id && u.EmailConfirmado, ct))
             return Forbid();
-        // DO-11: "mesmo local" compara só o texto (RF-F002-04), embora as coordenadas sejam obtidas logo a seguir.
+        // RF-F002-04: o texto compara-se aqui; as coordenadas, depois de geocodificar.
         if (string.IsNullOrWhiteSpace(input.Origem) || string.IsNullOrWhiteSpace(input.Destino) ||
             input.Origem.Length > 250 || input.Destino.Length > 250 ||
-            string.Equals(input.Origem.Trim(), input.Destino.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            RegraMesmoLocal.MesmoTexto(input.Origem, input.Destino) ||
             input.PartidaEm.Kind != DateTimeKind.Utc || input.PartidaEm <= DateTime.UtcNow ||
             input.Lugares is < 1 or > 8)
             return BadRequest(new { erro = "Dados de viagem inválidos." });
@@ -74,6 +75,8 @@ public sealed class ViagensController(
             var destino = await maps.GeocodificarAsync(input.Destino, ct);
             if (origem is null || destino is null)
                 return UnprocessableEntity(new { erro = "Origem ou destino não encontrado." });
+            if (RegraMesmoLocal.MesmasCoordenadas(origem.Latitude, origem.Longitude, destino.Latitude, destino.Longitude))
+                return BadRequest(new { erro = "A origem e o destino não podem ser o mesmo local." });
             rota = await maps.CalcularAsync(origem, destino, ct);
         }
         catch (HttpRequestException)
