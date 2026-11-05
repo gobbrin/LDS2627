@@ -281,6 +281,25 @@ public sealed class ParticipacoesGestaoIntegrationTests
         Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
 
+    [Theory]
+    [InlineData(EstadoParticipacao.Aceite)]
+    [InlineData(EstadoParticipacao.Pendente)]
+    /// <summary>AD-001 (F1, DC-35): o condutor não cancela participações; rejeita pendentes ou indisponibiliza a viagem.</summary>
+    public async Task I110_23_CondutorNaoCancelaParticipacao(EstadoParticipacao estado)
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id, lugaresOferecidos: 2,
+            lugaresDisponiveis: estado == EstadoParticipacao.Aceite ? 1 : 2);
+        var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id, estado);
+
+        var resultado = await CriarController(f.Db, condutor.Id).Cancelar(participacao.Id, default);
+
+        Assert.IsType<ForbidResult>(resultado);
+        Assert.Equal(estado, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+    }
+
     [Fact]
     /// <summary>Verifica que não é possível aceitar sem capacidade disponível.</summary>
     public async Task AceitacaoSemCapacidade_ERejeitadaENaoAlteraPedido()
@@ -371,8 +390,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
         Assert.IsType<ConflictResult>(await controller.Aceitar(aceite.Id, default));
         Assert.IsType<ConflictResult>(await controller.Rejeitar(aceite.Id, default));
         Assert.IsType<ConflictResult>(await controller.Aceitar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Cancelar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Cancelar(cancelada.Id, default));
+        Assert.IsType<ConflictResult>(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default));
+        Assert.IsType<ConflictResult>(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default));
     }
 
     [Fact]

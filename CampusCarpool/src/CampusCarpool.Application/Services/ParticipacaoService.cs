@@ -175,12 +175,9 @@ public sealed class ParticipacaoService(
         if (viagem is null)
             return ResultadoGestaoParticipacao.NaoEncontrada;
 
-        // DO-06 / DC-35: também o condutor pode cancelar, o que nenhum requisito prevê (por decidir pelo grupo).
-        if (participacao.PassageiroId != utilizadorId
-            && viagem.CondutorId != utilizadorId)
-        {
+        // AD-001 (F1, DC-35): só o passageiro cancela; o condutor rejeita pendentes ou indisponibiliza a viagem.
+        if (participacao.PassageiroId != utilizadorId)
             return ResultadoGestaoParticipacao.NaoAutorizado;
-        }
 
         if (participacao.Estado != EstadoParticipacao.Pendente
             && participacao.Estado != EstadoParticipacao.Aceite)
