@@ -215,4 +215,74 @@ public sealed class RotaGuardadaTests : IDisposable
 
         Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
     }
+
+    private ViagensController ControladorViagens() => ComUtilizador(
+        new ViagensController(
+            db,
+            mapas.CriarServico(),
+            notificacaoService: new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa())),
+        condutor.Id);
+
+    private ViagensController.EditarViagem Edicao(string? origem, string? destino) =>
+        new(DateTime.UtcNow.AddDays(2), 3, origem, destino);
+
+    [Fact]
+    /// <summary>
+    /// F3 / DEF-BE-007, RF-F002-07, P-20: o ponto omitido segue a nova origem, a rota é recalculada com o passageiro,
+    /// a duração de P-04 muda e o passageiro é notificado.
+    /// </summary>
+    public async Task I110_38_AlterarOrigem_RecalculaARotaENotificaOPassageiro()
+    {
+        pedido.Recolha = null;
+        pedido.RecolhaLatitude = null;
+        pedido.RecolhaLongitude = null;
+        await db.SaveChangesAsync();
+        await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
+        mapas.Locais["Maia"] = (41.23, -8.62);
+        db.ChangeTracker.Clear();
+
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao("Maia", null), default);
+
+        Assert.IsType<NoContentResult>(resultado);
+        var gravada = await ViagemGravada();
+        Assert.Equal("Maia", gravada.Origem);
+        Assert.Equal("Braga", gravada.Destino);
+        Assert.Equal(41.23m, gravada.OrigemLatitude);
+        Assert.Equal(["Maia", "Trofa", "Braga"], Locais(gravada));
+        Assert.Equal(4, gravada.DuracaoMinutos);
+        Assert.Equal(3, gravada.LugaresOferecidos);
+        Assert.Equal(2, gravada.LugaresDisponiveis);
+        Assert.Contains(await db.Notificacoes.ToListAsync(), n =>
+            n.UtilizadorId == passageiro.Id && n.Tipo == TipoNotificacao.AlteracaoViagem);
+    }
+
+    [Fact]
+    /// <summary>RF-F002-17: sem o Serviço de Mapas a alteração é recusada e a viagem fica como estava.</summary>
+    public async Task I110_39_AlterarSemServicoDeMapas_ERecusadoENadaMuda()
+    {
+        mapas.SimularFalha = true;
+
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao(null, null), default);
+
+        Assert.Equal(502, Assert.IsType<ObjectResult>(resultado).StatusCode);
+        var gravada = await ViagemGravada();
+        Assert.Equal(2, gravada.LugaresOferecidos);
+        Assert.Equal("Porto", gravada.Origem);
+    }
+
+    [Theory]
+    [InlineData(" braga ", null)]        // Mesmo texto que o destino atual.
+    [InlineData("Lisboa", "LISBOA")]     // Mesmo texto entre si.
+    [InlineData("Lisboa", "Capital")]    // Textos diferentes, coordenadas iguais.
+    /// <summary>RF-F002-16: a alteração aplica a regra de «mesmo local» (D-008).</summary>
+    public async Task I110_40_AlterarParaOMesmoLocal_Devolve400(string origem, string? destino)
+    {
+        mapas.Locais["Lisboa"] = (38.72, -9.14);
+        mapas.Locais["Capital"] = (38.72, -9.14);
+
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao(origem, destino), default);
+
+        Assert.IsType<BadRequestObjectResult>(resultado);
+        Assert.Equal("Porto", (await ViagemGravada()).Origem);
+    }
 }

@@ -20,8 +20,8 @@ namespace CampusCarpool.Api.Controllers;
 /// (DO-01). Os serviços opcionais (<c>= null</c>) existem para os testes antigos que criam o controller sem DI;
 /// em execução normal vêm sempre preenchidos. Datas: a API só aceita <c>PartidaEm</c> em UTC
 /// (<c>Kind = Utc</c>, ou seja, com <c>Z</c> no JSON) e recusa offsets como <c>+01:00</c> (DC-42).
-/// Faltam, e ficam para m4: listar as viagens do condutor (DEF-BE-010), alterar origem e destino (DEF-BE-007),
-/// nome e média do condutor nos detalhes (DEF-BE-011) e lista de passageiros (DEF-BE-012).
+/// Faltam: listar as viagens do condutor (DEF-BE-010), nome e média do condutor nos detalhes (DEF-BE-011) e lista
+/// de passageiros (DEF-BE-012).
 /// </remarks>
 [ApiController, Authorize, Route("api/v1/viagens")]
 public sealed class ViagensController(
@@ -35,8 +35,8 @@ public sealed class ViagensController(
 
     /// <summary>Corpo de <c>POST /viagens</c>. <c>PartidaEm</c> em UTC; <c>Lugares</c> de 1 a 8 (P-11).</summary>
     public sealed record CriarViagem(string Origem, string Destino, DateTime PartidaEm, int Lugares);
-    /// <summary>Corpo de <c>PUT /viagens/{id}</c>: só a data/hora e os lugares podem mudar (DEF-BE-007).</summary>
-    public sealed record EditarViagem(DateTime PartidaEm, int Lugares);
+    /// <summary>Corpo de <c>PUT /viagens/{id}</c>. <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual.</summary>
+    public sealed record EditarViagem(DateTime PartidaEm, int Lugares, string? Origem = null, string? Destino = null);
 
     // Id do utilizador autenticado (claim "sub"); null se o token não o tiver.
     private Guid? Id => Guid.TryParse(
@@ -192,15 +192,22 @@ public sealed class ViagensController(
         });
     }
 
-    /// <summary>Altera a data/hora e os lugares de uma viagem ativa ainda por partir (RF-F002-07, RF-F002-08, RF-F002-16).</summary>
+    /// <summary>Altera a origem, o destino, a data/hora e os lugares de uma viagem ativa ainda por partir (RF-F002-07, RF-F002-08, RF-F002-16).</summary>
     /// <remarks>
-    /// Os lugares não podem descer abaixo dos já ocupados; os disponíveis são recalculados. Notifica os passageiros
-    /// aceites (Alteração da viagem, RF-F006-04). Concorrência: em SQL Server a coluna <c>Versao</c> faz falhar a
-    /// segunda de duas gravações simultâneas; como aqui se chama <c>SaveChangesAsync</c> diretamente (sem a unidade de
-    /// trabalho), a <c>DbUpdateConcurrencyException</c> chega ao cliente como 500, não como 409 (DC-41, fica para m4).
+    /// <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual. A alteração depende sempre do Serviço de Mapas
+    /// (RF-F002-17, P-19): recalcula a rota e guarda a nova duração, a de P-04. Um ponto omitido num pedido segue a
+    /// nova origem ou o novo destino (P-20). Os lugares não podem descer abaixo dos já ocupados; os disponíveis são
+    /// recalculados. Notifica os passageiros aceites (Alteração da viagem, RF-F006-04), que decidem se ficam.
+    /// Concorrência: em SQL Server a coluna <c>Versao</c> faz falhar a segunda de duas gravações simultâneas; como
+    /// aqui se chama <c>SaveChangesAsync</c> diretamente (sem a unidade de trabalho), a
+    /// <c>DbUpdateConcurrencyException</c> chega ao cliente como 500, não como 409 (DC-41).
     /// O mesmo acontece em <see cref="Indisponibilizar"/> e <see cref="Concluir"/>.
     /// </remarks>
-    /// <returns>204; 400 data passada, não UTC, ou lugares fora de 1 a 8; 401; 403 não é o condutor; 404; 409 viagem não editável ou lugares abaixo dos ocupados.</returns>
+    /// <returns>
+    /// 204; 400 dados inválidos (locais vazios, com mais de 250 caracteres ou no mesmo local, data passada ou não UTC,
+    /// lugares fora de 1 a 8); 401; 403 não é o condutor; 404; 409 viagem não editável ou lugares abaixo dos ocupados;
+    /// 422 local ou rota não encontrados; 502/503/504 problema no serviço de mapas.
+    /// </returns>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Editar(Guid id, EditarViagem input, CancellationToken ct)
     {
@@ -210,14 +217,68 @@ public sealed class ViagensController(
         if (v.CondutorId != userId) return Forbid();
         if (v.Estado != nameof(EstadoViagem.Ativa) || v.PartidaEm <= DateTime.UtcNow)
             return Conflict(new { erro = "Viagem não editável." });
-        if (input.PartidaEm.Kind != DateTimeKind.Utc || input.PartidaEm <= DateTime.UtcNow ||
+
+        var novaOrigem = input.Origem?.Trim() ?? v.Origem;
+        var novoDestino = input.Destino?.Trim() ?? v.Destino;
+
+        // RF-F002-16: as mesmas validações da criação.
+        if (string.IsNullOrWhiteSpace(novaOrigem) || string.IsNullOrWhiteSpace(novoDestino) ||
+            novaOrigem.Length > 250 || novoDestino.Length > 250 ||
+            RegraMesmoLocal.MesmoTexto(novaOrigem, novoDestino) ||
+            input.PartidaEm.Kind != DateTimeKind.Utc || input.PartidaEm <= DateTime.UtcNow ||
             input.Lugares is < 1 or > 8)
-            return BadRequest();
+            return BadRequest(new { erro = "Dados de viagem inválidos." });
 
         // Ocupados = aceites (RF-F002-13), deduzidos dos valores guardados em vez de contados.
         var ocupados = v.LugaresOferecidos - v.LugaresDisponiveis;
         if (input.Lugares < ocupados)
             return Conflict(new { erro = "Lugares inferiores às participações aceites." });
+
+        if (!maps.Configurado)
+            return StatusCode(503, new { erro = "Serviço de mapas não configurado." });
+
+        var aceites = await db.Participacoes
+            .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Aceite)
+            .ToListAsync(ct);
+
+        try
+        {
+            // Só os locais que mudam são geocodificados de novo.
+            var origem = novaOrigem == v.Origem
+                ? new Coordenadas(v.OrigemLatitude, v.OrigemLongitude)
+                : await maps.GeocodificarAsync(novaOrigem, ct);
+            var destino = novoDestino == v.Destino
+                ? new Coordenadas(v.DestinoLatitude, v.DestinoLongitude)
+                : await maps.GeocodificarAsync(novoDestino, ct);
+
+            if (origem is null || destino is null)
+                return UnprocessableEntity(new { erro = "Origem ou destino não encontrado." });
+            if (RegraMesmoLocal.MesmasCoordenadas(origem.Latitude, origem.Longitude, destino.Latitude, destino.Longitude))
+                return BadRequest(new { erro = "A origem e o destino não podem ser o mesmo local." });
+
+            // Nada é gravado até ao fim: uma falha aqui deixa a viagem como estava (RF-F002-17).
+            v.Origem = novaOrigem;
+            v.Destino = novoDestino;
+            v.OrigemLatitude = origem.Latitude;
+            v.OrigemLongitude = origem.Longitude;
+            v.DestinoLatitude = destino.Latitude;
+            v.DestinoLongitude = destino.Longitude;
+
+            var rota = await Rotas.CalcularAsync(v, aceites, ct);
+            if (rota is null)
+                return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });
+
+            RotaViagemService.Guardar(v, rota);
+            v.DuracaoMinutos = rota.DuracaoTotalMinutos;
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(502, new { erro = "Serviço de rotas indisponível." });
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return StatusCode(504, new { erro = "Tempo de resposta dos mapas excedido." });
+        }
 
         v.PartidaEm = input.PartidaEm;
         v.LugaresOferecidos = input.Lugares;
@@ -227,15 +288,7 @@ public sealed class ViagensController(
         //Notifica os passageiros com participação aceite na viagem alterada.
         if (notificacaoService is not null)
         {
-            var passageiros = await db.Participacoes
-                .Where(p =>
-                    p.ViagemId == id &&
-                    p.Estado == EstadoParticipacao.Aceite)
-                .Select(p => p.PassageiroId)
-                .Distinct()
-                .ToListAsync(ct);
-
-            foreach (var passageiroId in passageiros)
+            foreach (var passageiroId in aceites.Select(p => p.PassageiroId).Distinct())
             {
                 await notificacaoService.CriarAsync(
                     passageiroId,
@@ -252,7 +305,7 @@ public sealed class ViagensController(
     /// <remarks>
     /// Cancela os pedidos pendentes e as participações aceites, liberta todos os lugares e notifica os passageiros
     /// afetados, não o condutor (P-23, RF-F006-03). A viagem fica no histórico dos aceites graças a <c>AceiteEm</c>.
-    /// Permitido mesmo depois da hora de partida, desde que ainda esteja <c>Ativa</c>.
+    /// Permitido mesmo depois da hora de partida, desde que ainda esteja <c>Ativa</c>. Fica sem os pontos na rota; o Serviço de Mapas não impede a operação (P-19).
     /// </remarks>
     /// <returns>204; 401; 403 não é o condutor; 404; 409 viagem já não está ativa.</returns>
     [HttpPost("{id:guid}/indisponibilizar")]

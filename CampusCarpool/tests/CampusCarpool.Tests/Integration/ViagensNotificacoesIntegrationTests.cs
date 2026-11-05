@@ -63,14 +63,7 @@ public sealed class ViagensNotificacoesIntegrationTests
 
     private static ViagensController CriarController(CampusCarpoolDbContext db, Guid condutorId)
     {
-        var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes"
-            })
-            .Build();
-
-        var mapas = new MapasService(new HttpClient(), configuracao);
+        var mapas = new MapasFalsos().CriarServico();
 
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
@@ -112,6 +105,7 @@ public sealed class ViagensNotificacoesIntegrationTests
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
+            DestinoLatitude = 41.55m,
             PartidaEm = DateTime.UtcNow.AddDays(3),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2,
@@ -172,6 +166,7 @@ public sealed class ViagensNotificacoesIntegrationTests
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
+            DestinoLatitude = 41.55m,
             PartidaEm = DateTime.UtcNow.AddDays(3),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2,

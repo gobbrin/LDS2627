@@ -611,6 +611,7 @@ public sealed class I051ValidacoesControllersTests
             CondutorId = utilizador.Id,
             Origem = "Porto",
             Destino = "Braga",
+            DestinoLatitude = 41.55m,
             PartidaEm = partidaOriginal,
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3,
@@ -632,7 +633,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, new MapasFalsos().CriarServico(configurado: false))
+        var controller = new ViagensController(db, new MapasFalsos().CriarServico())
         {
             ControllerContext = new ControllerContext
             {

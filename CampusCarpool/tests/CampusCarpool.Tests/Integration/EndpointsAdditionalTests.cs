@@ -60,6 +60,7 @@ public sealed class EndpointsAdditionalTests
                 CondutorId = owner,
                 Origem = origem,
                 Destino = destino,
+                DestinoLatitude = 41.55m,
                 Estado = estado,
                 PartidaEm = partida ?? DateTime.UtcNow.AddDays(5),
                 LugaresOferecidos = 3,
@@ -212,7 +213,7 @@ public sealed class EndpointsAdditionalTests
         var ocupadosAntes =
             v.LugaresOferecidos - v.LugaresDisponiveis;
 
-        var c = Trips(f);
+        var c = new ViagensController(f.Db, new MapasFalsos().CriarServico());
         Auth(c, u.Id);
 
         Assert.IsType<NoContentResult>(
