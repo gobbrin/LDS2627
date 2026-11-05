@@ -205,6 +205,21 @@ public sealed class RotaGuardadaTests : IDisposable
     }
 
     [Fact]
+    /// <summary>RF-F006-02 / DEF-BE-019, P-23: quem cancela não é notificado; o condutor é.</summary>
+    public async Task I110_42_CancelarParticipacaoAceite_NotificaOCondutor()
+    {
+        await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
+        db.Notificacoes.RemoveRange(db.Notificacoes);
+        await db.SaveChangesAsync();
+
+        await Servico().CancelarAsync(pedido.Id, passageiro.Id, default);
+
+        var notificacao = Assert.Single(await db.Notificacoes.AsNoTracking().ToListAsync());
+        Assert.Equal(condutor.Id, notificacao.UtilizadorId);
+        Assert.Equal(TipoNotificacao.AlteracaoViagem, notificacao.Tipo);
+    }
+
+    [Fact]
     public async Task I110_37_Indisponibilizar_RetiraOsPontosDaRota()
     {
         await Servico().AceitarAsync(pedido.Id, condutor.Id, default);

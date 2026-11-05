@@ -8,8 +8,7 @@ namespace CampusCarpool.Application.Interfaces;
 /// Serviço responsável pela criação e gestão de notificações.
 /// </summary>
 /// <remarks>
-/// Quem chama decide os destinatários; as regras de P-23 (quem recebe "Alteração da viagem") estão espalhadas
-/// por <c>ParticipacaoService</c>, <c>ViagensController</c> e <c>PedidosController</c> (AP-03, DC-38).
+/// A regra de P-23 (quem recebe "Alteração da viagem") está só em <see cref="NotificarAlteracaoViagemAsync"/> (DC-38).
 /// </remarks>
 public interface INotificacaoService
 {
@@ -27,6 +26,22 @@ public interface INotificacaoService
     Task<Notificacao> CriarAsync(
         Guid utilizadorId,
         TipoNotificacao tipo,
+        string mensagem,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Regista a notificação Alteração da viagem para o condutor e os passageiros indicados, exceto quem originou
+    /// a alteração (P-23, RF-F006-02 a RF-F006-04, RF-F006-14).
+    /// </summary>
+    /// <param name="condutorId">Condutor da viagem.</param>
+    /// <param name="passageiros">Passageiros afetados: os aceites e, na indisponibilização, também os pendentes.</param>
+    /// <param name="origemId">Quem originou a alteração; nunca é notificado.</param>
+    /// <param name="mensagem">Texto da notificação; não pode revelar os pontos de outros passageiros (P-13).</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task NotificarAlteracaoViagemAsync(
+        Guid condutorId,
+        IEnumerable<Guid> passageiros,
+        Guid origemId,
         string mensagem,
         CancellationToken ct);
 

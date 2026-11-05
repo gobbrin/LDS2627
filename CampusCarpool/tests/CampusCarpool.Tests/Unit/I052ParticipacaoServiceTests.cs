@@ -146,6 +146,11 @@ public sealed class I052ParticipacaoServiceTests
             Enviadas.Add((id, tipo));
             return Task.FromResult(new Notificacao { UtilizadorId = id, Tipo = tipo, Conteudo = mensagem });
         }
+        public async Task NotificarAlteracaoViagemAsync(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem, CancellationToken ct)
+        {
+            foreach (var id in passageiros.Append(condutorId).Where(id => id != origemId).Distinct())
+                await CriarAsync(id, TipoNotificacao.AlteracaoViagem, mensagem, ct);
+        }
         public Task<PaginaNotificacoes> ListarAsync(Guid id, int pagina, int tamanho, CancellationToken ct) => throw new NotSupportedException();
         public Task<bool> MarcarComoLidaAsync(Guid id, Guid utilizador, CancellationToken ct) => throw new NotSupportedException();
         public Task<int> MarcarTodasComoLidasAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();

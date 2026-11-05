@@ -51,6 +51,26 @@ public sealed class NotificacaoService(
         return notificacao;
     }
 
+    /// <inheritdoc />
+    public async Task NotificarAlteracaoViagemAsync(
+        Guid condutorId,
+        IEnumerable<Guid> passageiros,
+        Guid origemId,
+        string mensagem,
+        CancellationToken ct)
+    {
+        var destinatarios = passageiros
+            .Append(condutorId)
+            .Where(id => id != origemId)
+            .Distinct()
+            .ToList();
+
+        foreach (var destinatario in destinatarios)
+        {
+            await CriarAsync(destinatario, TipoNotificacao.AlteracaoViagem, mensagem, ct);
+        }
+    }
+
     // Devolve uma página de notificações pessoais.
     /// <inheritdoc />
     public async Task<PaginaNotificacoes> ListarAsync(

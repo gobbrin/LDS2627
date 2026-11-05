@@ -288,14 +288,12 @@ public sealed class ViagensController(
         //Notifica os passageiros com participação aceite na viagem alterada.
         if (notificacaoService is not null)
         {
-            foreach (var passageiroId in aceites.Select(p => p.PassageiroId).Distinct())
-            {
-                await notificacaoService.CriarAsync(
-                    passageiroId,
-                    TipoNotificacao.AlteracaoViagem,
-                    "Os dados da viagem em que participas foram alterados.",
-                    ct);
-            }
+            await notificacaoService.NotificarAlteracaoViagemAsync(
+                v.CondutorId,
+                aceites.Select(p => p.PassageiroId),
+                userId,
+                "Os dados da viagem em que participas foram alterados.",
+                ct);
         }
 
         return NoContent();
@@ -334,19 +332,14 @@ public sealed class ViagensController(
         // participação aceite antes da indisponibilização; o condutor originou a alteração.
         if (notificacaoService is not null)
         {
-            var passageiros = afetadas
-                .Select(p => p.PassageiroId)
-                .Distinct();
-
-            foreach (var passageiroId in passageiros)
-            {
-                await notificacaoService.CriarAsync(
-                    passageiroId,
-                    TipoNotificacao.AlteracaoViagem,
-                    "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.",
-                    ct);
-            }
+            await notificacaoService.NotificarAlteracaoViagemAsync(
+                v.CondutorId,
+                afetadas.Select(p => p.PassageiroId),
+                userId,
+                "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.",
+                ct);
         }
+
         return NoContent();
     }
 

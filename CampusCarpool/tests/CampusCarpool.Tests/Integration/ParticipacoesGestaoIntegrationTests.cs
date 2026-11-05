@@ -472,16 +472,19 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         Assert.Equal(2, viagemAtualizada.LugaresDisponiveis);
 
-        //Apenas o passageiro aceite que permanece deve ser notificado.
+        //P-23: são notificados o condutor e o passageiro aceite que permanece.
         var notificacoes = await f.Db.Notificacoes
             .AsNoTracking()
             .ToListAsync();
 
-        var notificacao = Assert.Single(notificacoes);
-
-        Assert.Equal(passageiroQueFica.Id, notificacao.UtilizadorId);
-        Assert.Equal(TipoNotificacao.AlteracaoViagem, notificacao.Tipo);
-        Assert.Contains("cancelou", notificacao.Conteudo);
+        Assert.Equal(2, notificacoes.Count);
+        Assert.Contains(notificacoes, n => n.UtilizadorId == condutor.Id);
+        Assert.Contains(notificacoes, n => n.UtilizadorId == passageiroQueFica.Id);
+        Assert.All(notificacoes, n =>
+        {
+            Assert.Equal(TipoNotificacao.AlteracaoViagem, n.Tipo);
+            Assert.Contains("cancelou", n.Conteudo);
+        });
 
         Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == passageiroQueSai.Id);
 

@@ -100,23 +100,18 @@ public sealed class ParticipacaoService(
             "O teu pedido de participação na viagem foi aceite.",
             ct);
 
-        // RF-F006-14: os outros passageiros aceites são avisados do novo passageiro (sem push).
+        // RF-F006-14 / P-23: o novo passageiro recebe Pedido aceite e não Alteração da viagem pela sua entrada.
         var restantes = await repositorioParticipacoes.ListarPorViagemAsync(
             viagem.Id,
             EstadoParticipacao.Aceite,
             ct);
 
-        foreach (var passageiroId in restantes
-            .Where(p => p.PassageiroId != participacao.PassageiroId)
-            .Select(p => p.PassageiroId)
-            .Distinct())
-        {
-            await notificacaoService.CriarAsync(
-                passageiroId,
-                TipoNotificacao.AlteracaoViagem,
-                "Um novo passageiro foi aceite na viagem em que participas.",
-                ct);
-        }
+        await notificacaoService.NotificarAlteracaoViagemAsync(
+            viagem.CondutorId,
+            restantes.Select(p => p.PassageiroId).Where(id => id != participacao.PassageiroId),
+            utilizadorId,
+            "Um novo passageiro foi aceite na viagem em que participas.",
+            ct);
 
         return ResultadoGestaoParticipacao.Sucesso;
     }
@@ -234,25 +229,20 @@ public sealed class ParticipacaoService(
         unidadeDeTrabalho.Confirmar();
 
         // P-21: cancelar um pedido pendente não gera notificação.
-        // DEF-BE-019 (fica para m4): RF-F006-02 pede que o condutor seja notificado quando um passageiro
-        // cancela; aqui só são notificados os outros passageiros aceites.
         if (eraAceite)
         {
+            // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
             var restantes = await repositorioParticipacoes.ListarPorViagemAsync(
                 viagem.Id,
                 EstadoParticipacao.Aceite,
                 ct);
 
-            foreach (var passageiroId in restantes
-                .Select(p => p.PassageiroId)
-                .Distinct())
-            {
-                await notificacaoService.CriarAsync(
-                    passageiroId,
-                    TipoNotificacao.AlteracaoViagem,
-                    "Um passageiro cancelou a sua participação na viagem.",
-                    ct);
-            }
+            await notificacaoService.NotificarAlteracaoViagemAsync(
+                viagem.CondutorId,
+                restantes.Select(p => p.PassageiroId),
+                utilizadorId,
+                "Um passageiro cancelou a sua participação na viagem.",
+                ct);
         }
 
         return ResultadoGestaoParticipacao.Sucesso;
