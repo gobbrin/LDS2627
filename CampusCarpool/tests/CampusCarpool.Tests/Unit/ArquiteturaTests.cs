@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
@@ -94,11 +95,13 @@ public class ArquiteturaTests
         Assert.Empty(ApiAindaComDbContext.Except(comDbContext));
     }
 
+    // Sem os tipos gerados pelo compilador: em Debug, os métodos assíncronos guardam as variáveis locais em campos
+    // da máquina de estados e em Release não, e o resultado tem de ser o mesmo nas duas configurações.
     private static string[] TiposDaApiComDbContext() =>
         Api.GetTypes()
+            .Where(t => !t.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
             .Where(UsaDbContext)
-            .Select(t => (t.DeclaringType ?? t).Name)
-            .Distinct()
+            .Select(t => t.Name)
             .ToArray();
 
     private static bool UsaDbContext(Type tipo)
