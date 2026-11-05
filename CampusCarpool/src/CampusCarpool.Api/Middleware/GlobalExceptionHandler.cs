@@ -28,7 +28,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             "Unhandled exception of type {ExceptionType} (trace {TraceId})");
 
     /// <summary>Escreve a resposta de erro; devolve <c>true</c> se a escreveu.</summary>
-    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         var eConflitoNegocio = exception is RegraDeNegocioException;
 
@@ -40,7 +40,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         {
             LogConflitoNegocio(
                 logger,
-                context.TraceIdentifier,
+                httpContext.TraceIdentifier,
                 null);
         }
         else
@@ -48,11 +48,11 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             LogExcecaoNaoTratada(
                 logger,
                 exception.GetType().Name,
-                context.TraceIdentifier,
+                httpContext.TraceIdentifier,
                 exception);
         }
 
-        context.Response.StatusCode = statusCode;
+        httpContext.Response.StatusCode = statusCode;
 
         var problem = new ProblemDetails
         {
@@ -67,7 +67,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {
-            HttpContext = context,
+            HttpContext = httpContext,
             ProblemDetails = problem,
             Exception = exception
         });

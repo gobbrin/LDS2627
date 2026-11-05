@@ -9,7 +9,7 @@ namespace CampusCarpool.Infrastructure.Repositories;
 public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IRepositorioAvaliacoes
 {
     /// <inheritdoc />
-    public Task<Viagem?> ObterViagemAsync(Guid id, CancellationToken ct) => db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, ct);
+    public Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct) => db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == viagemId, ct);
     /// <inheritdoc />
     public Task<bool> UtilizadorExisteAsync(Guid id, CancellationToken ct) => db.Utilizadores.AnyAsync(u => u.Id == id, ct);
     /// <inheritdoc />

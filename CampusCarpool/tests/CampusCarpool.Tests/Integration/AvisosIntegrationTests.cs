@@ -428,7 +428,7 @@ public sealed class AvisosIntegrationTests
             notificacoes.Where(n => n.UtilizadorId == utilizador.Id),
             notificacao => Assert.NotNull(notificacao.LidaEm));
 
-        var notificacaoDoOutro = Assert.Single(notificacoes.Where(n => n.UtilizadorId == outroUtilizador.Id));
+        var notificacaoDoOutro = Assert.Single(notificacoes, n => n.UtilizadorId == outroUtilizador.Id);
 
         Assert.Null(notificacaoDoOutro.LidaEm);
     }

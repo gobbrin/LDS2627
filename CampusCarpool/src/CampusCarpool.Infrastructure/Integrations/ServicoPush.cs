@@ -19,6 +19,18 @@ namespace CampusCarpool.Infrastructure.Integrations;
 public sealed class ServicoPush(HttpClient http, IConfiguration config,
     IRepositorioDispositivos dispositivos, ILogger<ServicoPush> logger) : IServicoPush
 {
+    private static readonly Action<ILogger, Exception?> LogFalhaAutenticacao = LoggerMessage.Define(
+        LogLevel.Error, new EventId(2001, nameof(LogFalhaAutenticacao)), "Falha ao autenticar Firebase Cloud Messaging");
+
+    private static readonly Action<ILogger, Exception?> LogNaoConfigurado = LoggerMessage.Define(
+        LogLevel.Warning, new EventId(2002, nameof(LogNaoConfigurado)), "Firebase não configurado; push não enviado");
+
+    private static readonly Action<ILogger, int, Guid, string, Exception?> LogRespostaFcm = LoggerMessage.Define<int, Guid, string>(
+        LogLevel.Warning, new EventId(2003, nameof(LogRespostaFcm)), "FCM devolveu {Status} para dispositivo do utilizador {Id}: {Error}");
+
+    private static readonly Action<ILogger, Guid, Exception?> LogFalhaEnvio = LoggerMessage.Define<Guid>(
+        LogLevel.Error, new EventId(2004, nameof(LogFalhaEnvio)), "Falha no envio push ao utilizador {Id}");
+
     // Base64url sem "=" (formato exigido pelo JWT).
     private static string B64(byte[] data) => Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
@@ -68,9 +80,9 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         try { accessToken = await ObterAccessTokenAsync(ct); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Falha ao autenticar Firebase Cloud Messaging"); return;
+            LogFalhaAutenticacao(logger, ex); return;
         }
-        if (accessToken is null) { logger.LogWarning("Firebase não configurado; push não enviado"); return; }
+        if (accessToken is null) { LogNaoConfigurado(logger, null); return; }
         var project = config["Firebase:ProjectId"];
         foreach (var dispositivo in tokens)
         {
@@ -96,11 +108,10 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                 if (response.StatusCode == HttpStatusCode.NotFound ||
                     (response.StatusCode == HttpStatusCode.BadRequest && error.Contains("UNREGISTERED", StringComparison.Ordinal)))
                     await dispositivos.DesativarTokenInvalidoAsync(dispositivo.Token, ct);
-                logger.LogWarning("FCM devolveu {Status} para dispositivo do utilizador {Id}: {Error}",
-                    (int)response.StatusCode, utilizadorId, error.Length > 500 ? error[..500] : error);
+                LogRespostaFcm(logger, (int)response.StatusCode, utilizadorId, error.Length > 500 ? error[..500] : error, null);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception ex) { logger.LogError(ex, "Falha no envio push ao utilizador {Id}", utilizadorId); }
+            catch (Exception ex) { LogFalhaEnvio(logger, utilizadorId, ex); }
         }
     }
 }

@@ -49,8 +49,7 @@ public sealed class HistoricoIntegrationTests
     {
         using var fixture = new Fixture();
 
-        IHistoricoService service =
-            new HistoricoService(fixture.Db);
+        var service = new HistoricoService(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             Guid.NewGuid(), CancellationToken.None);
@@ -86,8 +85,7 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Viagens.Add(viagem);
         await fixture.Db.SaveChangesAsync();
 
-        IHistoricoService service =
-            new HistoricoService(fixture.Db);
+        var service = new HistoricoService(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             utilizador.Id, CancellationToken.None);
@@ -126,8 +124,7 @@ public sealed class HistoricoIntegrationTests
 
         await fixture.Db.SaveChangesAsync();
 
-        IHistoricoService service =
-            new HistoricoService(fixture.Db);
+        var service = new HistoricoService(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             Guid.NewGuid(), CancellationToken.None);

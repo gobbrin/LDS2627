@@ -34,6 +34,8 @@ public sealed record MatrizRotas(
 /// </remarks>
 public sealed class MapasService(HttpClient http, IConfiguration config)
 {
+    private static readonly string[] MetricasMatriz = ["duration", "distance"];
+
     /// <summary>Indica se há chave da API configurada.</summary>
     public bool Configurado => !string.IsNullOrWhiteSpace(config["Maps:ApiKey"]);
 
@@ -211,7 +213,7 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
             locations = pontos
                 .Select(p => new[] { p.Longitude, p.Latitude })
                 .ToArray(),
-            metrics = new[] { "duration", "distance" }
+            metrics = MetricasMatriz
         });
 
         using var response = await http.SendAsync(request, ct);

@@ -89,8 +89,8 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.IsType<OkObjectResult>(await Controller(pendente.Id).Consultar(viagem.Id, default));
     }
 
-    private static T Campo<T>(object resposta, string nome) =>
-        (T)resposta.GetType().GetProperty(nome)!.GetValue(resposta)!;
+    private static T Campo<T>(object? resposta, string nome) =>
+        (T)resposta!.GetType().GetProperty(nome)!.GetValue(resposta)!;
 
     private async Task<Viagem> CriarViagemComRotaEAvaliacoes()
     {

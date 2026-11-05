@@ -123,9 +123,9 @@ public sealed class ConclusaoViagensTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Um gatilho do SQLite faz falhar só a gravação da primeira viagem (UC-F002-05, E1).
-        await _db.Database.ExecuteSqlRawAsync(
-            $"CREATE TRIGGER falha_viagem BEFORE UPDATE ON Viagens WHEN old.Id = '{comFalha.Id.ToString().ToUpperInvariant()}' " +
-            "BEGIN SELECT RAISE(ABORT, 'falha simulada'); END;");
+        var gatilho = $"CREATE TRIGGER falha_viagem BEFORE UPDATE ON Viagens WHEN old.Id = '{comFalha.Id.ToString().ToUpperInvariant()}' " +
+            "BEGIN SELECT RAISE(ABORT, 'falha simulada'); END;";
+        await _db.Database.ExecuteSqlRawAsync(gatilho);
 
         Assert.Equal(1, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
         Assert.Equal(nameof(EstadoViagem.Ativa), await EstadoAsync(comFalha.Id));

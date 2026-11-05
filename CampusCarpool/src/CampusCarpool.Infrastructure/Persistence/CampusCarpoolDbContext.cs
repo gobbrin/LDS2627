@@ -72,19 +72,19 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
     /// Qualquer alteração aqui exige uma migration nova (ver <c>database/scripts/README.md</c>); confirmar com
     /// <c>dotnet ef migrations has-pending-model-changes</c>.
     /// </remarks>
-    protected override void OnModelCreating(ModelBuilder b)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        b.Entity<Utilizador>().HasIndex(x => x.Email).IsUnique();
-        b.Entity<Utilizador>().Property(x => x.Email).HasMaxLength(255);
-        b.Entity<Utilizador>().Property(x => x.Nome).HasMaxLength(100);
-        b.Entity<Viagem>().HasOne(x => x.Condutor).WithMany().HasForeignKey(x => x.CondutorId).OnDelete(DeleteBehavior.Restrict);
-        b.Entity<Viagem>().Property(x => x.DistanciaKm).HasPrecision(10, 2);
-        b.Entity<Viagem>().Property(x => x.OrigemLatitude).HasPrecision(9, 6);
-        b.Entity<Viagem>().Property(x => x.OrigemLongitude).HasPrecision(9, 6);
-        b.Entity<Viagem>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
-        b.Entity<Viagem>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Utilizador>().HasIndex(x => x.Email).IsUnique();
+        modelBuilder.Entity<Utilizador>().Property(x => x.Email).HasMaxLength(255);
+        modelBuilder.Entity<Utilizador>().Property(x => x.Nome).HasMaxLength(100);
+        modelBuilder.Entity<Viagem>().HasOne(x => x.Condutor).WithMany().HasForeignKey(x => x.CondutorId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Viagem>().Property(x => x.DistanciaKm).HasPrecision(10, 2);
+        modelBuilder.Entity<Viagem>().Property(x => x.OrigemLatitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Viagem>().Property(x => x.OrigemLongitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Viagem>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Viagem>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
         // Modelo de dados v06: o estado só aceita os nomes de EstadoViagem, sem acento (DC-32).
-        b.Entity<Viagem>().ToTable(t => t.HasCheckConstraint(
+        modelBuilder.Entity<Viagem>().ToTable(t => t.HasCheckConstraint(
             "CK_Viagens_Estado",
             $"[Estado] IN ('{nameof(EstadoViagem.Ativa)}', '{nameof(EstadoViagem.Indisponibilizada)}', '{nameof(EstadoViagem.Concluida)}')"));
 
@@ -92,46 +92,46 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         // Em SQLite (testes) não há rowversion, por isso a concorrência só é testada pelo IT023 (SQL Server real).
         if (Database.IsSqlServer())
         {
-            b.Entity<Viagem>()
+            modelBuilder.Entity<Viagem>()
                 .Property(v => v.Versao)
                 .IsRowVersion();
         }
 
-        b.Entity<Participacao>().HasOne(x => x.Viagem).WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.Restrict);
-        b.Entity<Participacao>().HasOne(x => x.Passageiro).WithMany().HasForeignKey(x => x.PassageiroId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Participacao>().HasOne(x => x.Viagem).WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Participacao>().HasOne(x => x.Passageiro).WithMany().HasForeignKey(x => x.PassageiroId).OnDelete(DeleteBehavior.Restrict);
         // Os enums são guardados pelo nome (texto), não pelo número.
-        b.Entity<Participacao>().Property(x => x.Estado).HasConversion<string>();
-        b.Entity<Participacao>().Property(x => x.RecolhaLatitude).HasPrecision(9, 6);
-        b.Entity<Participacao>().Property(x => x.RecolhaLongitude).HasPrecision(9, 6);
-        b.Entity<Participacao>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
-        b.Entity<Participacao>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
-        b.Entity<Notificacao>().Property(x => x.Tipo).HasConversion<string>();
-        b.Entity<Aviso>().Property(x => x.Conteudo).HasMaxLength(100);
+        modelBuilder.Entity<Participacao>().Property(x => x.Estado).HasConversion<string>();
+        modelBuilder.Entity<Participacao>().Property(x => x.RecolhaLatitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Participacao>().Property(x => x.RecolhaLongitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Participacao>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Participacao>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
+        modelBuilder.Entity<Notificacao>().Property(x => x.Tipo).HasConversion<string>();
+        modelBuilder.Entity<Aviso>().Property(x => x.Conteudo).HasMaxLength(100);
         // I038 - Impedir pedidos ativos duplicados do mesmo passageiro.
-        b.Entity<Participacao>()
+        modelBuilder.Entity<Participacao>()
             .HasIndex(x => new { x.ViagemId, x.PassageiroId })
             .IsUnique()
             .HasFilter("[Estado] IN ('Pendente', 'Aceite')");
         // I030 v2 — integridade referencial (sem eliminacao em cascata)
-        b.Entity<ConfirmacaoConta>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Dispositivo>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<LigacaoExterna>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Avaliacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Avaliacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.AvaliadorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Avaliacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.AvaliadoId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.RemetenteId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.DestinatarioId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Mensagem>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Aviso>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Aviso>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.CondutorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Notificacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
-        b.Entity<Notificacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<ConfirmacaoConta>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Dispositivo>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<LigacaoExterna>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Avaliacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Avaliacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.AvaliadorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Avaliacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.AvaliadoId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.RemetenteId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.DestinatarioId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Mensagem>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Aviso>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Aviso>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.CondutorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Notificacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
+        modelBuilder.Entity<Notificacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
         // IN-01 / DEF-BE-025 (fica para m4): a migration I048_AvaliacoesPorPar trocou este índice pelo par
         // (AvaliadorId, AvaliadoId), mas o modelo e o snapshot continuam com o triplo. Ao corrigir aqui, escrever
         // o Up da migration à mão (um "migrations add" tentaria apagar um índice que as BD migradas já não têm).
-        b.Entity<Avaliacao>().HasIndex(x => new { x.ViagemId, x.AvaliadorId, x.AvaliadoId }).IsUnique();
-        b.Entity<Dispositivo>().HasIndex(x => x.Token).IsUnique();
-        b.Entity<TokenRevogado>().HasIndex(x => x.Jti).IsUnique();
-        b.Entity<ConfirmacaoConta>().HasIndex(x => x.TokenHash).IsUnique();
+        modelBuilder.Entity<Avaliacao>().HasIndex(x => new { x.ViagemId, x.AvaliadorId, x.AvaliadoId }).IsUnique();
+        modelBuilder.Entity<Dispositivo>().HasIndex(x => x.Token).IsUnique();
+        modelBuilder.Entity<TokenRevogado>().HasIndex(x => x.Jti).IsUnique();
+        modelBuilder.Entity<ConfirmacaoConta>().HasIndex(x => x.TokenHash).IsUnique();
     }
 }

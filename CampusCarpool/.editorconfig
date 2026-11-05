@@ -19,3 +19,7 @@ dotnet_diagnostic.CA1062.severity = suggestion
 # Migrations geradas pelo EF Core: não formatar nem analisar.
 [src/CampusCarpool.Infrastructure/Migrations/**.cs]
 generated_code = true
+
+# Testes: nomes com sublinhados por convenção (CT008_..., I110_59_...).
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none

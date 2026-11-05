@@ -38,7 +38,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
         public CampusCarpoolDbContext Db { get; }
+#pragma warning disable CA1852 // O DispatchProxy recusa tipos selados.
         public class ServicoPushFalso : System.Reflection.DispatchProxy
+#pragma warning restore CA1852
         {
             protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
             {
@@ -529,11 +531,11 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         Assert.Equal(2, notificacoes.Count);
 
-        var notificacaoPedidoAceite = Assert.Single(notificacoes.Where(n => n.Tipo == TipoNotificacao.PedidoAceite));
+        var notificacaoPedidoAceite = Assert.Single(notificacoes, n => n.Tipo == TipoNotificacao.PedidoAceite);
 
         Assert.Equal(novoPassageiro.Id, notificacaoPedidoAceite.UtilizadorId);
 
-        var notificacaoAlteracaoViagem = Assert.Single(notificacoes.Where(n => n.Tipo == TipoNotificacao.AlteracaoViagem));
+        var notificacaoAlteracaoViagem = Assert.Single(notificacoes, n => n.Tipo == TipoNotificacao.AlteracaoViagem);
 
         Assert.Equal(passageiroJaAceite.Id, notificacaoAlteracaoViagem.UtilizadorId);
 

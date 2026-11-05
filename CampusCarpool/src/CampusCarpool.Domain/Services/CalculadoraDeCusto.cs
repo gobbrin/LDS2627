@@ -20,7 +20,10 @@ public static class CalculadoraDeCusto
     /// <exception cref="ArgumentOutOfRangeException">Algum dos argumentos é negativo.</exception>
     public static decimal Calcular(decimal distanciaKm, decimal precoKm, int passageirosAceites)
     {
-        if (distanciaKm < 0 || precoKm < 0 || passageirosAceites < 0) throw new ArgumentOutOfRangeException();
+        ArgumentOutOfRangeException.ThrowIfNegative(distanciaKm);
+        ArgumentOutOfRangeException.ThrowIfNegative(precoKm);
+        ArgumentOutOfRangeException.ThrowIfNegative(passageirosAceites);
+
         return Math.Round(distanciaKm * precoKm / (passageirosAceites + 1), 2, MidpointRounding.AwayFromZero);
     }
 }

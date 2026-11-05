@@ -35,7 +35,7 @@ public sealed class MapasServiceCoberturaAdicionalTests
     [Fact]
     public async Task ParagensSemChaveRejeitadas()
     {
-        var servico = Criar(null, _ => throw new Exception("Não deveria enviar HTTP"));
+        var servico = Criar(null, _ => throw new HttpRequestException("Não deveria enviar HTTP"));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             servico.CalcularComParagensAsync(Pontos, CancellationToken.None));
     }
@@ -43,7 +43,7 @@ public sealed class MapasServiceCoberturaAdicionalTests
     [Fact]
     public async Task ParagensInsuficientesRejeitadas()
     {
-        var servico = Criar("chave", _ => throw new Exception("Não deveria enviar HTTP"));
+        var servico = Criar("chave", _ => throw new HttpRequestException("Não deveria enviar HTTP"));
         await Assert.ThrowsAsync<ArgumentException>(() =>
             servico.CalcularComParagensAsync([Pontos[0]], CancellationToken.None));
     }
@@ -87,7 +87,7 @@ public sealed class MapasServiceCoberturaAdicionalTests
     [Fact]
     public async Task MatrizSemChaveRejeitada()
     {
-        var servico = Criar(null, _ => throw new Exception("Não deveria enviar HTTP"));
+        var servico = Criar(null, _ => throw new HttpRequestException("Não deveria enviar HTTP"));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             servico.CalcularMatrizAsync(Pontos, CancellationToken.None));
     }
@@ -95,7 +95,7 @@ public sealed class MapasServiceCoberturaAdicionalTests
     [Fact]
     public async Task MatrizComUmPontoRejeitada()
     {
-        var servico = Criar("chave", _ => throw new Exception("Não deveria enviar HTTP"));
+        var servico = Criar("chave", _ => throw new HttpRequestException("Não deveria enviar HTTP"));
         await Assert.ThrowsAsync<ArgumentException>(() =>
             servico.CalcularMatrizAsync([Pontos[0]], CancellationToken.None));
     }

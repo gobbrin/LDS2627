@@ -238,7 +238,7 @@ public sealed class RotaGuardadaTests : IDisposable
             notificacaoService: new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa())),
         condutor.Id);
 
-    private ViagensController.EditarViagem Edicao(string? origem, string? destino) =>
+    private static ViagensController.EditarViagem Edicao(string? origem, string? destino) =>
         new(DateTime.UtcNow.AddDays(2), 3, origem, destino);
 
     [Fact]

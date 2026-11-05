@@ -99,7 +99,7 @@ public sealed class MapasFalsos : HttpMessageHandler
         return new CampusCarpool.Api.Services.MapasService(new HttpClient(this, disposeHandler: false), configuracao);
     }
 
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (SimularFalha)
             return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
@@ -119,7 +119,7 @@ public sealed class MapasFalsos : HttpMessageHandler
 
         if (caminho.Contains("matrix", StringComparison.OrdinalIgnoreCase))
         {
-            using var corpo = System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            using var corpo = System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             var n = corpo.RootElement.GetProperty("locations").GetArrayLength();
             var duracoes = Enumerable.Range(0, n)
                 .Select(i => Enumerable.Range(0, n).Select(j => i == j ? 0 : Duracao?.Invoke(i, j) ?? SegundosPorSegmento).ToArray())
