@@ -5,7 +5,6 @@ using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Migrations;
 using CampusCarpool.Infrastructure.Persistence;
-using CampusCarpool.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -96,7 +95,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
 
         Assert.IsType<NoContentResult>(await CriarController(condutor.Id).Indisponibilizar(viagem.Id, default));
 
-        var historico = new HistoricoService(_db);
+        var historico = ServicosDeTeste.CriarHistorico(_db);
         var doAceite = await historico.ConsultarAsync(aceite.Id, default);
         var registo = Assert.Single(doAceite.ViagensComoPassageiro);
         Assert.Equal(viagem.Id, registo.Id);
@@ -118,7 +117,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         var viagem = await CriarViagemAsync(condutor.Id, DateTime.UtcNow.AddDays(-1), aceites: 0);
         await CriarParticipacaoAsync(viagem.Id, passageiro.Id, EstadoParticipacao.Cancelada, DateTime.UtcNow.AddDays(-2));
 
-        var historico = await new HistoricoService(_db).ConsultarAsync(passageiro.Id, default);
+        var historico = await ServicosDeTeste.CriarHistorico(_db).ConsultarAsync(passageiro.Id, default);
 
         var registo = Assert.Single(historico.ViagensComoPassageiro);
         Assert.Equal(nameof(EstadoParticipacao.Cancelada), registo.EstadoParticipacao);
@@ -133,7 +132,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         var viagem = await CriarViagemAsync(condutor.Id, DateTime.UtcNow.AddDays(2), aceites: 1);
         await CriarParticipacaoAsync(viagem.Id, passageiro.Id, EstadoParticipacao.Aceite, DateTime.UtcNow.AddHours(-1));
 
-        var servico = new HistoricoService(_db);
+        var servico = ServicosDeTeste.CriarHistorico(_db);
 
         Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(condutor.Id, default)).ViagensComoCondutor).Id);
         Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(passageiro.Id, default)).ViagensComoPassageiro).Id);

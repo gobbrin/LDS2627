@@ -52,12 +52,6 @@ builder.Services.AddHealthChecks();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// I049 - Historico pessoal
-builder.Services.AddScoped<
-    CampusCarpool.Application.Historico.IHistoricoService,
-    CampusCarpool.Infrastructure.Services.HistoricoService>();
-
-
 // Autenticação JWT Bearer. A chave não está no appsettings.json (I110, API-01): sem ela a API não arranca.
 var jwtKey = builder.Configuration["Jwt:Key"];
 

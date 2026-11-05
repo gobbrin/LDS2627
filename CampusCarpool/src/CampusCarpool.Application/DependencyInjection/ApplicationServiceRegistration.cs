@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Historico;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
@@ -10,8 +11,7 @@ namespace CampusCarpool.Application.DependencyInjection;
 
 /// <summary>Registo dos serviços da camada Application no contentor de injeção de dependências.</summary>
 /// <remarks>
-/// <see cref="OpcoesCustos"/> é ligado no <c>Program.cs</c>. O <c>HistoricoService</c> está na Infrastructure
-/// (AP-04, DC-39) e é registado no <c>Program.cs</c>.
+/// <see cref="OpcoesCustos"/> é ligado no <c>Program.cs</c>.
 /// </remarks>
 public static class ApplicationServiceRegistration
 {
@@ -23,6 +23,7 @@ public static class ApplicationServiceRegistration
     {
         // Gere a lógica de negócio das mensagens, notificações e participações.
         services.AddScoped<IAvisoService, AvisoService>();
+        services.AddScoped<IHistoricoService, HistoricoService>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();

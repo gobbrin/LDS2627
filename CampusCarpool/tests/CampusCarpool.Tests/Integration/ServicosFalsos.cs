@@ -2,6 +2,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Historico;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
@@ -117,6 +118,8 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
 /// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
 public static class ServicosDeTeste
 {
+    public static HistoricoService CriarHistorico(CampusCarpoolDbContext db) => new(new RepositorioHistorico(db));
+
     public static AvisoService CriarAvisos(CampusCarpoolDbContext db) => new(
         new RepositorioViagens(db),
         new RepositorioParticipacoes(db),

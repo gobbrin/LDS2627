@@ -2,7 +2,6 @@
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
-using CampusCarpool.Infrastructure.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -48,7 +47,7 @@ public sealed class HistoricoIntegrationTests
     {
         using var fixture = new Fixture();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             Guid.NewGuid(), CancellationToken.None);
@@ -84,7 +83,7 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Viagens.Add(viagem);
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             utilizador.Id, CancellationToken.None);
@@ -123,7 +122,7 @@ public sealed class HistoricoIntegrationTests
 
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             Guid.NewGuid(), CancellationToken.None);
@@ -174,7 +173,7 @@ public sealed class HistoricoIntegrationTests
 
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             passageiro.Id, CancellationToken.None);
@@ -224,7 +223,7 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Viagens.AddRange(antiga, recente);
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             condutor.Id, CancellationToken.None);
@@ -281,7 +280,7 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Participacoes.Add(pedido);
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var historicoPassageiro = await service.ConsultarAsync(
             passageiro.Id, CancellationToken.None);
@@ -344,7 +343,7 @@ public sealed class HistoricoIntegrationTests
         await fixture.Db.SaveChangesAsync();
 
         // Consultar apenas o historico do primeiro utilizador
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             utilizador.Id, CancellationToken.None);
@@ -419,7 +418,7 @@ public sealed class HistoricoIntegrationTests
 
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var historicoCondutor = await service.ConsultarAsync(
             condutor.Id, CancellationToken.None);
@@ -481,7 +480,7 @@ public sealed class HistoricoIntegrationTests
 
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             passageiro.Id, CancellationToken.None);
@@ -522,7 +521,7 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Viagens.Add(viagem);
         await fixture.Db.SaveChangesAsync();
 
-        var service = new HistoricoService(fixture.Db);
+        var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
             condutor.Id, CancellationToken.None);

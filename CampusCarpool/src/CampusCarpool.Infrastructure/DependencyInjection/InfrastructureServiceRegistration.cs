@@ -11,8 +11,8 @@ namespace CampusCarpool.Infrastructure.DependencyInjection;
 
 /// <summary>Registo da camada Infrastructure: base de dados, repositórios, serviços e trabalhadores em segundo plano.</summary>
 /// <remarks>
-/// As integrações externas com <c>HttpClient</c> (<c>ServicoEmail</c>, <c>ServicoPush</c>) e o
-/// <c>HistoricoService</c> são registados no <c>Program.cs</c> da Api, não aqui.
+/// As integrações externas com <c>HttpClient</c> (<c>ServicoEmail</c>, <c>ServicoPush</c>,
+/// <c>ServicoMapasRotas</c>) são registadas no <c>Program.cs</c> da Api, não aqui.
 /// </remarks>
 public static class InfrastructureServiceRegistration
 {
@@ -52,6 +52,9 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IRepositorioViagens, RepositorioViagens>();
 
 
+
+        // Consultas do histórico pessoal (I049).
+        services.AddScoped<IRepositorioHistorico, RepositorioHistorico>();
 
         // Repositório de avisos do condutor (I044).
         services.AddScoped<IRepositorioAvisos, RepositorioAvisos>();

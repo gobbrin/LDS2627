@@ -3,7 +3,7 @@ namespace CampusCarpool.Application.Historico;
 
 /// <summary>Histórico pessoal do utilizador autenticado (F009).</summary>
 /// <remarks>
-/// Implementado por <c>Infrastructure/Services/HistoricoService.cs</c> e registado no <c>Program.cs</c>.
+/// Implementado por <see cref="HistoricoService"/>.
 /// Só o próprio utilizador consulta o seu histórico (RF-F009-07). Devolve tudo de uma vez, sem paginação (AP-10).
 /// </remarks>
 public interface IHistoricoService
