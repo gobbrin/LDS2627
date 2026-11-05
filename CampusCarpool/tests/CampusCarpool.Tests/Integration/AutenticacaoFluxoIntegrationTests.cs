@@ -59,7 +59,7 @@ public sealed class AutenticacaoFluxoIntegrationTests
             db, configuracao, email);
 
         const string endereco = "aluno@estg.ipp.pt";
-        const string password = "PasswordSegura123!";
+        const string password = "abcdefg1"; // P-08: o mínimo aceite (8 caracteres, letra e dígito).
 
         // IT-001: registo válido.
         var registo = await controller.Registar(

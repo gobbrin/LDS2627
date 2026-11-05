@@ -27,6 +27,9 @@ public sealed class I051ValidacoesControllersTests
     [InlineData("", "aluno@estg.ipp.pt", "password123456")]
     [InlineData("Aluno", "aluno@gmail.com", "password123456")]
     [InlineData("Aluno", "aluno@estg.ipp.pt", "curta")]
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abc1234")]       // P-08: 7 caracteres.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abcdefghij")]    // P-08: sem dígito.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "1234567890")]    // P-08: sem letra.
     [InlineData("Aluno", "", "password123456")]
     public async Task F001_RegistoInvalido_Devolve400(string nome, string email, string password)
     {

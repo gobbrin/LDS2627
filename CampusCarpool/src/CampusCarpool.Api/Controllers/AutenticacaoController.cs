@@ -31,6 +31,10 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
     /// <summary>Corpo de <c>POST confirmar</c>: o token recebido na ligação do email.</summary>
     public sealed record Confirmar(string Token);
 
+    // P-08 / RF-F001-05: mínimo de 8 caracteres, com pelo menos uma letra e um dígito.
+    private static bool PalavraPasseValida(string? palavraPasse) =>
+        palavraPasse is { Length: >= 8 } && palavraPasse.Any(char.IsLetter) && palavraPasse.Any(char.IsDigit);
+
     /// <summary>Cria uma conta por confirmar e envia a ligação de confirmação (RF-F001-02 a RF-F001-06).</summary>
     /// <returns>
     /// 202 conta criada e email enviado; 400 dados inválidos ou email não académico (RF-F001-03); 409 email já
@@ -39,9 +43,8 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
     [HttpPost("registo")]
     public async Task<IActionResult> Registar(Registo input, CancellationToken ct)
     {
-        // DEF-BE-001 / DC-01 (por decidir pelo grupo): P-08 pede 8 caracteres com letra e dígito; o código pede 12, sem mais regras.
         if (string.IsNullOrWhiteSpace(input.Nome) || input.Nome.Length > 100 ||
-            string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password) || input.Password.Length < 12)
+            string.IsNullOrWhiteSpace(input.Email) || !PalavraPasseValida(input.Password))
             return BadRequest(new { erro = "Dados de registo inválidos." });
         // Emails comparados sempre em minúsculas e sem espaços (o login normaliza da mesma forma).
         var email = input.Email.Trim().ToLowerInvariant();
