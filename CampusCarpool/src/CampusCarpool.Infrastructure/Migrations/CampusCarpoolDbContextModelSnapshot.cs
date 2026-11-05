@@ -374,6 +374,10 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
+                    b.Property<string>("DestinoPesquisa")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("DistanciaKm")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
@@ -402,6 +406,10 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<decimal>("OrigemLongitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("OrigemPesquisa")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("PartidaEm")
                         .HasColumnType("datetime2");

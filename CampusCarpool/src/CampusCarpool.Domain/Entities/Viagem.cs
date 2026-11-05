@@ -30,6 +30,12 @@ public sealed class Viagem
     /// <summary>Local de destino (texto pesquisável).</summary>
     public string Destino { get; set; } = "";
 
+    /// <summary>Origem sem acentos e em maiúsculas, para a pesquisa (P-12). Preenchida pelo <c>CampusCarpoolDbContext</c> ao gravar.</summary>
+    public string OrigemPesquisa { get; set; } = "";
+
+    /// <summary>Destino sem acentos e em maiúsculas, para a pesquisa (P-12). Preenchido pelo <c>CampusCarpoolDbContext</c> ao gravar.</summary>
+    public string DestinoPesquisa { get; set; } = "";
+
     /// <summary>Latitude da origem, obtida pelo Serviço de Mapas (RF-F008-01). As quatro coordenadas são obrigatórias (A8).</summary>
     public decimal OrigemLatitude { get; set; }
 

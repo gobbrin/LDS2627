@@ -179,6 +179,44 @@ public sealed class ConsultasViagemTests : IDisposable
             await Controller(outro.Id).ListarMinhas(default)).Value!);
     }
 
+    [Theory]
+    [InlineData("Famalicao", null)]
+    [InlineData("FAMALICÃO", null)]
+    [InlineData("famalicão", null)]
+    [InlineData(null, "acores")]
+    [InlineData(null, "AÇORES")]
+    /// <summary>P-12 / D-009 (B4): a pesquisa não distingue maiúsculas nem acentos.</summary>
+    public async Task I110_52_Pesquisa_NaoDistingueMaiusculasNemAcentos(string? origem, string? destino)
+    {
+        db.Viagens.Add(new Viagem
+        {
+            CondutorId = condutor.Id,
+            Origem = "Vila Nova de Famalicão",
+            Destino = "Ponta Delgada, Açores",
+            PartidaEm = DateTime.UtcNow.AddDays(1),
+            LugaresOferecidos = 3,
+            LugaresDisponiveis = 3
+        });
+        await db.SaveChangesAsync();
+
+        var resposta = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar(origem, destino, null, null)).Value!;
+
+        Assert.Equal(1, Campo<int>(resposta, "total"));
+    }
+
+    [Fact]
+    /// <summary>P-12: a alteração de uma viagem atualiza o texto usado na pesquisa.</summary>
+    public async Task I110_53_AlterarOrigem_AtualizaOTextoDePesquisa()
+    {
+        var viagem = await CriarViagem();
+        viagem.Origem = "Guimarães";
+        await db.SaveChangesAsync();
+
+        var resposta = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar("guimaraes", null, null, null)).Value!;
+
+        Assert.Equal(1, Campo<int>(resposta, "total"));
+    }
+
     [Fact]
     public async Task I110_47_ViagemPesquisavel_QualquerUtilizadorConsulta()
     {

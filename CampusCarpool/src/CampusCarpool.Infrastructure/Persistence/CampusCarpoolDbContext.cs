@@ -1,5 +1,6 @@
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Persistence;
@@ -10,7 +11,7 @@ namespace CampusCarpool.Infrastructure.Persistence;
 /// <remarks>
 /// Toda a configuração do modelo está em <see cref="OnModelCreating"/>; os ficheiros em <c>Configurations/</c>
 /// estão vazios (DC-24). O esquema real das BD de produção vem das migrations (<c>Migrations/</c>), aplicadas à
-/// parte, nunca automaticamente; os testes usam <c>EnsureCreated</c>, que segue este modelo. Os dois divergem no índice das avaliações
+/// parte; os testes usam <c>EnsureCreated</c>, que segue este modelo. Os dois divergem no índice das avaliações
 /// (ver abaixo, IN-01). Não há conversor de datas UTC: as datas lidas vêm com <c>Kind = Unspecified</c> (DC-42).
 /// Não há restrições <c>CHECK</c> além do estado da viagem, nem tamanhos na maior parte dos textos (DO-07).
 /// </remarks>
@@ -38,6 +39,33 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
     public DbSet<ConfirmacaoConta> ConfirmacoesConta => Set<ConfirmacaoConta>();
     /// <summary>Tokens JWT revogados pelo fim de sessão.</summary>
     public DbSet<TokenRevogado> TokensRevogados => Set<TokenRevogado>();
+
+    /// <inheritdoc />
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AtualizarTextosPesquisa();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    /// <inheritdoc />
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        AtualizarTextosPesquisa();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    // P-12 (D-009): a pesquisa não distingue maiúsculas nem acentos. Uma collation própria não funcionaria em SQLite
+    // nos testes, por isso o texto normalizado fica em colunas, escritas aqui para nenhuma gravação as esquecer.
+    private void AtualizarTextosPesquisa()
+    {
+        foreach (var entrada in ChangeTracker.Entries<Viagem>())
+        {
+            if (entrada.State is not (EntityState.Added or EntityState.Modified)) continue;
+
+            entrada.Entity.OrigemPesquisa = TextoPesquisa.Normalizar(entrada.Entity.Origem);
+            entrada.Entity.DestinoPesquisa = TextoPesquisa.Normalizar(entrada.Entity.Destino);
+        }
+    }
 
     /// <summary>Configura índices, tamanhos, precisões, conversões, restrições e chaves estrangeiras.</summary>
     /// <remarks>

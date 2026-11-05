@@ -1,5 +1,6 @@
 using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Services;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +14,9 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
 {
     /// <summary>Pesquisa viagens ativas, futuras e com lugares (RF-F003-01, RF-F003-02, RF-F003-05, P-12).</summary>
     /// <remarks>
-    /// Filtros opcionais e combináveis: <c>origem</c> e <c>destino</c> por texto contido (sem distinção de
-    /// maiúsculas no SQL Server; com distinção em SQLite, nos testes), <c>data</c> (dia) e <c>hora</c> (a partir
-    /// de). Ordenado por partida crescente, paginado (<c>tamanho</c> até 100).
+    /// Filtros opcionais e combináveis: <c>origem</c> e <c>destino</c> por texto contido, sem distinguir maiúsculas
+    /// nem acentos, <c>data</c> (dia) e <c>hora</c> (a partir de). Ordenado por partida crescente, paginado
+    /// (<c>tamanho</c> até 100).
     /// DC-42 / API-06 (fica para m4): o dia e a hora são comparados em UTC, não na hora de Portugal; perto da
     /// meia-noite ou com hora de verão, uma viagem pode cair no dia ou hora errados.
     /// </remarks>
@@ -27,8 +28,16 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
     {
         if (pagina < 1 || tamanho is < 1 or > 100 || (long)(pagina - 1) * tamanho > int.MaxValue) return BadRequest(new { erro = "Paginação inválida." });
         var q = db.Viagens.AsNoTracking().Where(v => v.Estado == nameof(EstadoViagem.Ativa) && v.LugaresDisponiveis > 0 && v.PartidaEm > DateTime.UtcNow);
-        if (!string.IsNullOrWhiteSpace(origem)) q = q.Where(v => v.Origem.Contains(origem.Trim()));
-        if (!string.IsNullOrWhiteSpace(destino)) q = q.Where(v => v.Destino.Contains(destino.Trim()));
+        if (!string.IsNullOrWhiteSpace(origem))
+        {
+            var termo = TextoPesquisa.Normalizar(origem);
+            q = q.Where(v => v.OrigemPesquisa.Contains(termo));
+        }
+        if (!string.IsNullOrWhiteSpace(destino))
+        {
+            var termo = TextoPesquisa.Normalizar(destino);
+            q = q.Where(v => v.DestinoPesquisa.Contains(termo));
+        }
         if (data.HasValue) { var inicio = data.Value.ToDateTime(TimeOnly.MinValue); var fim = inicio.AddDays(1); q = q.Where(v => v.PartidaEm >= inicio && v.PartidaEm < fim); }
         if (hora.HasValue) { var start = hora.Value.Hour * 60 + hora.Value.Minute; q = q.Where(v => v.PartidaEm.Hour * 60 + v.PartidaEm.Minute >= start); }
         var total = await q.CountAsync(ct);
