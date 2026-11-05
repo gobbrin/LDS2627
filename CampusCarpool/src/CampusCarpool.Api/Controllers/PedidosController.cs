@@ -46,9 +46,9 @@ public sealed class PedidosController(
 
     /// <summary>Submete um pedido de participação, no estado <c>Pendente</c> (RF-F004-01 a RF-F004-07, RF-F004-13).</summary>
     /// <remarks>
-    /// Não reserva lugar (só a aceitação o faz). Os pontos indicados são geocodificados só para validar que
-    /// existem; as coordenadas não são guardadas (DO-05). Depois de gravar, cria a notificação "Pedido recebido"
-    /// para o condutor (com push, RF-F006-13) e envia o evento em tempo real (RF-F006-15).
+    /// Não reserva lugar (só a aceitação o faz). Os pontos indicados são geocodificados e as coordenadas ficam na
+    /// participação, para a rota não voltar a pedi-las (A8, DC-34). Depois de gravar, cria a notificação "Pedido
+    /// recebido" para o condutor (com push, RF-F006-13) e envia o evento em tempo real (RF-F006-15).
     /// DEF-BE-014 (fica para m4): P-20 exige pelo menos um ponto, mas um pedido sem nenhum é aceite.
     /// DEF-BE-015 (fica para m4): não recusa recolha e destino efetivos iguais (RF-F004-18).
     /// </remarks>
@@ -128,6 +128,9 @@ public sealed class PedidosController(
         }
 
         // Verificar se os locais fornecidos podem ser identificados pelo serviço de mapas.
+        Coordenadas? coordenadasRecolha = null;
+        Coordenadas? coordenadasDestino = null;
+
         if (input.Recolha is not null || input.Destino is not null)
         {
             if (!mapas.Configurado)
@@ -142,10 +145,10 @@ public sealed class PedidosController(
             {
                 if (input.Recolha is not null)
                 {
-                    var recolha = await mapas.GeocodificarAsync(
+                    coordenadasRecolha = await mapas.GeocodificarAsync(
                         input.Recolha.Trim(), ct);
 
-                    if (recolha is null)
+                    if (coordenadasRecolha is null)
                     {
                         return UnprocessableEntity(new
                         {
@@ -156,10 +159,10 @@ public sealed class PedidosController(
 
                 if (input.Destino is not null)
                 {
-                    var destino = await mapas.GeocodificarAsync(
+                    coordenadasDestino = await mapas.GeocodificarAsync(
                         input.Destino.Trim(), ct);
 
-                    if (destino is null)
+                    if (coordenadasDestino is null)
                     {
                         return UnprocessableEntity(new
                         {
@@ -192,6 +195,10 @@ public sealed class PedidosController(
             Estado = EstadoParticipacao.Pendente,
             Recolha = input.Recolha?.Trim(),
             Destino = input.Destino?.Trim(),
+            RecolhaLatitude = coordenadasRecolha?.Latitude,
+            RecolhaLongitude = coordenadasRecolha?.Longitude,
+            DestinoLatitude = coordenadasDestino?.Latitude,
+            DestinoLongitude = coordenadasDestino?.Longitude,
             CriadoEm = DateTime.UtcNow
         };
 

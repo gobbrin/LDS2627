@@ -252,6 +252,14 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<string>("Destino")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("DestinoLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("DestinoLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -261,6 +269,14 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Recolha")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("RecolhaLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("RecolhaLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<Guid>("ViagemId")
                         .HasColumnType("uniqueidentifier");
@@ -350,11 +366,11 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("DestinoLatitude")
+                    b.Property<decimal>("DestinoLatitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
-                    b.Property<decimal?>("DestinoLongitude")
+                    b.Property<decimal>("DestinoLongitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
@@ -379,11 +395,11 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("OrigemLatitude")
+                    b.Property<decimal>("OrigemLatitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
-                    b.Property<decimal?>("OrigemLongitude")
+                    b.Property<decimal>("OrigemLongitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 

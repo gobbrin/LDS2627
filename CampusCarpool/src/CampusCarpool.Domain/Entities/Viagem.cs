@@ -30,17 +30,17 @@ public sealed class Viagem
     /// <summary>Local de destino (texto pesquisável).</summary>
     public string Destino { get; set; } = "";
 
-    /// <summary>Latitude da origem, obtida pelo Serviço de Mapas (RF-F008-01).</summary>
-    public decimal? OrigemLatitude { get; set; }
+    /// <summary>Latitude da origem, obtida pelo Serviço de Mapas (RF-F008-01). As quatro coordenadas são obrigatórias (A8).</summary>
+    public decimal OrigemLatitude { get; set; }
 
     /// <summary>Longitude da origem.</summary>
-    public decimal? OrigemLongitude { get; set; }
+    public decimal OrigemLongitude { get; set; }
 
     /// <summary>Latitude do destino.</summary>
-    public decimal? DestinoLatitude { get; set; }
+    public decimal DestinoLatitude { get; set; }
 
     /// <summary>Longitude do destino.</summary>
-    public decimal? DestinoLongitude { get; set; }
+    public decimal DestinoLongitude { get; set; }
 
     /// <summary>
     /// Data e hora de partida (UTC). A API só aceita valores com <c>Kind = Utc</c>; lidos da BD vêm com

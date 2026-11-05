@@ -28,25 +28,9 @@ public sealed class ConsultaRotaViagemService(MapasService mapas)
         ArgumentNullException.ThrowIfNull(viagem);
         ArgumentNullException.ThrowIfNull(participacoes);
 
-        // 1. Obter as coordenadas da viagem.
-        // Reutilizar as coordenadas guardadas, quando existem.
-        Coordenadas? coordenadasOrigem =
-            viagem.OrigemLatitude is decimal latOrigem &&
-            viagem.OrigemLongitude is decimal lonOrigem
-                ? new Coordenadas(latOrigem, lonOrigem)
-                : await mapas.GeocodificarAsync(viagem.Origem, ct);
-
-        Coordenadas? coordenadasDestino =
-            viagem.DestinoLatitude is decimal latDestino &&
-            viagem.DestinoLongitude is decimal lonDestino
-                ? new Coordenadas(latDestino, lonDestino)
-                : await mapas.GeocodificarAsync(viagem.Destino, ct);
-
-        if (coordenadasOrigem is null ||
-            coordenadasDestino is null)
-        {
-            return null;
-        }
+        // 1. Obter as coordenadas da viagem, que são obrigatórias (A8).
+        var coordenadasOrigem = new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
+        var coordenadasDestino = new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);
 
         // 2. Criar os pontos principais da viagem.
         var origem = new PontoRota(

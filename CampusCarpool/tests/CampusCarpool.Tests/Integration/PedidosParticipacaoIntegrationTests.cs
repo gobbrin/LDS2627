@@ -194,6 +194,26 @@ public sealed class PedidosParticipacaoIntegrationTests
         }
     }
     [Fact]
+    /// <summary>A8 / DC-34: as coordenadas do ponto indicado ficam guardadas; o ponto omitido fica a null (P-20).</summary>
+    public async Task I110_25_PedidoGuardaCoordenadasDoPontoIndicado()
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var resultado = await CriarController(f.Db, passageiro.Id, new MapasSimulados())
+            .Criar(new PedidosController.CriarPedido(viagem.Id, "Maia", null), default);
+
+        Assert.Equal(StatusCodes.Status201Created, Assert.IsType<ObjectResult>(resultado).StatusCode);
+        var pedido = await f.Db.Participacoes.AsNoTracking().SingleAsync();
+        Assert.Equal(41.1m, pedido.RecolhaLatitude);
+        Assert.Equal(-8.6m, pedido.RecolhaLongitude);
+        Assert.Null(pedido.DestinoLatitude);
+        Assert.Null(pedido.DestinoLongitude);
+    }
+
+    [Fact]
     public async Task PedidoValido_CriaParticipacaoPendente()
     {
         using var f = new Fixture();

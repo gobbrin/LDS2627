@@ -73,6 +73,10 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         b.Entity<Participacao>().HasOne(x => x.Passageiro).WithMany().HasForeignKey(x => x.PassageiroId).OnDelete(DeleteBehavior.Restrict);
         // Os enums são guardados pelo nome (texto), não pelo número.
         b.Entity<Participacao>().Property(x => x.Estado).HasConversion<string>();
+        b.Entity<Participacao>().Property(x => x.RecolhaLatitude).HasPrecision(9, 6);
+        b.Entity<Participacao>().Property(x => x.RecolhaLongitude).HasPrecision(9, 6);
+        b.Entity<Participacao>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
+        b.Entity<Participacao>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
         b.Entity<Notificacao>().Property(x => x.Tipo).HasConversion<string>();
         b.Entity<Aviso>().Property(x => x.Conteudo).HasMaxLength(100);
         // I038 - Impedir pedidos ativos duplicados do mesmo passageiro.
