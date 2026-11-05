@@ -70,7 +70,7 @@ public sealed class ViagensEstimativaIntegrationTests
 
             if (rotaGuardada && distanciaKm > 0)
             {
-                RotaViagemService.GuardarDireta(viagem, new ResultadoRota(
+                RotaGuardada.GuardarDireta(viagem, new ResultadoRota(
                     distanciaKm,
                     30,
                     new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
@@ -100,7 +100,7 @@ public sealed class ViagensEstimativaIntegrationTests
         };
         var mapas = new ServicoMapasRotas(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
-        return ComUtilizador(new ViagensController(db, mapas, custos, new RotaViagemService(mapas)));
+        return ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas, custos));
     }
 
     // A viagem da fixture é pesquisável, por isso qualquer utilizador a consulta.
@@ -194,7 +194,7 @@ public sealed class ViagensEstimativaIntegrationTests
         using var f = new Fixture();
         var viagem = await f.CriarViagemAsync(0m);
         var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
-        var controller = ComUtilizador(new ViagensController(
+        var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(
             f.Db,
             new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()),
             new EstimativaCustoService(new ConfigurationBuilder()

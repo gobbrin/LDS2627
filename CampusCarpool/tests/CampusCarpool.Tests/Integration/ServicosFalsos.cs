@@ -1,5 +1,11 @@
+using CampusCarpool.Api.Controllers;
+using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 
 namespace CampusCarpool.Tests;
@@ -57,16 +63,70 @@ public sealed class ServicoPushRegistador : IServicoPush
     }
 }
 
-/// <summary>Recálculo de rota falso, para testes que não verificam a rota. Com <see cref="Disponivel"/> a falso simula o Serviço de Mapas em baixo.</summary>
-public sealed class RotaViagemFalsa : IRotaViagemService
+/// <summary>Rota falsa, para testes que não verificam a rota. Com <see cref="Disponivel"/> a falso simula o Serviço de Mapas em baixo.</summary>
+public sealed class RotaViagemFalsa : IRotaService
 {
     public bool Disponivel { get; set; } = true;
 
+    public Task<ResultadoRotaComPontos?> CalcularAsync(
+        Viagem viagem,
+        IEnumerable<Participacao> participacoes,
+        CancellationToken ct)
+        => Task.FromResult<ResultadoRotaComPontos?>(null);
+
     public Task<bool> RecalcularAsync(
-        CampusCarpool.Domain.Entities.Viagem viagem,
-        IReadOnlyCollection<CampusCarpool.Domain.Entities.Participacao> aceites,
+        Viagem viagem,
+        IReadOnlyCollection<Participacao> aceites,
         CancellationToken ct)
         => Task.FromResult(Disponivel);
+
+    public Task<ResultadoRotaComPontos?> ObterAsync(
+        Viagem viagem,
+        IReadOnlyCollection<Participacao> aceites,
+        CancellationToken ct)
+        => Task.FromResult(RotaGuardada.Ler(viagem));
+}
+
+/// <summary>Unidade de trabalho falsa, que conta as gravações. Com <see cref="Falha"/> simula um conflito de concorrência.</summary>
+public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
+{
+    public int Confirmacoes { get; private set; }
+    public Exception? Falha { get; set; }
+
+    public void Confirmar()
+    {
+        if (Falha is not null) throw Falha;
+        Confirmacoes++;
+    }
+
+    public Task ConfirmarAsync(CancellationToken ct)
+    {
+        Confirmar();
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
+public static class ServicosDeTeste
+{
+    public static RotaService CriarRotas(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
+        new(mapas, new UnidadeDeTrabalhoEfCore(db));
+
+    public static ViagensController CriarViagensController(
+        CampusCarpoolDbContext db,
+        IServicoMapasRotas mapas,
+        EstimativaCustoService? custos = null,
+        INotificacaoService? notificacaoService = null) =>
+        new(db, mapas, CriarRotas(db, mapas), custos, notificacaoService);
+
+    public static SimulacoesController CriarSimulacoesController(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
+        new(db, mapas, CriarRotas(db, mapas));
+
+    public static RotasController CriarRotasController(
+        IServicoMapasRotas mapas,
+        EstimativaCustoService custos,
+        CampusCarpoolDbContext? db = null) =>
+        new(mapas, custos, db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas), db);
 }
 
 /// <summary>

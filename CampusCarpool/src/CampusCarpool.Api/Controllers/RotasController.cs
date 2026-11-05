@@ -14,8 +14,8 @@ namespace CampusCarpool.Api.Controllers;
 /// <summary>Serviço de Mapas e Rotas exposto ao frontend (F008). Rotas em <c>/api/v1/rotas</c>.</summary>
 /// <remarks>
 /// Todos os métodos dependem do <see cref="IServicoMapasRotas"/> (OpenRouteService) e respondem 503 se não estiver
-/// configurado, 502 se falhar e 504 se exceder o tempo (RF-F008-12). Os parâmetros opcionais (<c>= null</c>)
-/// existem para os testes que criam o controller sem DI.
+/// configurado, 502 se falhar e 504 se exceder o tempo (RF-F008-12). O <c>db</c> opcional existe para os testes
+/// que criam o controller sem base de dados.
 /// </remarks>
 [ApiController]
 [Authorize]
@@ -23,8 +23,8 @@ namespace CampusCarpool.Api.Controllers;
 public sealed class RotasController(
     IServicoMapasRotas maps,
     EstimativaCustoService custos,
-    CampusCarpoolDbContext? db = null,
-    RotaViagemService? rotaViagem = null) : ControllerBase
+    IRotaService rotas,
+    CampusCarpoolDbContext? db = null) : ControllerBase
 {
     /// <summary>Corpo de <c>POST calcular</c>: dois locais em texto.</summary>
     public sealed record Pedido(string Origem, string Destino);
@@ -146,8 +146,7 @@ public sealed class RotasController(
 
         try
         {
-            var servicoRotas = rotaViagem ?? new RotaViagemService(maps);
-            var resultado = await servicoRotas.ObterAsync(db, viagem, participacoes, ct);
+            var resultado = await rotas.ObterAsync(viagem, participacoes, ct);
 
             if (resultado is null)
                 return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });

@@ -102,7 +102,7 @@ public sealed class CriacaoViagemIntegrationTests
 
         var mapas = new ServicoMapasRotas(http, configuracao);
 
-        var controller = new ViagensController(db, mapas);
+        var controller = ServicosDeTeste.CriarViagensController(db, mapas);
 
         controller.ControllerContext = new ControllerContext
         {

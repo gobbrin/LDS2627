@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Rotas;
@@ -23,6 +24,40 @@ public static class RotaGuardada
         bool Adicional,
         decimal DistanciaKm,
         int DuracaoMinutos);
+
+    /// <summary>Lê a rota guardada na viagem; <c>null</c> se estiver por recalcular.</summary>
+    public static ResultadoRotaComPontos? Ler(Viagem viagem)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+
+        return viagem.RotaPontos is null ? null : Ler(viagem.RotaPontos);
+    }
+
+    /// <summary>Escreve a rota na viagem, sem gravar. A distância acompanha a rota atual; a duração de P-04 não.</summary>
+    public static void Guardar(Viagem viagem, ResultadoRotaComPontos rota)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+        ArgumentNullException.ThrowIfNull(rota);
+
+        viagem.RotaPontos = Serializar(rota);
+        viagem.DistanciaKm = rota.DistanciaTotalKm;
+    }
+
+    /// <summary>Escreve na viagem a rota direta devolvida pelo Serviço de Mapas (criação, ainda sem passageiros).</summary>
+    public static void GuardarDireta(Viagem viagem, ResultadoRota direta)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+        ArgumentNullException.ThrowIfNull(direta);
+
+        var origem = PontoRota.OrigemDe(viagem);
+        var destino = PontoRota.DestinoDe(viagem);
+
+        Guardar(viagem, new ResultadoRotaComPontos(
+            [origem, destino],
+            [new SegmentoRota(origem, destino, direta.DistanciaKm, direta.DuracaoMinutos)],
+            direta.DistanciaKm,
+            direta.DuracaoMinutos));
+    }
 
     /// <summary>Converte a rota para o texto JSON guardado na viagem.</summary>
     public static string Serializar(ResultadoRotaComPontos rota)

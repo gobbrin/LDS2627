@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +16,7 @@ namespace CampusCarpool.Api.Controllers;
 /// </summary>
 /// <remarks>
 /// Não altera nada. Compara a rota guardada com a rota que resultaria de juntar o pedido, calculada pelo mesmo
-/// algoritmo (<see cref="OtimizadorRotas"/>, P-07), por isso a simulação coincide com a rota depois de aceitar.
+/// algoritmo (<see cref="IRotaService"/>, P-07), por isso a simulação coincide com a rota depois de aceitar.
 /// Pontos omitidos assumem a origem ou o destino da viagem (P-20). Todo o cálculo tem um limite de 10 segundos.
 /// </remarks>
 [ApiController]
@@ -24,7 +25,7 @@ namespace CampusCarpool.Api.Controllers;
 public sealed class SimulacoesController(
     CampusCarpoolDbContext db,
     IServicoMapasRotas mapas,
-    RotaViagemService? rotaViagem = null) : ControllerBase
+    IRotaService rotas) : ControllerBase
 {
     /// <summary>Corpo do pedido: o pedido pendente a simular.</summary>
     public sealed record SimularPedido(Guid PedidoId);
@@ -81,9 +82,8 @@ public sealed class SimulacoesController(
         try
         {
             // A rota atual é a guardada; só falta calculá-la se estiver por recalcular (P-19). Nada é gravado.
-            var servicoRotas = rotaViagem ?? new RotaViagemService(mapas);
-            var original = RotaViagemService.Ler(viagem) ?? await servicoRotas.CalcularAsync(viagem, aceites, limite.Token);
-            var simulada = await servicoRotas.CalcularAsync(viagem, [.. aceites, pedido], limite.Token);
+            var original = RotaGuardada.Ler(viagem) ?? await rotas.CalcularAsync(viagem, aceites, limite.Token);
+            var simulada = await rotas.CalcularAsync(viagem, [.. aceites, pedido], limite.Token);
 
             if (original is null || simulada is null)
                 return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });

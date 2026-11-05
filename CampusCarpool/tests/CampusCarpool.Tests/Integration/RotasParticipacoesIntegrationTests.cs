@@ -108,7 +108,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         var mapas = new ServicoMapasRotas(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
-        var controller = new RotasController(mapas, custos, db);
+        var controller = ServicosDeTeste.CriarRotasController(mapas, custos, db);
 
         var claims = utilizadorId.HasValue
             ? new[]

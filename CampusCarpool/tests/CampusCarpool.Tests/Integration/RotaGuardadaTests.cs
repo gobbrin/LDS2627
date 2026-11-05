@@ -4,6 +4,7 @@ using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -18,7 +19,7 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 /// <summary>Rota guardada na viagem (F2, RF-F008-05, P-19, D-025): quando é recalculada e o que acontece sem o Serviço de Mapas.</summary>
-/// <remarks>SQLite em memória, com o <c>ParticipacaoService</c> e o <c>RotaViagemService</c> reais; OpenRouteService simulado pelo <see cref="MapasFalsos"/>.</remarks>
+/// <remarks>SQLite em memória, com o <c>ParticipacaoService</c> e o <c>RotaService</c> reais; OpenRouteService simulado pelo <see cref="MapasFalsos"/>.</remarks>
 public sealed class RotaGuardadaTests : IDisposable
 {
     private readonly SqliteConnection ligacao = new("Data Source=:memory:");
@@ -49,7 +50,7 @@ public sealed class RotaGuardadaTests : IDisposable
             LugaresDisponiveis = 2,
             DuracaoMinutos = 60
         };
-        RotaViagemService.GuardarDireta(viagem, new ResultadoRota(
+        RotaGuardada.GuardarDireta(viagem, new ResultadoRota(
             50m,
             60,
             new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
@@ -83,7 +84,7 @@ public sealed class RotaGuardadaTests : IDisposable
         new UnidadeDeTrabalhoEfCore(db),
         new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa()),
         new NotificadorPedidosFalso(),
-        new RotaViagemService(mapas.CriarServico()));
+        ServicosDeTeste.CriarRotas(db, mapas.CriarServico()));
 
     private static T ComUtilizador<T>(T controller, Guid id) where T : ControllerBase
     {
@@ -104,7 +105,7 @@ public sealed class RotaGuardadaTests : IDisposable
             .Build();
 
         return ComUtilizador(
-            new RotasController(mapas.CriarServico(), new EstimativaCustoService(configuracao), db),
+            ServicosDeTeste.CriarRotasController(mapas.CriarServico(), new EstimativaCustoService(configuracao), db),
             condutor.Id).ConsultarRotaViagem(viagem.Id, default);
     }
 
@@ -115,7 +116,7 @@ public sealed class RotaGuardadaTests : IDisposable
     }
 
     private static List<string> Locais(Viagem v) =>
-        RotaViagemService.Ler(v)!.PontosOrdenados.Select(p => p.Local).ToList();
+        RotaGuardada.Ler(v)!.PontosOrdenados.Select(p => p.Local).ToList();
 
     [Fact]
     public async Task I110_31_ConsultaLeARotaGuardada_SemChamarOServicoDeMapas()
@@ -194,7 +195,7 @@ public sealed class RotaGuardadaTests : IDisposable
         // Índices com um passageiro: 0 origem, 1 recolha, 2 destino, 3 destino da viagem.
         mapas.Duracao = (i, j) => (i, j) is (0, 1) or (1, 2) or (2, 3) ? 60 : 3000;
 
-        var controller = ComUtilizador(new SimulacoesController(db, mapas.CriarServico()), condutor.Id);
+        var controller = ComUtilizador(ServicosDeTeste.CriarSimulacoesController(db, mapas.CriarServico()), condutor.Id);
         var simulacao = Assert.IsType<SimulacoesController.RespostaSimulacao>(
             Assert.IsType<OkObjectResult>(await controller.Simular(
                 viagem.Id, new SimulacoesController.SimularPedido(pedido.Id), default)).Value);
@@ -226,14 +227,14 @@ public sealed class RotaGuardadaTests : IDisposable
         await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
         db.ChangeTracker.Clear();
 
-        var controller = ComUtilizador(new ViagensController(db, mapas.CriarServico()), condutor.Id);
+        var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas.CriarServico()), condutor.Id);
         Assert.IsType<NoContentResult>(await controller.Indisponibilizar(viagem.Id, default));
 
         Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
     }
 
     private ViagensController ControladorViagens() => ComUtilizador(
-        new ViagensController(
+        ServicosDeTeste.CriarViagensController(
             db,
             mapas.CriarServico(),
             notificacaoService: new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa())),

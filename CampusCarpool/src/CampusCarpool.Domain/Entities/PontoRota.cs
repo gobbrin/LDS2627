@@ -23,4 +23,29 @@ public sealed record PontoRota(
     string Tipo,
     string Local,
     Coordenadas Coordenadas
-);
+)
+{
+    /// <summary>Origem da viagem como ponto da rota.</summary>
+    public static PontoRota OrigemDe(Viagem viagem)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+
+        return new PontoRota(
+            null,
+            TiposPontoRota.Origem,
+            viagem.Origem,
+            new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude));
+    }
+
+    /// <summary>Destino da viagem como ponto da rota.</summary>
+    public static PontoRota DestinoDe(Viagem viagem)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+
+        return new PontoRota(
+            null,
+            TiposPontoRota.DestinoViagem,
+            viagem.Destino,
+            new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude));
+    }
+}

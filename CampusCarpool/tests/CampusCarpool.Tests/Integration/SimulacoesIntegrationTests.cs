@@ -82,7 +82,7 @@ public sealed class SimulacoesIntegrationTests
             {
                 BaseAddress = new Uri("https://api.heigit.org/openrouteservice/")
             };
-            var controller = new SimulacoesController(Db, new ServicoMapasRotas(http, config));
+            var controller = ServicosDeTeste.CriarSimulacoesController(Db, new ServicoMapasRotas(http, config));
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext

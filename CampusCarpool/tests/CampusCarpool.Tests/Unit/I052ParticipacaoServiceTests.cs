@@ -138,6 +138,11 @@ public sealed class I052ParticipacaoServiceTests
     {
         public int Confirmacoes { get; private set; }
         public void Confirmar() => Confirmacoes++;
+        public Task ConfirmarAsync(CancellationToken ct)
+        {
+            Confirmar();
+            return Task.CompletedTask;
+        }
     }
     private sealed class NotificacoesFake : INotificacaoService
     {

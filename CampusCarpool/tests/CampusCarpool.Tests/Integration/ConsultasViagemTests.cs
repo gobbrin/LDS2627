@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -63,7 +64,9 @@ public sealed class ConsultasViagemTests : IDisposable
         return viagem;
     }
 
-    private ViagensController Controller(Guid utilizadorId) => new(db, new MapasFalsos().CriarServico())
+    private static readonly IServicoMapasRotas Mapas = new MapasFalsos().CriarServico();
+
+    private ViagensController Controller(Guid utilizadorId) => new(db, Mapas, ServicosDeTeste.CriarRotas(db, Mapas))
     {
         ControllerContext = new ControllerContext
         {

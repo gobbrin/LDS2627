@@ -78,7 +78,7 @@ public sealed class EndpointsAdditionalTests
         }
     };
     private static ServicoMapasRotas Maps() => new(new HttpClient(), new ConfigurationBuilder().Build());
-    private static ViagensController Trips(Fixture f) => new(f.Db, Maps());
+    private static ViagensController Trips(Fixture f) => ServicosDeTeste.CriarViagensController(f.Db, Maps());
     private sealed class EmailFake : IServicoEmail
     {
         public Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct) => Task.CompletedTask;
@@ -214,7 +214,7 @@ public sealed class EndpointsAdditionalTests
         var ocupadosAntes =
             v.LugaresOferecidos - v.LugaresDisponiveis;
 
-        var c = new ViagensController(f.Db, new MapasFalsos().CriarServico());
+        var c = ServicosDeTeste.CriarViagensController(f.Db, new MapasFalsos().CriarServico());
         Auth(c, u.Id);
 
         Assert.IsType<NoContentResult>(
@@ -305,12 +305,12 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task GeocodificarSemChave_Devolve503()
     {
-        var r = await new RotasController(Maps(), Custos()).Geocodificar("Porto", default);
+        var r = await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Geocodificar("Porto", default);
         Assert.Equal(503, Assert.IsType<ObjectResult>(r).StatusCode);
     }
     [Fact]
     public async Task CalcularOrigemVazia_Devolve400()
     {
-        Assert.IsType<BadRequestResult>(await new RotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
+        Assert.IsType<BadRequestResult>(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
     }
 }

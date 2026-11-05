@@ -26,12 +26,10 @@ namespace CampusCarpool.Api.Controllers;
 public sealed class ViagensController(
     CampusCarpoolDbContext db,
     IServicoMapasRotas maps,
+    IRotaService rotas,
     EstimativaCustoService? custos = null,
-    RotaViagemService? rotaViagem = null,
     INotificacaoService? notificacaoService = null) : ControllerBase
 {
-    private RotaViagemService Rotas => rotaViagem ?? new RotaViagemService(maps);
-
     /// <summary>Corpo de <c>POST /viagens</c>. <c>PartidaEm</c> em UTC; <c>Lugares</c> de 1 a 8 (P-11).</summary>
     public sealed record CriarViagem(string Origem, string Destino, DateTime PartidaEm, int Lugares);
     /// <summary>Corpo de <c>PUT /viagens/{id}</c>. <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual.</summary>
@@ -106,7 +104,7 @@ public sealed class ViagensController(
             DestinoLongitude = rota.Destino.Longitude,
             DuracaoMinutos = rota.DuracaoMinutos
         };
-        RotaViagemService.GuardarDireta(v, rota);
+        RotaGuardada.GuardarDireta(v, rota);
         db.Viagens.Add(v);
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Consultar), new { id = v.Id },
@@ -134,7 +132,7 @@ public sealed class ViagensController(
             .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Aceite)
             .ToListAsync(ct);
 
-        ResultadoRotaComPontos? rota = RotaViagemService.Ler(viagem);
+        ResultadoRotaComPontos? rota = RotaGuardada.Ler(viagem);
         ResultadoEstimativaCusto? estimativa = null;
         string? motivoIndisponibilidade = null;
 
@@ -153,7 +151,7 @@ public sealed class ViagensController(
             {
                 try
                 {
-                    rota = await Rotas.ObterAsync(db, viagem, participacoesAceites, ct);
+                    rota = await rotas.ObterAsync(viagem, participacoesAceites, ct);
                 }
                 catch (HttpRequestException)
                 {
@@ -326,11 +324,11 @@ public sealed class ViagensController(
             v.DestinoLatitude = destino.Latitude;
             v.DestinoLongitude = destino.Longitude;
 
-            var rota = await Rotas.CalcularAsync(v, aceites, ct);
+            var rota = await rotas.CalcularAsync(v, aceites, ct);
             if (rota is null)
                 return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });
 
-            RotaViagemService.Guardar(v, rota);
+            RotaGuardada.Guardar(v, rota);
             v.DuracaoMinutos = rota.DuracaoTotalMinutos;
         }
         catch (HttpRequestException)
@@ -387,7 +385,7 @@ public sealed class ViagensController(
         // Sem participações aceites, todos os lugares ficam livres.
         v.LugaresDisponiveis = v.LugaresOferecidos;
         // RF-F008-05 / P-19: como no cancelamento, a rota sem passageiros nunca impede a operação.
-        if (!await Rotas.RecalcularAsync(v, [], ct)) v.RotaPontos = null;
+        if (!await rotas.RecalcularAsync(v, [], ct)) v.RotaPontos = null;
         await db.SaveChangesAsync(ct);
 
         // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou

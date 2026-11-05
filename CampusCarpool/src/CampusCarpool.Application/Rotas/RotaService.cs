@@ -1,11 +1,11 @@
 using System.Text.Json;
 using CampusCarpool.Application.Abstractions.Integrations;
-using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
-using CampusCarpool.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using CampusCarpool.Domain.Exceptions;
+using CampusCarpool.Domain.Rules;
 
-namespace CampusCarpool.Api.Services;
+namespace CampusCarpool.Application.Rotas;
 
 /// <summary>
 /// Rota guardada de uma viagem, com os pontos das participações aceites (RF-F008-03 a RF-F008-05, D-025).
@@ -16,29 +16,68 @@ namespace CampusCarpool.Api.Services;
 /// significa «por recalcular»: acontece quando um cancelamento não conseguiu recalcular (P-19), e a rota é
 /// recalculada na consulta seguinte em que o serviço responda.
 /// </remarks>
-public sealed class RotaViagemService(IServicoMapasRotas mapas) : IRotaViagemService
+public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho unidadeDeTrabalho) : IRotaService
 {
-    /// <summary>Calcula a rota da viagem com os pontos das participações indicadas, sem gravar nada.</summary>
-    /// <param name="viagem">Viagem.</param>
-    /// <param name="participacoes">Participações a incluir (a chamada decide quais: aceites, ou aceites mais um pedido).</param>
-    /// <param name="ct">Cancelamento.</param>
-    /// <returns>A rota, ou <c>null</c> se o serviço não encontrar nenhuma.</returns>
-    /// <exception cref="HttpRequestException">O Serviço de Mapas respondeu com erro.</exception>
-    /// <exception cref="TaskCanceledException">O Serviço de Mapas não respondeu a tempo.</exception>
+    /// <inheritdoc />
     public Task<ResultadoRotaComPontos?> CalcularAsync(
         Viagem viagem,
         IEnumerable<Participacao> participacoes,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(viagem);
         ArgumentNullException.ThrowIfNull(participacoes);
 
-        return OtimizadorRotas.CalcularAsync(
-            mapas,
-            Origem(viagem),
-            Destino(viagem),
+        return CalcularAsync(
+            PontoRota.OrigemDe(viagem),
+            PontoRota.DestinoDe(viagem),
             participacoes.SelectMany(PontosDe).ToList(),
             ct);
+    }
+
+    /// <summary>Calcula a rota com os pontos adicionais entre a origem e o destino da viagem.</summary>
+    /// <remarks>Faz um único pedido à Matrix API, com todas as durações e distâncias.</remarks>
+    /// <returns>A rota; <c>null</c> se o serviço não devolver matriz ou não houver nenhuma sequência viável.</returns>
+    /// <exception cref="ArgumentException">Mais pontos adicionais do que os possíveis numa viagem.</exception>
+    public async Task<ResultadoRotaComPontos?> CalcularAsync(
+        PontoRota origem,
+        PontoRota destino,
+        IReadOnlyList<PontoRota> adicionais,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(adicionais);
+        OrdenadorDePontos.GarantirLimite(adicionais);
+
+        var pontos = new List<PontoRota>(adicionais.Count + 2) { origem };
+        pontos.AddRange(adicionais);
+        pontos.Add(destino);
+
+        var matriz = await mapas.CalcularMatrizAsync(pontos.Select(p => p.Coordenadas).ToList(), ct);
+        if (matriz is null) return null;
+
+        var ordem = OrdenadorDePontos.Ordenar(matriz.DuracoesSegundos, adicionais);
+        if (ordem is null) return null;
+
+        var ordenados = ordem.Select(i => pontos[i]).ToList();
+        var segmentos = new List<SegmentoRota>(ordenados.Count - 1);
+
+        for (var i = 0; i < ordem.Count - 1; i++)
+        {
+            var metros = matriz.DistanciasMetros[ordem[i]][ordem[i + 1]];
+            var segundos = matriz.DuracoesSegundos[ordem[i]][ordem[i + 1]];
+            if (metros is null || segundos is null) return null;
+
+            segmentos.Add(new SegmentoRota(
+                ordenados[i],
+                ordenados[i + 1],
+                Math.Round((decimal)(metros.Value / 1000d), 2),
+                (int)Math.Ceiling(segundos.Value / 60d)));
+        }
+
+        return new ResultadoRotaComPontos(
+            ordenados,
+            segmentos,
+            segmentos.Sum(s => s.DistanciaKm),
+            segmentos.Sum(s => s.DuracaoMinutos));
     }
 
     /// <inheritdoc />
@@ -54,7 +93,7 @@ public sealed class RotaViagemService(IServicoMapasRotas mapas) : IRotaViagemSer
             var rota = await CalcularAsync(viagem, aceites, ct);
             if (rota is null) return false;
 
-            Guardar(viagem, rota);
+            RotaGuardada.Guardar(viagem, rota);
             return true;
         }
         catch (HttpRequestException)
@@ -72,76 +111,31 @@ public sealed class RotaViagemService(IServicoMapasRotas mapas) : IRotaViagemSer
         }
     }
 
-    /// <summary>Devolve a rota guardada; se estiver por recalcular, calcula-a e grava-a (P-19).</summary>
-    /// <param name="db">Contexto em que a viagem está a ser seguida.</param>
-    /// <param name="viagem">Viagem, seguida pelo contexto.</param>
-    /// <param name="aceites">Participações aceites da viagem.</param>
-    /// <param name="ct">Cancelamento.</param>
-    /// <returns>A rota, ou <c>null</c> se o serviço não encontrar nenhuma.</returns>
-    /// <exception cref="HttpRequestException">O Serviço de Mapas respondeu com erro.</exception>
-    /// <exception cref="TaskCanceledException">O Serviço de Mapas não respondeu a tempo.</exception>
+    /// <inheritdoc />
     public async Task<ResultadoRotaComPontos?> ObterAsync(
-        CampusCarpoolDbContext db,
         Viagem viagem,
         IReadOnlyCollection<Participacao> aceites,
         CancellationToken ct)
     {
-        var guardada = Ler(viagem);
+        var guardada = RotaGuardada.Ler(viagem);
         if (guardada is not null) return guardada;
 
         var rota = await CalcularAsync(viagem, aceites, ct);
         if (rota is null) return null;
 
-        Guardar(viagem, rota);
+        RotaGuardada.Guardar(viagem, rota);
 
         try
         {
-            await db.SaveChangesAsync(ct);
+            await unidadeDeTrabalho.ConfirmarAsync(ct);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (RegraDeNegocioException)
         {
             // Outra operação mudou a viagem entretanto: esta consulta responde na mesma e a seguinte recalcula.
-            db.Entry(viagem).State = EntityState.Detached;
         }
 
         return rota;
     }
-
-    /// <summary>Lê a rota guardada; <c>null</c> se estiver por recalcular.</summary>
-    public static ResultadoRotaComPontos? Ler(Viagem viagem) =>
-        viagem.RotaPontos is null ? null : RotaGuardada.Ler(viagem.RotaPontos);
-
-    /// <summary>Escreve a rota na viagem, sem gravar. A distância acompanha a rota atual; a duração de P-04 não.</summary>
-    public static void Guardar(Viagem viagem, ResultadoRotaComPontos rota)
-    {
-        viagem.RotaPontos = RotaGuardada.Serializar(rota);
-        viagem.DistanciaKm = rota.DistanciaTotalKm;
-    }
-
-    /// <summary>Escreve na viagem a rota direta devolvida pelo Serviço de Mapas (criação, ainda sem passageiros).</summary>
-    public static void GuardarDireta(Viagem viagem, ResultadoRota direta)
-    {
-        var origem = Origem(viagem);
-        var destino = Destino(viagem);
-
-        Guardar(viagem, new ResultadoRotaComPontos(
-            [origem, destino],
-            [new SegmentoRota(origem, destino, direta.DistanciaKm, direta.DuracaoMinutos)],
-            direta.DistanciaKm,
-            direta.DuracaoMinutos));
-    }
-
-    private static PontoRota Origem(Viagem viagem) => new(
-        null,
-        TiposPontoRota.Origem,
-        viagem.Origem,
-        new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude));
-
-    private static PontoRota Destino(Viagem viagem) => new(
-        null,
-        TiposPontoRota.DestinoViagem,
-        viagem.Destino,
-        new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude));
 
     // Um ponto omitido segue a origem ou o destino da viagem (P-20), por isso não acrescenta paragens.
     private static IEnumerable<PontoRota> PontosDe(Participacao participacao)

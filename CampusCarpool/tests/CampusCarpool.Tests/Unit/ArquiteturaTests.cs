@@ -37,7 +37,6 @@ public class ArquiteturaTests
         "UtilizadoresController",
         "ViagensController",
         "ConsultaViagens",
-        "RotaViagemService",
     ];
 
     private static string[] Referencias(Assembly assembly) =>

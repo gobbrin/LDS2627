@@ -28,9 +28,23 @@ public sealed class UnidadeDeTrabalhoEfCore(CampusCarpoolDbContext context) : IU
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            throw new RegraDeNegocioException(
-                "O recurso foi alterado por outra operação. Atualiza os dados e tenta novamente.",
-                ex);
+            throw Conflito(ex);
         }
     }
+
+    /// <inheritdoc cref="Confirmar" />
+    public async Task ConfirmarAsync(CancellationToken ct)
+    {
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw Conflito(ex);
+        }
+    }
+
+    private static RegraDeNegocioException Conflito(DbUpdateConcurrencyException causa) =>
+        new("O recurso foi alterado por outra operação. Atualiza os dados e tenta novamente.", causa);
 }

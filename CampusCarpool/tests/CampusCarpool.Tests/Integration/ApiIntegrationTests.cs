@@ -142,7 +142,7 @@ public sealed class ApiIntegrationTests
     public async Task CT026_ConsultarViagemInexistente_Devolve404()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new ViagensController(fixture.Db, new ServicoMapasRotas(
+        var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Assert.IsType<NotFoundResult>(await controller.Consultar(Guid.NewGuid(), default));
     }
@@ -164,7 +164,7 @@ public sealed class ApiIntegrationTests
         };
         fixture.Db.Viagens.Add(trip);
         await fixture.Db.SaveChangesAsync();
-        var controller = new ViagensController(fixture.Db, new ServicoMapasRotas(
+        var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
         Assert.IsType<ForbidResult>(await controller.Editar(trip.Id,
@@ -236,7 +236,7 @@ public sealed class MapasAndValidationTests
     {
         var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
-        var controller = new RotasController(service, CriarCustos());
+        var controller = ServicosDeTeste.CriarRotasController(service, CriarCustos());
 
         var result = await controller.Calcular(new("Porto", "Braga"), default);
 
@@ -248,7 +248,7 @@ public sealed class MapasAndValidationTests
     {
         var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
-        var controller = new RotasController(service, CriarCustos());
+        var controller = ServicosDeTeste.CriarRotasController(service, CriarCustos());
 
         Assert.IsType<BadRequestResult>(await controller.Geocodificar(" ", default));
     }

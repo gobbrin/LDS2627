@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Migrations;
@@ -68,17 +69,20 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         return participacao;
     }
 
-    private ViagensController CriarController(Guid utilizadorId) => new(_db, new MapasFalsos().CriarServico(configurado: false))
-    {
-        ControllerContext = new ControllerContext
+    private static readonly IServicoMapasRotas MapasSemConfiguracao = new MapasFalsos().CriarServico(configurado: false);
+
+    private ViagensController CriarController(Guid utilizadorId) =>
+        new(_db, MapasSemConfiguracao, ServicosDeTeste.CriarRotas(_db, MapasSemConfiguracao))
         {
-            HttpContext = new DefaultHttpContext
+            ControllerContext = new ControllerContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
                     [new Claim(ClaimTypes.NameIdentifier, utilizadorId.ToString())], "Test"))
+                }
             }
-        }
-    };
+        };
 
     [Fact]
     public async Task I110_08_Indisponibilizar_ViagemContinuaNoHistoricoDoPassageiroAceite()

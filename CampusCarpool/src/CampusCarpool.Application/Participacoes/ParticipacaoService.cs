@@ -25,7 +25,7 @@ public sealed class ParticipacaoService(
     IUnidadeDeTrabalho unidadeDeTrabalho,
     INotificacaoService notificacaoService,
     INotificadorPedidosTempoReal notificadorPedidosTempoReal,
-    IRotaViagemService rotaViagemService) : IParticipacaoService
+    IRotaService rotaService) : IParticipacaoService
 {
     /// <inheritdoc />
     public async Task<ResultadoGestaoParticipacao> AceitarAsync(
@@ -73,7 +73,7 @@ public sealed class ParticipacaoService(
             return ResultadoGestaoParticipacao.SemCapacidade;
 
         // RF-F008-05 / P-19: a aceitação recalcula a rota; sem o Serviço de Mapas é recusada e nada muda.
-        var rotaAtualizada = await rotaViagemService.RecalcularAsync(
+        var rotaAtualizada = await rotaService.RecalcularAsync(
             viagem,
             [.. aceites, participacao],
             ct);
@@ -218,7 +218,7 @@ public sealed class ParticipacaoService(
                 viagem.LugaresOferecidos - (aceites.Count - 1);
 
             // RF-F008-05 / P-19: o cancelamento nunca é recusado; sem o Serviço de Mapas, a rota fica por recalcular.
-            var rotaAtualizada = await rotaViagemService.RecalcularAsync(
+            var rotaAtualizada = await rotaService.RecalcularAsync(
                 viagem,
                 aceites.Where(p => p.Id != participacao.Id).ToList(),
                 ct);

@@ -27,8 +27,6 @@ builder.Services.AddSingleton<
     Microsoft.AspNetCore.SignalR.IUserIdProvider,
     PedidosUserIdProvider>();
 builder.Services.AddScoped<EstimativaCustoService>();
-builder.Services.AddScoped<RotaViagemService>();
-builder.Services.AddScoped<IRotaViagemService>(sp => sp.GetRequiredService<RotaViagemService>());
 // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();

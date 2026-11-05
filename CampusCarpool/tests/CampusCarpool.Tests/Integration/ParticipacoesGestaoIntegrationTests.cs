@@ -424,7 +424,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var passageiro = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id, partida: DateTime.UtcNow.AddMinutes(-1));
         var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
-        var controller = new ViagensController(f.Db, new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()));
+        var controller = ServicosDeTeste.CriarViagensController(f.Db, new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

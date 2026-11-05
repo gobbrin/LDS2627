@@ -130,7 +130,7 @@ public sealed class I051ValidacoesControllersTests
     [Fact]
     public async Task F002_CriarViagemSemIdentidade_Devolve401()
     {
-        var controller = new ViagensController(null!, null!)
+        var controller = new ViagensController(null!, null!, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
@@ -567,7 +567,8 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, new MapasFalsos().CriarServico(configurado: false))
+        var mapas = new MapasFalsos().CriarServico(configurado: false);
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
@@ -637,7 +638,8 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, new MapasFalsos().CriarServico())
+        var mapas = new MapasFalsos().CriarServico();
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
@@ -741,7 +743,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, mapas)
+        var controller = new ViagensController(db, mapas, ServicosDeTeste.CriarRotas(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
