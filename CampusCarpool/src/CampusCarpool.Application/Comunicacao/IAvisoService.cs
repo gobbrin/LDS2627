@@ -17,7 +17,7 @@ public enum ResultadoCriacaoAviso
 }
 
 /// <summary>Regras de aplicação para avisos do condutor.</summary>
-/// <remarks>Implementado por <c>Infrastructure/Services/AvisoService.cs</c> (AP-04).</remarks>
+/// <remarks>Implementado por <see cref="AvisoService"/>.</remarks>
 public interface IAvisoService
 {
     /// <summary>Cria um aviso e uma notificação para cada passageiro aceite.</summary>

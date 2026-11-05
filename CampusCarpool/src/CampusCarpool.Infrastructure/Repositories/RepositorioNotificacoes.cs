@@ -21,6 +21,9 @@ public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IR
         await context.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
+    public void AdicionarSemGravar(IEnumerable<Notificacao> notificacoes) => context.Notificacoes.AddRange(notificacoes);
+
     //Consulta as notificações pessoais por ordem cronológica inversa.
     /// <inheritdoc />
     public async Task<IReadOnlyList<Notificacao>> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)

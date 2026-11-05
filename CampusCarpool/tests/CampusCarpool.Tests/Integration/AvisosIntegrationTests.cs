@@ -5,7 +5,6 @@ using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -91,7 +90,7 @@ public sealed class AvisosIntegrationTests
         CampusCarpoolDbContext db,
         Guid? utilizadorId)
     {
-        var controller = new AvisosController(new AvisoService(db));
+        var controller = new AvisosController(ServicosDeTeste.CriarAvisos(db));
         AplicarIdentidade(controller, utilizadorId);
         return controller;
     }

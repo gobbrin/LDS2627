@@ -1,10 +1,12 @@
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
+using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -115,6 +117,13 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
 /// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
 public static class ServicosDeTeste
 {
+    public static AvisoService CriarAvisos(CampusCarpoolDbContext db) => new(
+        new RepositorioViagens(db),
+        new RepositorioParticipacoes(db),
+        new RepositorioAvisos(db),
+        new RepositorioNotificacoes(db),
+        new UnidadeDeTrabalhoEfCore(db));
+
     public static EstimativaCustoService CriarCustos(decimal? precoPorKm = 0.10m) =>
         new(Options.Create(new OpcoesCustos { PrecoPorKm = precoPorKm }));
 

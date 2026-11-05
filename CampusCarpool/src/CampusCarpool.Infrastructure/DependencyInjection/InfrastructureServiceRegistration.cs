@@ -1,10 +1,8 @@
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
-using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,14 +53,10 @@ public static class InfrastructureServiceRegistration
 
 
 
-        // Serviço de avisos do condutor (I044).
-        services.AddScoped<IAvisoService, AvisoService>();
+        // Repositório de avisos do condutor (I044).
+        services.AddScoped<IRepositorioAvisos, RepositorioAvisos>();
 
         // Serviço da unidade de trabalho.
-        services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
-
-        // Serviço da unidade de trabalho.
-        // Registo repetido (T6, fica para m4): é inofensivo, o segundo substitui o primeiro.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
 
         // I048 - Repositório de avaliações.

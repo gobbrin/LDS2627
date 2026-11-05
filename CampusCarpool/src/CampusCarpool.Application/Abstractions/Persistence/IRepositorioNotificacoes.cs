@@ -13,6 +13,9 @@ public interface IRepositorioNotificacoes
     /// <summary>Guarda uma nova notificação na base de dados.</summary>
     Task AdicionarAsync(Notificacao notificacao, CancellationToken ct);
 
+    /// <summary>Junta as notificações às alterações pendentes, sem gravar, para ficarem na transação de quem as cria.</summary>
+    void AdicionarSemGravar(IEnumerable<Notificacao> notificacoes);
+
     /// <summary>Consulta uma página das notificações de um utilizador, ordenadas da mais recente para a mais antiga.</summary>
     Task<IReadOnlyList<Notificacao>> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct);
 

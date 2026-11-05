@@ -10,8 +10,8 @@ namespace CampusCarpool.Application.DependencyInjection;
 
 /// <summary>Registo dos serviços da camada Application no contentor de injeção de dependências.</summary>
 /// <remarks>
-/// <see cref="OpcoesCustos"/> é ligado no <c>Program.cs</c>. O <c>AvisoService</c> e o <c>HistoricoService</c> estão
-/// na Infrastructure (AP-04, DC-39), e o <c>HistoricoService</c> é registado no <c>Program.cs</c>.
+/// <see cref="OpcoesCustos"/> é ligado no <c>Program.cs</c>. O <c>HistoricoService</c> está na Infrastructure
+/// (AP-04, DC-39) e é registado no <c>Program.cs</c>.
 /// </remarks>
 public static class ApplicationServiceRegistration
 {
@@ -22,6 +22,7 @@ public static class ApplicationServiceRegistration
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         // Gere a lógica de negócio das mensagens, notificações e participações.
+        services.AddScoped<IAvisoService, AvisoService>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();
