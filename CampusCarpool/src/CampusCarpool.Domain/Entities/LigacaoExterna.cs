@@ -4,8 +4,8 @@ namespace CampusCarpool.Domain.Entities;
 /// Ligação do perfil a um perfil externo, por exemplo LinkedIn ou GitHub (RF-F001-15, RF-F001-16).
 /// </summary>
 /// <remarks>
-/// O URL tem de ser absoluto, com esquema http ou https. O número máximo de ligações (P-27) ainda
-/// não está definido. Não há endpoint para gerir estas ligações (DEF-BE-005, fica para m4).
+/// O URL tem de ser absoluto, com esquema http ou https; cada utilizador tem até 5 ligações (P-27).
+/// As regras estão no <c>UtilizadoresController</c>.
 /// </remarks>
 public sealed class LigacaoExterna
 {

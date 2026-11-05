@@ -2,6 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,16 +11,21 @@ using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Perfil do utilizador autenticado e perfil público de outros utilizadores (F001). Rotas em <c>/api/v1/utilizadores</c>.</summary>
-/// <remarks>
-/// Usa o <see cref="CampusCarpoolDbContext"/> diretamente. Não há endpoints para as ligações externas
-/// (RF-F001-15, RF-F001-16, RF-F001-22; DEF-BE-005, fica para m4).
-/// </remarks>
+/// <remarks>Usa o <see cref="CampusCarpoolDbContext"/> diretamente.</remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/utilizadores")]
 public sealed class UtilizadoresController(
     CampusCarpoolDbContext db) : ControllerBase
 {
+    // P-27: número máximo de ligações externas por utilizador.
+    private const int MaximoLigacoes = 5;
+    private const int TamanhoMaximoUrl = 2048;
+    private const int TamanhoMaximoDescricao = 100;
+
+    /// <summary>Corpo de <c>POST me/ligacoes</c>: URL absoluto http ou https e descrição opcional.</summary>
+    public sealed record NovaLigacao(string Url, string? Descricao);
+
     /// <summary>Corpo de <c>PUT me</c>. O nome é obrigatório; curso e instituição vazios passam a <c>null</c>.</summary>
     public sealed record AtualizarPerfil(
         string Nome,
@@ -39,7 +45,7 @@ public sealed class UtilizadoresController(
     }
 
     // GET /api/v1/utilizadores/me
-    /// <summary>Perfil do próprio utilizador, incluindo o email (RF-F001-20). 200; 401; 404.</summary>
+    /// <summary>Perfil do próprio utilizador, incluindo o email e as ligações externas (RF-F001-20). 200; 401; 404.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> ConsultarPerfil(
         CancellationToken ct)
@@ -70,7 +76,93 @@ public sealed class UtilizadoresController(
                 erro = "Utilizador não encontrado."
             });
 
-        return Ok(perfil);
+        var ligacoes = await ListarLigacoes(id.Value, ct);
+
+        return Ok(new
+        {
+            perfil.Id,
+            perfil.Nome,
+            perfil.Email,
+            perfil.EmailConfirmado,
+            perfil.Curso,
+            perfil.Instituicao,
+            perfil.CriadoEm,
+            LigacoesExternas = ligacoes
+        });
+    }
+
+    private Task<List<LigacaoPerfil>> ListarLigacoes(Guid utilizadorId, CancellationToken ct) =>
+        db.LigacoesExternas
+            .AsNoTracking()
+            .Where(l => l.UtilizadorId == utilizadorId)
+            .OrderBy(l => l.Ordem)
+            .Select(l => new LigacaoPerfil(l.Id, l.Url, l.Descricao))
+            .ToListAsync(ct);
+
+    /// <summary>Ligação a um perfil externo, tal como aparece nos perfis.</summary>
+    public sealed record LigacaoPerfil(Guid Id, string Url, string? Descricao);
+
+    /// <summary>Associa uma ligação a um perfil externo ao próprio perfil (RF-F001-15, RF-F001-16, P-27, DEF-BE-005).</summary>
+    /// <returns>201 ligação criada; 400 URL que não seja absoluto http ou https, texto longo ou mais de 5 ligações; 401.</returns>
+    [HttpPost("me/ligacoes")]
+    public async Task<IActionResult> AdicionarLigacao([FromBody] NovaLigacao input, CancellationToken ct)
+    {
+        var id = ObterUtilizadorId();
+
+        if (id is null)
+            return Unauthorized();
+
+        // RF-F001-16: recusa, por exemplo, javascript:alert(1) ou texto sem esquema.
+        var urlValido = input.Url?.Length <= TamanhoMaximoUrl
+            && Uri.TryCreate(input.Url.Trim(), UriKind.Absolute, out var url)
+            && (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps);
+
+        if (!urlValido || input.Descricao?.Trim().Length > TamanhoMaximoDescricao)
+            return BadRequest(new { erro = "Ligação inválida: indica um URL http ou https." });
+
+        var existentes = await db.LigacoesExternas
+            .Where(l => l.UtilizadorId == id.Value)
+            .Select(l => l.Ordem)
+            .ToListAsync(ct);
+
+        if (existentes.Count >= MaximoLigacoes)
+            return BadRequest(new { erro = "O perfil já tem o número máximo de ligações." });
+
+        var ligacao = new LigacaoExterna
+        {
+            UtilizadorId = id.Value,
+            Url = input.Url!.Trim(),
+            Descricao = string.IsNullOrWhiteSpace(input.Descricao) ? null : input.Descricao.Trim(),
+            Ordem = existentes.Count == 0 ? 1 : existentes.Max() + 1
+        };
+
+        db.LigacoesExternas.Add(ligacao);
+        await db.SaveChangesAsync(ct);
+
+        return StatusCode(
+            StatusCodes.Status201Created,
+            new LigacaoPerfil(ligacao.Id, ligacao.Url, ligacao.Descricao));
+    }
+
+    /// <summary>Remove uma ligação do próprio perfil (RF-F001-22). 204; 401; 404 inexistente ou de outro utilizador.</summary>
+    [HttpDelete("me/ligacoes/{ligacaoId:guid}")]
+    public async Task<IActionResult> RemoverLigacao(Guid ligacaoId, CancellationToken ct)
+    {
+        var id = ObterUtilizadorId();
+
+        if (id is null)
+            return Unauthorized();
+
+        var ligacao = await db.LigacoesExternas
+            .FirstOrDefaultAsync(l => l.Id == ligacaoId && l.UtilizadorId == id.Value, ct);
+
+        if (ligacao is null)
+            return NotFound(new { erro = "Ligação não encontrada." });
+
+        db.LigacoesExternas.Remove(ligacao);
+        await db.SaveChangesAsync(ct);
+
+        return NoContent();
     }
 
     /// <summary>
@@ -100,12 +192,7 @@ public sealed class UtilizadoresController(
                 erro = "Utilizador não encontrado."
             });
 
-        var ligacoes = await db.LigacoesExternas
-            .AsNoTracking()
-            .Where(l => l.UtilizadorId == id)
-            .OrderBy(l => l.Ordem)
-            .Select(l => new { l.Url, l.Descricao })
-            .ToListAsync(ct);
+        var ligacoes = await ListarLigacoes(id, ct);
 
         var resumo = await avaliacoes.ConsultarAsync(id, ct);
 
@@ -125,7 +212,7 @@ public sealed class UtilizadoresController(
     /// <summary>Altera nome, curso e instituição do próprio utilizador (RF-F001-14).</summary>
     /// <remarks>
     /// Só altera o perfil do utilizador do token, por isso ninguém altera o perfil de outro (RF-F001-18).
-    /// O limite de 150 caracteres para curso e instituição é do código; P-26 ainda não o define (D-004).
+    /// Tamanhos máximos de P-26: nome 100, curso e instituição 150 caracteres.
     /// </remarks>
     /// <returns>200 perfil atualizado; 400 dados inválidos; 401; 404.</returns>
     [HttpPut("me")]
