@@ -116,19 +116,20 @@ public sealed class ViagensController(
 
     /// <summary>Detalhes de uma viagem com a estimativa de custo por participante (RF-F003-06, RF-F008-08, RF-F008-10).</summary>
     /// <remarks>
-    /// Qualquer utilizador autenticado pode consultar qualquer viagem, em qualquer estado. A distância, a duração e
-    /// a estimativa vêm da rota guardada (sem expor os pontos, RF-F003-08); uma rota por recalcular é recalculada aqui
+    /// Outro utilizador só consulta uma viagem pesquisável; o condutor e quem tem pedido nela consultam-na sempre
+    /// (AD-003 §5.1, A7). A distância, a duração e a estimativa vêm da rota guardada (sem expor os pontos, RF-F003-08); uma rota por recalcular é recalculada aqui
     /// (P-19). Se não for possível, devolve <c>EstimativaCusto = null</c> e o motivo em
     /// <c>EstimativaIndisponivelMotivo</c> (RF-F008-12), em vez de falhar o pedido.
     /// </remarks>
-    /// <returns>200 detalhes; 401; 404 viagem inexistente.</returns>
+    /// <returns>200 detalhes; 401; 404 viagem inexistente ou que o utilizador não pode consultar.</returns>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Consultar(Guid id, CancellationToken ct)
     {
         // Seguida pelo contexto: uma rota por recalcular é gravada ao ser obtida.
         var viagem = await db.Viagens.FirstOrDefaultAsync(v => v.Id == id, ct);
 
-        if (viagem is null) return NotFound();
+        if (viagem is null || !await ConsultaViagens.PodeConsultarAsync(db, viagem, Id, ct))
+            return NotFound();
 
         var participacoesAceites = await db.Participacoes.AsNoTracking()
             .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Aceite)

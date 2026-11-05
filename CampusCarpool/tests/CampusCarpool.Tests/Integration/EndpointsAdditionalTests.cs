@@ -193,7 +193,8 @@ public sealed class EndpointsAdditionalTests
     public async Task ConsultarViagemExistente_Devolve200()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
-        Assert.IsType<OkObjectResult>(await Trips(f).Consultar(v.Id, default));
+        var c = Trips(f); Auth(c, u.Id);
+        Assert.IsType<OkObjectResult>(await c.Consultar(v.Id, default));
     }
     [Fact]
     public async Task EditarViagemInexistente_Devolve404()

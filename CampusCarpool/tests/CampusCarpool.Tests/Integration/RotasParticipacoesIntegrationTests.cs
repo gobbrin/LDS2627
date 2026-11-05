@@ -246,25 +246,55 @@ public sealed class RotasParticipacoesIntegrationTests
     }
 
     [Fact]
-    public async Task UtilizadorSemPermissao_Devolve403()
+    /// <summary>RF-F003-08 / DEF-BE-013, P-13: quem pode consultar a viagem vê a rota sem os pontos (este teste fixava 403).</summary>
+    public async Task OutroUtilizador_VeARotaSemOsPontosDasParticipacoes()
     {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
-        var terceiro = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var outro = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasFalsos();
-        var controller = CriarController(f.Db, terceiro.Id, handler);
+        f.Db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = EstadoParticipacao.Aceite,
+            Recolha = "Maia",
+            RecolhaLatitude = 41.23m,
+            RecolhaLongitude = -8.62m
+        });
+        await f.Db.SaveChangesAsync();
 
-        var resultado = await controller.ConsultarRotaViagem(
-            viagem.Id,
-            default);
+        var resposta = Assert.IsType<OkObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())
+            .ConsultarRotaViagem(viagem.Id, default));
 
-        Assert.IsType<ForbidResult>(resultado);
-        Assert.Equal(0, handler.ChamadasRotas);
+        var dados = resposta.Value!;
+        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoRota>>(
+            dados.GetType().GetProperty("PontosOrdenados")!.GetValue(dados));
+        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<SegmentoRota>>(
+            dados.GetType().GetProperty("Segmentos")!.GetValue(dados));
+
+        Assert.Equal(["Porto", "Braga"], pontos.Select(p => p.Local));
+        Assert.Single(segmentos);
     }
 
+    [Fact]
+    /// <summary>A7: uma viagem que não é pesquisável não existe para quem não tem nada a ver com ela.</summary>
+    public async Task ViagemNaoConsultavel_Devolve404()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var outro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        viagem.Estado = "Indisponibilizada";
+        await f.Db.SaveChangesAsync();
+
+        Assert.IsType<NotFoundObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())
+            .ConsultarRotaViagem(viagem.Id, default));
+    }
 
     [Fact]
     public async Task ParticipacaoAceiteSemPontos_UsaRotaDireta()

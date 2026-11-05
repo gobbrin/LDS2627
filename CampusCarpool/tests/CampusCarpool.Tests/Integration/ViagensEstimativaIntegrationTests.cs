@@ -99,7 +99,21 @@ public sealed class ViagensEstimativaIntegrationTests
         };
         var mapas = new MapasService(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
-        return new ViagensController(db, mapas, custos, new RotaViagemService(mapas));
+        return ComUtilizador(new ViagensController(db, mapas, custos, new RotaViagemService(mapas)));
+    }
+
+    // A viagem da fixture é pesquisável, por isso qualquer utilizador a consulta.
+    private static ViagensController ComUtilizador(ViagensController controller)
+    {
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())], "Teste"))
+            }
+        };
+        return controller;
     }
 
     private static T Campo<T>(object resposta, string nome)
@@ -179,14 +193,14 @@ public sealed class ViagensEstimativaIntegrationTests
         using var f = new Fixture();
         var viagem = await f.CriarViagemAsync(0m);
         var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
-        var controller = new ViagensController(
+        var controller = ComUtilizador(new ViagensController(
             f.Db,
             new MapasService(new HttpClient(), new ConfigurationBuilder().Build()),
             new EstimativaCustoService(new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["Custos:PrecoPorKm"] = "0.10"
-                }).Build()));
+                }).Build())));
 
         var resposta = Assert.IsType<OkObjectResult>(
             await controller.Consultar(viagem.Id, default));
