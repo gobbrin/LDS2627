@@ -89,6 +89,48 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.IsType<OkObjectResult>(await Controller(pendente.Id).Consultar(viagem.Id, default));
     }
 
+    private static T Campo<T>(object resposta, string nome) =>
+        (T)resposta.GetType().GetProperty(nome)!.GetValue(resposta)!;
+
+    private async Task<Viagem> CriarViagemComRotaEAvaliacoes()
+    {
+        var viagem = await CriarViagem();
+        var outraViagem = new Viagem { CondutorId = condutor.Id, Origem = "A", Destino = "B", PartidaEm = DateTime.UtcNow.AddDays(-5), Estado = "Concluida" };
+        db.Viagens.Add(outraViagem);
+        db.Avaliacoes.AddRange(
+            new Avaliacao { ViagemId = outraViagem.Id, AvaliadorId = passageiro.Id, AvaliadoId = condutor.Id, Classificacao = 5 },
+            new Avaliacao { ViagemId = outraViagem.Id, AvaliadorId = pendente.Id, AvaliadoId = condutor.Id, Classificacao = 4 });
+
+        var origem = new PontoRota(null, TiposPontoRota.Origem, "Porto", new Coordenadas(41.15m, -8.61m));
+        var recolha = new PontoRota(Guid.NewGuid(), TiposPontoRota.Recolha, "Maia", new Coordenadas(41.23m, -8.62m));
+        var destino = new PontoRota(null, TiposPontoRota.DestinoViagem, "Braga", new Coordenadas(41.55m, -8.42m));
+        viagem.RotaPontos = RotaGuardada.Serializar(new ResultadoRotaComPontos(
+            [origem, recolha, destino],
+            [new SegmentoRota(origem, recolha, 10m, 10), new SegmentoRota(recolha, destino, 20m, 20)],
+            30m,
+            30));
+        await db.SaveChangesAsync();
+        return viagem;
+    }
+
+    [Fact]
+    /// <summary>RF-F003-03, RF-F003-04, RF-F003-06 / DEF-BE-011: nome e média do condutor e número de pontos adicionais.</summary>
+    public async Task I110_48_DetalhesEPesquisa_TrazemOCondutorEOsPontosAdicionais()
+    {
+        var viagem = await CriarViagemComRotaEAvaliacoes();
+
+        var detalhes = Assert.IsType<OkObjectResult>(await Controller(outro.Id).Consultar(viagem.Id, default)).Value!;
+        var condutorDetalhes = Campo<CondutorViagem>(detalhes, "Condutor");
+        Assert.Equal("Condutora", condutorDetalhes.Nome);
+        Assert.Equal(4.5m, condutorDetalhes.ClassificacaoMedia);
+        Assert.Equal(1, Campo<int>(detalhes, "PontosAdicionais"));
+
+        var pesquisa = Assert.IsType<OkObjectResult>(await new PesquisaController(db).Pesquisar(null, null, null, null)).Value!;
+        var resultado = Assert.Single((System.Collections.IEnumerable)pesquisa.GetType().GetProperty("viagens")!.GetValue(pesquisa)!);
+        Assert.Equal(condutorDetalhes, Campo<CondutorViagem>(resultado, "Condutor"));
+        Assert.Equal(1, Campo<int>(resultado, "PontosAdicionais"));
+    }
+
     [Fact]
     public async Task I110_47_ViagemPesquisavel_QualquerUtilizadorConsulta()
     {

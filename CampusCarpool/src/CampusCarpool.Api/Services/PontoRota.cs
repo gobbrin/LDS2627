@@ -110,7 +110,8 @@ public static class RotaGuardada
             segmentos.Sum(s => s.DuracaoMinutos));
     }
 
-    /// <summary>Número de pontos adicionais da rota (RF-F003-03).</summary>
-    public static int ContarAdicionais(string json) =>
-        (JsonSerializer.Deserialize<List<PontoGuardado>>(json, Opcoes) ?? []).Count(p => p.Adicional);
+    /// <summary>Número de pontos adicionais da rota (RF-F003-03); 0 com a rota por recalcular.</summary>
+    public static int ContarAdicionais(string? json) => json is null
+        ? 0
+        : (JsonSerializer.Deserialize<List<PontoGuardado>>(json, Opcoes) ?? []).Count(p => p.Adicional);
 }

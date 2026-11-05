@@ -1,3 +1,4 @@
+using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,6 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
     /// de). Ordenado por partida crescente, paginado (<c>tamanho</c> até 100).
     /// DC-42 / API-06 (fica para m4): o dia e a hora são comparados em UTC, não na hora de Portugal; perto da
     /// meia-noite ou com hora de verão, uma viagem pode cair no dia ou hora errados.
-    /// DEF-BE-011 (fica para m4): os resultados não trazem o nome nem a média do condutor (RF-F003-04).
     /// </remarks>
     /// <returns>200 <c>{ total, pagina, tamanho, viagens }</c>; 400 paginação inválida; 401.</returns>
     [HttpGet("viagens")]
@@ -32,8 +32,24 @@ public sealed class PesquisaController(CampusCarpoolDbContext db) : ControllerBa
         if (data.HasValue) { var inicio = data.Value.ToDateTime(TimeOnly.MinValue); var fim = inicio.AddDays(1); q = q.Where(v => v.PartidaEm >= inicio && v.PartidaEm < fim); }
         if (hora.HasValue) { var start = hora.Value.Hour * 60 + hora.Value.Minute; q = q.Where(v => v.PartidaEm.Hour * 60 + v.PartidaEm.Minute >= start); }
         var total = await q.CountAsync(ct);
-        var viagens = await q.OrderBy(v => v.PartidaEm).ThenBy(v => v.Id).Skip((pagina - 1) * tamanho).Take(tamanho)
-            .Select(v => new { v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresDisponiveis, v.DistanciaKm, v.DuracaoMinutos }).ToListAsync(ct);
+        var resultados = await q.OrderBy(v => v.PartidaEm).ThenBy(v => v.Id).Skip((pagina - 1) * tamanho).Take(tamanho)
+            .Select(v => new { v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresDisponiveis, v.DistanciaKm, v.DuracaoMinutos, v.CondutorId, v.RotaPontos }).ToListAsync(ct);
+
+        // RF-F003-03 e RF-F003-04: pontos adicionais, nome e classificação média do condutor.
+        var condutores = await ConsultaViagens.CondutoresAsync(db, resultados.Select(v => v.CondutorId).Distinct().ToList(), ct);
+        var viagens = resultados.Select(v => new
+        {
+            v.Id,
+            v.Origem,
+            v.Destino,
+            v.PartidaEm,
+            v.LugaresDisponiveis,
+            v.DistanciaKm,
+            v.DuracaoMinutos,
+            PontosAdicionais = RotaGuardada.ContarAdicionais(v.RotaPontos),
+            Condutor = condutores.GetValueOrDefault(v.CondutorId)
+        }).ToList();
+
         return Ok(new { total, pagina, tamanho, viagens });
     }
 }

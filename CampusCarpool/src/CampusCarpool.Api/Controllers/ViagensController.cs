@@ -20,8 +20,6 @@ namespace CampusCarpool.Api.Controllers;
 /// (DO-01). Os serviços opcionais (<c>= null</c>) existem para os testes antigos que criam o controller sem DI;
 /// em execução normal vêm sempre preenchidos. Datas: a API só aceita <c>PartidaEm</c> em UTC
 /// (<c>Kind = Utc</c>, ou seja, com <c>Z</c> no JSON) e recusa offsets como <c>+01:00</c> (DC-42).
-/// Faltam: listar as viagens do condutor (DEF-BE-010), nome e média do condutor nos detalhes (DEF-BE-011) e lista
-/// de passageiros (DEF-BE-012).
 /// </remarks>
 [ApiController, Authorize, Route("api/v1/viagens")]
 public sealed class ViagensController(
@@ -177,6 +175,8 @@ public sealed class ViagensController(
             }
         }
 
+        var condutores = await ConsultaViagens.CondutoresAsync(db, [viagem.CondutorId], ct);
+
         return Ok(new
         {
             viagem.Id,
@@ -188,6 +188,8 @@ public sealed class ViagensController(
             DistanciaKm = rota?.DistanciaTotalKm ?? viagem.DistanciaKm,
             DuracaoMinutos = rota?.DuracaoTotalMinutos ?? viagem.DuracaoMinutos,
             viagem.CondutorId,
+            Condutor = condutores.GetValueOrDefault(viagem.CondutorId),
+            PontosAdicionais = RotaGuardada.ContarAdicionais(viagem.RotaPontos),
             EstimativaCusto = estimativa,
             EstimativaIndisponivelMotivo = motivoIndisponibilidade
         });
