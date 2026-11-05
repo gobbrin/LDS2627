@@ -7,7 +7,6 @@ namespace CampusCarpool.Application.Interfaces;
 /// O controller usa esta interface; a implementação Brevo está em
 /// <c>Infrastructure/Integrations/ServicoEmail.cs</c>. Um fornecedor diferente
 /// pode substituir essa implementação através da injeção de dependências.
-/// <c>Api/Services/EmailSender.cs</c> é uma cópia antiga, não registada (IN-04).
 /// </remarks>
 public interface IServicoEmail
 {
