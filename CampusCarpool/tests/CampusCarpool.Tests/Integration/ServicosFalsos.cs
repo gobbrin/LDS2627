@@ -104,6 +104,12 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
         Confirmar();
         return Task.CompletedTask;
     }
+
+    public Task<T> EmTransacaoSerializavelAsync<T>(Func<CancellationToken, Task<T>> operacao, CancellationToken ct) => operacao(ct);
+
+    public void DescartarAlteracoes()
+    {
+    }
 }
 
 /// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>

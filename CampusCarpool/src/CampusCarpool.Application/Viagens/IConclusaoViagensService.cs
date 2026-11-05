@@ -4,7 +4,7 @@ namespace CampusCarpool.Application.Viagens;
 /// Conclusão automática das viagens (UC-F002-05; RF-F002-12, RF-F004-19).
 /// </summary>
 /// <remarks>
-/// Implementado por <c>Infrastructure/Services/ConclusaoViagensService.cs</c> e chamado periodicamente pelo
+/// Implementado por <see cref="ConclusaoViagensService"/> e chamado periodicamente pelo
 /// <c>TrabalhadorConclusaoViagens</c>. A conclusão manual (<c>POST /api/v1/viagens/{id}/concluir</c>)
 /// continua a existir (PA-01/PA-03 por decidir pelo grupo).
 /// </remarks>

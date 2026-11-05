@@ -1,8 +1,9 @@
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
-using CampusCarpool.Infrastructure.Services;
+using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -41,7 +42,7 @@ public sealed class ConclusaoViagensTests : IDisposable
     }
 
     private ConclusaoViagensService CriarServico() =>
-        new(_db, NullLogger<ConclusaoViagensService>.Instance);
+        new(new RepositorioViagens(_db), new RepositorioParticipacoes(_db), new UnidadeDeTrabalhoEfCore(_db), NullLogger<ConclusaoViagensService>.Instance);
 
     private Viagem CriarViagem(DateTime partidaEm, int? duracaoMinutos, string estado = nameof(EstadoViagem.Ativa))
     {

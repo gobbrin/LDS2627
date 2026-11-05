@@ -1,7 +1,6 @@
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comunicacao;
-using CampusCarpool.Application.Viagens;
 using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
@@ -77,7 +76,6 @@ public static class InfrastructureServiceRegistration
         services.AddHostedService<TrabalhadorNotificacoesPush>();
 
         // Conclusão automática das viagens (I110, DEF-BE-009; UC-F002-05).
-        services.AddScoped<IConclusaoViagensService, ConclusaoViagensService>();
         services.AddHostedService<TrabalhadorConclusaoViagens>();
 
         return services;

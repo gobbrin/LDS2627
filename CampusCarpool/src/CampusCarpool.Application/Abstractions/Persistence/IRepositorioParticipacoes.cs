@@ -7,7 +7,10 @@ namespace CampusCarpool.Application.Abstractions.Persistence;
 /// Define as operações de acesso a dados relativas às participações.
 /// A implementação concreta pertence à camada Infrastructure.
 /// </summary>
-/// <remarks>As listas são só de leitura (não rastreadas); só <see cref="ObterPorIdAsync"/> devolve uma entidade para alterar.</remarks>
+/// <remarks>
+/// As listas são só de leitura (não rastreadas); só <see cref="ObterPorIdAsync"/> e
+/// <see cref="ListarPendentesParaAlterarAsync"/> devolvem entidades para alterar.
+/// </remarks>
 public interface IRepositorioParticipacoes
 {
 
@@ -34,5 +37,8 @@ public interface IRepositorioParticipacoes
     /// </summary>
     /// <remarks>RF-F004-06. O índice único filtrado <c>(ViagemId, PassageiroId)</c> garante o mesmo na BD (I038).</remarks>
     Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
+
+    /// <summary>Lista os pedidos pendentes de uma viagem (rastreados, para serem alterados).</summary>
+    Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid viagemId, CancellationToken ct);
 
 }

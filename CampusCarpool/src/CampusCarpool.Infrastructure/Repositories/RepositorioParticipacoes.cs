@@ -57,4 +57,12 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
                     && (p.Estado == EstadoParticipacao.Pendente || p.Estado == EstadoParticipacao.Aceite),
                 ct);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Participacoes
+            .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Pendente)
+            .ToListAsync(ct);
+    }
 }

@@ -128,11 +128,13 @@ public sealed class I052ParticipacaoServiceTests
         public Task<IReadOnlyList<Participacao>> ListarPorViagemAsync(Guid id, EstadoParticipacao? estado, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Item is not null && Item.ViagemId == id && (estado is null || Item.Estado == estado) ? new[] { Item } : Array.Empty<Participacao>());
         public Task<IReadOnlyList<Participacao>> ListarPorPassageiroAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
         public Task<bool> ExisteAtivaAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
+        public Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
     }
     private sealed class ViagensFake : IRepositorioViagens
     {
         public Viagem? Item { get; set; }
         public Task<Viagem?> ObterPorIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Item?.Id == id ? Item : null);
+        public Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct) => Task.FromResult<IReadOnlyList<ViagemEmCurso>>(Array.Empty<ViagemEmCurso>());
     }
     private sealed class TrabalhoFake : IUnidadeDeTrabalho
     {
@@ -142,6 +144,10 @@ public sealed class I052ParticipacaoServiceTests
         {
             Confirmar();
             return Task.CompletedTask;
+        }
+        public Task<T> EmTransacaoSerializavelAsync<T>(Func<CancellationToken, Task<T>> operacao, CancellationToken ct) => operacao(ct);
+        public void DescartarAlteracoes()
+        {
         }
     }
     private sealed class NotificacoesFake : INotificacaoService

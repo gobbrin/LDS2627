@@ -1,20 +1,20 @@
-using CampusCarpool.Application.Viagens;
+using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace CampusCarpool.Infrastructure.Services;
+namespace CampusCarpool.Application.Viagens;
 
 /// <summary>
-/// Implementação de <see cref="IConclusaoViagensService"/> sobre o EF Core (DEF-BE-009).
+/// Implementação de <see cref="IConclusaoViagensService"/> (DEF-BE-009).
 /// </summary>
 /// <remarks>
-/// Cada viagem é concluída e gravada à parte (UC-F002-05, E1), limpando o <c>ChangeTracker</c> entre viagens.
+/// Cada viagem é concluída e gravada à parte (UC-F002-05, E1), descartando o que ficou por gravar entre viagens.
 /// A conclusão automática não cria notificações.
 /// </remarks>
 public sealed class ConclusaoViagensService(
-    CampusCarpoolDbContext db,
+    IRepositorioViagens viagens,
+    IRepositorioParticipacoes participacoes,
+    IUnidadeDeTrabalho unidadeDeTrabalho,
     ILogger<ConclusaoViagensService> logger) : IConclusaoViagensService
 {
     private static readonly Action<ILogger, Guid, Exception?> _falhaConclusaoViagem =
@@ -29,11 +29,7 @@ public sealed class ConclusaoViagensService(
         // A duração não é negativa, por isso a partida já passou em todas as candidatas.
         // A soma da duração é feita em memória para não depender da tradução de datas
         // de cada fornecedor (SQL Server em produção, SQLite nos testes).
-        var candidatas = await db.Viagens
-            .AsNoTracking()
-            .Where(v => v.Estado == nameof(EstadoViagem.Ativa) && v.PartidaEm <= agora)
-            .Select(v => new { v.Id, v.PartidaEm, v.DuracaoMinutos })
-            .ToListAsync(ct);
+        var candidatas = await viagens.ListarAtivasJaPartidasAsync(agora, ct);
 
         // Sem duração estimada (serviço de mapas indisponível na criação), a viagem
         // conclui-se à hora de partida.
@@ -58,7 +54,7 @@ public sealed class ConclusaoViagensService(
             }
             finally
             {
-                db.ChangeTracker.Clear();
+                unidadeDeTrabalho.DescartarAlteracoes();
             }
         }
 
@@ -68,24 +64,21 @@ public sealed class ConclusaoViagensService(
     // Conclui uma viagem e cancela os seus pendentes; devolve false se já não estava Ativa.
     private async Task<bool> ConcluirAsync(Guid viagemId, CancellationToken ct)
     {
-        var viagem = await db.Viagens.SingleAsync(v => v.Id == viagemId, ct);
+        var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
 
         // Pode ter sido concluída ou indisponibilizada pelo condutor entretanto.
-        if (viagem.Estado != nameof(EstadoViagem.Ativa))
+        if (viagem is null || viagem.Estado != nameof(EstadoViagem.Ativa))
             return false;
 
         viagem.Estado = nameof(EstadoViagem.Concluida);
 
         // RF-F004-19: só os pedidos pendentes são cancelados; as participações
         // aceites mantêm-se, para o histórico e a avaliação (P-16).
-        var pendentes = await db.Participacoes
-            .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Pendente)
-            .ToListAsync(ct);
-        foreach (var p in pendentes)
+        foreach (var p in await participacoes.ListarPendentesParaAlterarAsync(viagemId, ct))
             p.Estado = EstadoParticipacao.Cancelada;
 
         // O token Versao (SQL Server) impede sobrepor uma alteração concorrente.
-        await db.SaveChangesAsync(ct);
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
         return true;
     }
 }
