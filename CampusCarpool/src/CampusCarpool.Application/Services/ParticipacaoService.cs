@@ -44,10 +44,9 @@ public sealed class ParticipacaoService(
         if (viagem.CondutorId != utilizadorId)
             return ResultadoGestaoParticipacao.NaoAutorizado;
 
-        // RF-F004-10: só pedidos pendentes, de viagens ativas que ainda não partiram.
+        // RF-F004-10 / AD-001, regra 3 (F5): só pedidos pendentes de viagens ativas, mesmo depois da hora de partida.
         if (participacao.Estado != EstadoParticipacao.Pendente
-            || viagem.Estado != nameof(EstadoViagem.Ativa)
-            || viagem.PartidaEm <= DateTime.UtcNow)
+            || viagem.Estado != nameof(EstadoViagem.Ativa))
         {
             return ResultadoGestaoParticipacao.Conflito;
         }

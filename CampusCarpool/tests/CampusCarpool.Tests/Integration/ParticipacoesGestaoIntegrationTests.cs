@@ -281,6 +281,23 @@ public sealed class ParticipacoesGestaoIntegrationTests
         Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
 
+    [Fact]
+    /// <summary>RF-F004-10 (F5): enquanto a viagem estiver Ativa, o pedido pode ser aceite depois da hora de partida.</summary>
+    public async Task I110_24_AceitarDepoisDaPartida_EPermitidoEnquantoViagemAtiva()
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id, partida: DateTime.UtcNow.AddMinutes(-1));
+        var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
+
+        var resultado = await CriarController(f.Db, condutor.Id).Aceitar(participacao.Id, default);
+
+        Assert.IsType<NoContentResult>(resultado);
+        Assert.Equal(EstadoParticipacao.Aceite, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+        Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
+    }
+
     [Theory]
     [InlineData(EstadoParticipacao.Aceite)]
     [InlineData(EstadoParticipacao.Pendente)]

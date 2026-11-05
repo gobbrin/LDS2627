@@ -36,7 +36,7 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
     /// <summary>Simula a aceitação do pedido indicado.</summary>
     /// <returns>
     /// 200 simulação; 400 pedido sem pontos, ou recolha igual ao destino; 401; 403 não é o condutor; 404 viagem ou
-    /// pedido inexistente; 409 viagem não ativa/já partida ou pedido não pendente; 422 local não encontrado;
+    /// pedido inexistente; 409 viagem não ativa ou pedido não pendente; 422 local não encontrado;
     /// 502/503/504 problema no serviço de mapas.
     /// </returns>
     [HttpPost]
@@ -50,8 +50,9 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
         var viagem = await db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == viagemId, ct);
         if (viagem is null) return NotFound(new { erro = "Viagem não encontrada." });
         if (viagem.CondutorId != utilizadorId) return Forbid();
-        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm <= DateTime.UtcNow)
-            return Conflict(new { erro = "A viagem não está ativa ou já começou." });
+        // A simulação antecede a decisão (RF-F004-09), por isso segue a mesma regra da aceitação (RF-F004-10).
+        if (viagem.Estado != nameof(EstadoViagem.Ativa))
+            return Conflict(new { erro = "A viagem não está ativa." });
 
         var pedido = await db.Participacoes.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == input.PedidoId && p.ViagemId == viagemId, ct);
