@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 namespace CampusCarpool.Api.Controllers;
@@ -41,7 +43,7 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
     /// 202 conta criada e email enviado; 400 dados inválidos ou email não académico (RF-F001-03); 409 email já
     /// registado (RF-F001-04); 503 conta criada mas o envio do email falhou.
     /// </returns>
-    [HttpPost("registo")]
+    [HttpPost("registo"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> Registar(Registo input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Nome) || input.Nome.Length > 100 ||
@@ -80,7 +82,7 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
     /// No máximo um reenvio por minuto. As ligações anteriores continuam válidas até expirarem (API-12).
     /// </remarks>
     /// <returns>202 sempre que o email tem formato aceitável (exista ou não a conta); 400 email vazio ou longo.</returns>
-    [HttpPost("reenviar-confirmacao")]
+    [HttpPost("reenviar-confirmacao"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> ReenviarConfirmacaoEmail(ReenviarConfirmacao input, CancellationToken ct)
     {
         const string resposta = "Se existir uma conta pendente associada a este email, receberás uma nova ligação de confirmação.";
@@ -159,7 +161,7 @@ public sealed class AutenticacaoController(CampusCarpoolDbContext db, IConfigura
     /// 200 <c>{ accessToken, expiresIn }</c>; 401 credenciais inválidas, com a mesma mensagem para email inexistente e
     /// palavra-passe errada (RF-F001-11); 403 conta por confirmar (P-09).
     /// </returns>
-    [HttpPost("login")]
+    [HttpPost("login"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> IniciarSessao(Login input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password)) return Unauthorized();

@@ -144,6 +144,35 @@ public sealed class TerminarSessaoHttpTests : IDisposable
     }
 
     [Fact]
+    /// <summary>A6 / G19: 10 pedidos por minuto no login, no registo e no reenvio, em conjunto por IP.</summary>
+    public async Task I110_44_LimiteDeAutenticacao_Devolve429AoDecimoPrimeiroPedido()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            using var permitida = await _cliente.PostAsJsonAsync(
+                "/api/v1/autenticacao/login", new { email = Email, password = "errada" });
+            Assert.Equal(HttpStatusCode.Unauthorized, permitida.StatusCode);
+        }
+
+        using var recusada = await _cliente.PostAsJsonAsync(
+            "/api/v1/autenticacao/login", new { email = Email, password = Password });
+
+        Assert.Equal((HttpStatusCode)429, recusada.StatusCode);
+    }
+
+    [Fact]
+    /// <summary>A6 / G19: 100 pedidos por minuto por utilizador com sessão.</summary>
+    public async Task I110_45_LimiteGlobal_Devolve429AoCentesimoPrimeiroPedidoDoUtilizador()
+    {
+        var token = await IniciarSessaoAsync();
+
+        for (var i = 0; i < 100; i++)
+            Assert.Equal(HttpStatusCode.OK, await EnviarAsync(HttpMethod.Get, "/api/v1/autenticacao/me", token));
+
+        Assert.Equal((HttpStatusCode)429, await EnviarAsync(HttpMethod.Get, "/api/v1/autenticacao/me", token));
+    }
+
+    [Fact]
     public async Task I110_19_TerminarSessaoSemToken_Devolve401()
     {
         using var resposta = await _cliente.PostAsync("/api/v1/autenticacao/logout", null);

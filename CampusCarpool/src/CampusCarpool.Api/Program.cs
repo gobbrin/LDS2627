@@ -42,21 +42,7 @@ builder.Services.AddHttpClient<MapasService>((sp, client) =>
     client.Timeout = TimeSpan.FromSeconds(
         config.GetValue("Maps:TimeoutSeconds", 10));
 });
-// Limitador global: 60 pedidos por minuto por IP (janela fixa, sem fila), 429 acima disso; vale também para o
-// hub e /health. Utilizadores atrás do mesmo NAT (rede do campus, rede móvel) partilham o contador (API-04 / G19).
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 60,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            }));
-});
+builder.Services.AddLimitesPedidos();
 // Erros não tratados → GlobalExceptionHandler → ProblemDetails (409 regra de negócio, 500 o resto).
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -125,8 +111,9 @@ var app = builder.Build();
 app.UseExceptionHandler();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseHttpsRedirection();
-app.UseRateLimiter();
+// Depois da autenticação, para o limite global contar por utilizador (A6).
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PedidosHub>("/hubs/pedidos");
