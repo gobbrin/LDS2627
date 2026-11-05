@@ -195,6 +195,64 @@ public sealed class ViagensController(
         });
     }
 
+    /// <summary>Viagens ativas do condutor autenticado, por ordem de partida, para as gerir (RF-F002-15, DEF-BE-010).</summary>
+    /// <remarks>As viagens noutros estados estão no histórico (RF-F009-02).</remarks>
+    /// <returns>200 lista; 401.</returns>
+    [HttpGet("minhas")]
+    public async Task<IActionResult> ListarMinhas(CancellationToken ct)
+    {
+        if (Id is not Guid userId) return Unauthorized();
+
+        var viagens = await db.Viagens.AsNoTracking()
+            .Where(v => v.CondutorId == userId && v.Estado == nameof(EstadoViagem.Ativa))
+            .OrderBy(v => v.PartidaEm)
+            .Select(v => new { v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresOferecidos, v.LugaresDisponiveis })
+            .ToListAsync(ct);
+
+        return Ok(viagens);
+    }
+
+    /// <summary>Passageiros aceites de uma viagem, com os respetivos pontos (RF-F003-07, P-13, DEF-BE-012).</summary>
+    /// <remarks>Um ponto a <c>null</c> segue a origem ou o destino da viagem (P-20).</remarks>
+    /// <returns>200 lista; 401; 403 não é o condutor nem passageiro aceite; 404.</returns>
+    [HttpGet("{id:guid}/passageiros")]
+    public async Task<IActionResult> ListarPassageiros(Guid id, CancellationToken ct)
+    {
+        if (Id is not Guid userId) return Unauthorized();
+        var viagem = await db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, ct);
+        if (viagem is null) return NotFound();
+
+        var passageiros = await db.Participacoes.AsNoTracking()
+            .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Aceite)
+            .OrderBy(p => p.AceiteEm)
+            .Select(p => new { p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino })
+            .ToListAsync(ct);
+
+        if (viagem.CondutorId != userId && passageiros.All(p => p.PassageiroId != userId))
+            return Forbid();
+
+        return Ok(passageiros);
+    }
+
+    /// <summary>Pedidos pendentes de uma viagem, do mais antigo para o mais recente (RF-F004-08, DEF-BE-016).</summary>
+    /// <returns>200 lista; 401; 403 não é o condutor; 404.</returns>
+    [HttpGet("{id:guid}/pedidos")]
+    public async Task<IActionResult> ListarPedidosPendentes(Guid id, CancellationToken ct)
+    {
+        if (Id is not Guid userId) return Unauthorized();
+        var viagem = await db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, ct);
+        if (viagem is null) return NotFound();
+        if (viagem.CondutorId != userId) return Forbid();
+
+        var pedidos = await db.Participacoes.AsNoTracking()
+            .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Pendente)
+            .OrderBy(p => p.CriadoEm)
+            .Select(p => new { p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino, p.CriadoEm })
+            .ToListAsync(ct);
+
+        return Ok(pedidos);
+    }
+
     /// <summary>Altera a origem, o destino, a data/hora e os lugares de uma viagem ativa ainda por partir (RF-F002-07, RF-F002-08, RF-F002-16).</summary>
     /// <remarks>
     /// <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual. A alteração depende sempre do Serviço de Mapas

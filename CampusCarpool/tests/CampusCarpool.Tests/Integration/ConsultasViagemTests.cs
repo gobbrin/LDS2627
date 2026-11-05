@@ -132,6 +132,54 @@ public sealed class ConsultasViagemTests : IDisposable
     }
 
     [Fact]
+    /// <summary>RF-F003-07 / DEF-BE-012, P-13: só o condutor e os aceites veem os passageiros e os pontos.</summary>
+    public async Task I110_49_Passageiros_SoParaOCondutorEOsAceites()
+    {
+        var viagem = await CriarViagem();
+
+        var lista = Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarPassageiros(viagem.Id, default)).Value!;
+        var passageiroListado = Assert.Single((System.Collections.IEnumerable)lista);
+        Assert.Equal("Passageiro", Campo<string>(passageiroListado, "Nome"));
+        Assert.Equal("Maia", Campo<string>(passageiroListado, "Recolha"));
+
+        Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).ListarPassageiros(viagem.Id, default));
+        Assert.IsType<ForbidResult>(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default));
+        Assert.IsType<ForbidResult>(await Controller(outro.Id).ListarPassageiros(viagem.Id, default));
+        Assert.IsType<NotFoundResult>(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default));
+    }
+
+    [Fact]
+    /// <summary>RF-F004-08 / DEF-BE-016: os pedidos pendentes da viagem, só para o condutor.</summary>
+    public async Task I110_50_PedidosPendentes_SoParaOCondutor()
+    {
+        var viagem = await CriarViagem();
+
+        var lista = Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarPedidosPendentes(viagem.Id, default)).Value!;
+        var pedido = Assert.Single((System.Collections.IEnumerable)lista);
+        Assert.Equal("Pendente", Campo<string>(pedido, "Nome"));
+        Assert.Equal("Trofa", Campo<string>(pedido, "Destino"));
+
+        Assert.IsType<ForbidResult>(await Controller(passageiro.Id).ListarPedidosPendentes(viagem.Id, default));
+        Assert.IsType<NotFoundResult>(await Controller(condutor.Id).ListarPedidosPendentes(Guid.NewGuid(), default));
+    }
+
+    [Fact]
+    /// <summary>RF-F002-15 / DEF-BE-010: só as viagens ativas do próprio condutor, com os lugares disponíveis.</summary>
+    public async Task I110_51_MinhasViagens_SoAsAtivasDoCondutor()
+    {
+        var ativa = await CriarViagem(lugaresDisponiveis: 1);
+        await CriarViagem("Indisponibilizada");
+
+        var lista = Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarMinhas(default)).Value!;
+        var viagem = Assert.Single((System.Collections.IEnumerable)lista);
+        Assert.Equal(ativa.Id, Campo<Guid>(viagem, "Id"));
+        Assert.Equal(1, Campo<int>(viagem, "LugaresDisponiveis"));
+
+        Assert.Empty((System.Collections.IEnumerable)Assert.IsType<OkObjectResult>(
+            await Controller(outro.Id).ListarMinhas(default)).Value!);
+    }
+
+    [Fact]
     public async Task I110_47_ViagemPesquisavel_QualquerUtilizadorConsulta()
     {
         var viagem = await CriarViagem();

@@ -15,8 +15,8 @@ namespace CampusCarpool.Api.Controllers;
 /// <summary>Submissão de pedidos de participação (F004). Rota <c>/api/v1/pedidos</c>.</summary>
 /// <remarks>
 /// Só cria o pedido; aceitar, rejeitar e cancelar estão no <c>GestaoParticipacoesController</c>. Usa o
-/// <see cref="CampusCarpoolDbContext"/> diretamente. Falta a lista dos pedidos pendentes de uma viagem para o
-/// condutor (DEF-BE-016).
+/// <see cref="CampusCarpoolDbContext"/> diretamente. A lista dos pedidos pendentes de uma viagem está em
+/// <c>GET /viagens/{id}/pedidos</c>.
 /// </remarks>
 [ApiController]
 [Authorize]
