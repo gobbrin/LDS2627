@@ -9,9 +9,10 @@ namespace CampusCarpool.Infrastructure.Services;
 /// <summary>Implementação do histórico pessoal (F009) sobre o EF Core. Ver <see cref="IHistoricoService"/>.</summary>
 /// <remarks>
 /// Está na Infrastructure e é registado no <c>Program.cs</c> (AP-04). São seis consultas só de leitura, sem
-/// paginação (AP-10). As viagens só aparecem depois de partirem ou de deixarem de estar ativas: as ativas
-/// futuras ainda não são "histórico". As conversões de enums para texto são feitas em memória, depois do
-/// <c>ToListAsync</c>, para não depender da tradução do fornecedor de BD.
+/// paginação (AP-10). As viagens aparecem em qualquer estado, incluindo as ativas futuras (RF-F009-02, RF-F009-03,
+/// D-029): o separador Viagens junta as do condutor e aquelas em que o passageiro chegou a ser aceite; os pedidos
+/// nunca aceites ficam só no separador Pedidos. As conversões de enums para texto são feitas em memória, depois
+/// do <c>ToListAsync</c>, para não depender da tradução do fornecedor de BD.
 /// </remarks>
 public sealed class HistoricoService(
     CampusCarpoolDbContext db) : IHistoricoService
@@ -21,14 +22,10 @@ public sealed class HistoricoService(
         Guid utilizadorId,
         CancellationToken ct)
     {
-        var agora = DateTime.UtcNow;
-
         // Viagens em que o utilizador foi condutor (RF-F009-02), da partida mais recente para a mais antiga (RF-F009-06)
         var condutor = await db.Viagens
             .AsNoTracking()
-            .Where(v =>
-                v.CondutorId == utilizadorId &&
-                (v.PartidaEm <= agora || v.Estado != nameof(EstadoViagem.Ativa)))
+            .Where(v => v.CondutorId == utilizadorId)
             .OrderByDescending(v => v.PartidaEm)
             .Select(v => new ViagemHistorico(
                 v.Id,
@@ -45,17 +42,9 @@ public sealed class HistoricoService(
 
         var participacoes = await db.Participacoes
             .AsNoTracking()
-            .Where(p =>
-                p.PassageiroId == utilizadorId &&
-                // RF-F009-08: a indisponibilização cancela as participações aceites (P-25),
-                // mas a viagem continua no histórico do passageiro, com o estado atual.
-                // As canceladas pelo próprio passageiro ficam de fora até à decisão D-029.
-                (p.Estado == EstadoParticipacao.Aceite ||
-                 (p.Estado == EstadoParticipacao.Cancelada &&
-                  p.AceiteEm != null &&
-                  p.Viagem.Estado == nameof(EstadoViagem.Indisponibilizada))) &&
-                (p.Viagem.PartidaEm <= agora ||
-                 p.Viagem.Estado != nameof(EstadoViagem.Ativa)))
+            // RF-F009-03 / D-029: conta quem chegou a ser aceite, mesmo que a participação tenha sido cancelada
+            // depois, pelo passageiro ou pela indisponibilização (P-25).
+            .Where(p => p.PassageiroId == utilizadorId && p.AceiteEm != null)
                     .OrderByDescending(p => p.Viagem.PartidaEm)
                     .Select(p => new
                     {

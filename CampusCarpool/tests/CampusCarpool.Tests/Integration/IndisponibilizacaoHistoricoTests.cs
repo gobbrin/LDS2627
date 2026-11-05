@@ -106,7 +106,8 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
     }
 
     [Fact]
-    public async Task I110_09_ParticipacaoCanceladaPeloPassageiro_ForaDoHistoricoAteDecisaoD029()
+    /// <summary>RF-F009-03 / D-029: a participação cancelada depois de aceite fica no separador Viagens, com o estado.</summary>
+    public async Task I110_09_ParticipacaoCanceladaPeloPassageiro_ContinuaNoHistorico()
     {
         var condutor = await CriarUtilizadorAsync();
         var passageiro = await CriarUtilizadorAsync();
@@ -115,7 +116,23 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
 
         var historico = await new HistoricoService(_db).ConsultarAsync(passageiro.Id, default);
 
-        Assert.Empty(historico.ViagensComoPassageiro);
+        var registo = Assert.Single(historico.ViagensComoPassageiro);
+        Assert.Equal(nameof(EstadoParticipacao.Cancelada), registo.EstadoParticipacao);
+    }
+
+    [Fact]
+    /// <summary>RF-F009-02, RF-F009-03 / D-029 (A5): o histórico inclui as viagens ativas ainda por realizar.</summary>
+    public async Task I110_43_ViagemAtivaFutura_ApareceNoHistorico()
+    {
+        var condutor = await CriarUtilizadorAsync();
+        var passageiro = await CriarUtilizadorAsync();
+        var viagem = await CriarViagemAsync(condutor.Id, DateTime.UtcNow.AddDays(2), aceites: 1);
+        await CriarParticipacaoAsync(viagem.Id, passageiro.Id, EstadoParticipacao.Aceite, DateTime.UtcNow.AddHours(-1));
+
+        var servico = new HistoricoService(_db);
+
+        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(condutor.Id, default)).ViagensComoCondutor).Id);
+        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(passageiro.Id, default)).ViagensComoPassageiro).Id);
     }
 
     [Fact]

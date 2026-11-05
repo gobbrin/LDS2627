@@ -172,7 +172,8 @@ public sealed class HistoricoIntegrationTests
         {
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
-            Estado = EstadoParticipacao.Aceite
+            Estado = EstadoParticipacao.Aceite,
+            AceiteEm = DateTime.UtcNow.AddDays(-3)
         });
 
         await fixture.Db.SaveChangesAsync();
