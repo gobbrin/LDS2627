@@ -57,11 +57,20 @@ public sealed class Viagem
     /// <summary>Estado da viagem: <c>Ativa</c>, <c>Indisponibilizada</c> ou <c>Concluida</c> (sem acento).</summary>
     public string Estado { get; set; } = nameof(EstadoViagem.Ativa);
 
-    /// <summary>Distância estimada da rota entre a origem e o destino, em km (RF-F008-02).</summary>
+    /// <summary>Distância da rota atual, em km (RF-F008-02); base da estimativa de custo (P-06).</summary>
     public decimal? DistanciaKm { get; set; }
 
-    /// <summary>Duração estimada, em minutos. Usada na conclusão automática; sem ela, a viagem conclui-se à hora de partida.</summary>
+    /// <summary>
+    /// Duração estimada da última criação ou alteração da viagem, em minutos; aceitar ou cancelar não a muda (P-04).
+    /// Usada na conclusão automática; sem ela, a viagem conclui-se à hora de partida.
+    /// </summary>
     public int? DuracaoMinutos { get; set; }
+
+    /// <summary>
+    /// Rota atual em JSON: pontos por ordem, com os das participações aceites (RF-F008-05, modelo de dados:
+    /// <c>rota_pontos</c>). <c>null</c> significa «por recalcular» (P-19).
+    /// </summary>
+    public string? RotaPontos { get; set; }
 
     /// <summary>
     /// Versão da linha para concorrência otimista (<c>rowversion</c> no SQL Server; ignorada em SQLite).

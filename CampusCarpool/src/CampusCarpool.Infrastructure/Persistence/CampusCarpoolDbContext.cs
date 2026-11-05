@@ -10,7 +10,7 @@ namespace CampusCarpool.Infrastructure.Persistence;
 /// <remarks>
 /// Toda a configuração do modelo está em <see cref="OnModelCreating"/>; os ficheiros em <c>Configurations/</c>
 /// estão vazios (DC-24). O esquema real das BD de produção vem das migrations (<c>Migrations/</c>), aplicadas à
-/// parte; os testes usam <c>EnsureCreated</c>, que segue este modelo. Os dois divergem no índice das avaliações
+/// parte, nunca automaticamente; os testes usam <c>EnsureCreated</c>, que segue este modelo. Os dois divergem no índice das avaliações
 /// (ver abaixo, IN-01). Não há conversor de datas UTC: as datas lidas vêm com <c>Kind = Unspecified</c> (DC-42).
 /// Não há restrições <c>CHECK</c> além do estado da viagem, nem tamanhos na maior parte dos textos (DO-07).
 /// </remarks>

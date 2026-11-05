@@ -68,7 +68,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         return participacao;
     }
 
-    private ViagensController CriarController(Guid utilizadorId) => new(_db, null!)
+    private ViagensController CriarController(Guid utilizadorId) => new(_db, new MapasFalsos().CriarServico(configurado: false))
     {
         ControllerContext = new ControllerContext
         {

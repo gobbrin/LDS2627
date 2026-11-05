@@ -21,7 +21,7 @@ public sealed class RotasController(
     MapasService maps,
     EstimativaCustoService custos,
     CampusCarpoolDbContext? db = null,
-    ConsultaRotaViagemService? consultaRotas = null) : ControllerBase
+    RotaViagemService? rotaViagem = null) : ControllerBase
 {
     /// <summary>Corpo de <c>POST calcular</c>: dois locais em texto.</summary>
     public sealed record Pedido(string Origem, string Destino);
@@ -90,8 +90,8 @@ public sealed class RotasController(
     /// </summary>
     /// <remarks>
     /// Só o condutor e os passageiros aceites a podem ver (P-13, RF-F008-09). Para os outros devolve 403; RF-F003-08
-    /// pede que vejam a rota sem os pontos (DEF-BE-013, fica para m4). A ordem dos pontos é calculada pelo
-    /// <see cref="ConsultaRotaViagemService"/>, que não usa o mesmo algoritmo da simulação (DEF-BE-022).
+    /// pede que vejam a rota sem os pontos (DEF-BE-013). Lê a rota guardada, sem chamar o Serviço de Mapas; uma rota
+    /// por recalcular é recalculada aqui (P-19) e, se o serviço falhar, responde que a rota não está disponível.
     /// </remarks>
     /// <returns>200; 401; 403 sem acesso; 404 viagem inexistente; 422 rota não calculável; 502/503/504.</returns>
     [HttpGet("viagens/{viagemId:guid}")]
@@ -106,8 +106,8 @@ public sealed class RotasController(
         if (!Guid.TryParse(idTexto, out var utilizadorId))
             return Unauthorized();
 
+        // Seguida pelo contexto: uma rota por recalcular é gravada ao ser obtida.
         var viagem = await db.Viagens
-            .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == viagemId, ct);
 
         if (viagem is null)
@@ -125,15 +125,13 @@ public sealed class RotasController(
         if (!autorizado)
             return Forbid();
 
-        if (!maps.Configurado)
+        if (viagem.RotaPontos is null && !maps.Configurado)
             return StatusCode(503, new { erro = "Serviço de mapas não configurado." });
 
         try
         {
-            // Usar o mesmo cálculo de rota que será reutilizado na consulta da viagem.
-            // Fallback para preservar os testes que instanciam este controlador diretamente.
-            var servicoRotas = consultaRotas ?? new ConsultaRotaViagemService(maps);
-            var resultado = await servicoRotas.CalcularAsync(viagem, participacoes, ct);
+            var servicoRotas = rotaViagem ?? new RotaViagemService(maps);
+            var resultado = await servicoRotas.ObterAsync(db, viagem, participacoes, ct);
 
             if (resultado is null)
                 return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });

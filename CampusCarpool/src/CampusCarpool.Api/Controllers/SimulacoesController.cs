@@ -13,14 +13,17 @@ namespace CampusCarpool.Api.Controllers;
 /// Rota <c>POST /api/v1/viagens/{viagemId}/simulacao</c>.
 /// </summary>
 /// <remarks>
-/// Não altera nada. Compara a rota atual (com os aceites) com a rota que resultaria de juntar o pedido, ambas
-/// otimizadas pelo <see cref="OtimizadorRotas"/> (P-07). Pontos omitidos assumem a origem ou o destino da viagem
-/// (P-20). Todo o cálculo tem um limite de 10 segundos.
+/// Não altera nada. Compara a rota guardada com a rota que resultaria de juntar o pedido, calculada pelo mesmo
+/// algoritmo (<see cref="OtimizadorRotas"/>, P-07), por isso a simulação coincide com a rota depois de aceitar.
+/// Pontos omitidos assumem a origem ou o destino da viagem (P-20). Todo o cálculo tem um limite de 10 segundos.
 /// </remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/viagens/{viagemId:guid}/simulacao")]
-public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService mapas) : ControllerBase
+public sealed class SimulacoesController(
+    CampusCarpoolDbContext db,
+    MapasService mapas,
+    RotaViagemService? rotaViagem = null) : ControllerBase
 {
     /// <summary>Corpo do pedido: o pedido pendente a simular.</summary>
     public sealed record SimularPedido(Guid PedidoId);
@@ -65,7 +68,7 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
 
         var aceites = await db.Participacoes.AsNoTracking()
             .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Aceite)
-            .OrderBy(p => p.Id).ToListAsync(ct);
+            .ToListAsync(ct);
 
         var recolha = string.IsNullOrWhiteSpace(pedido.Recolha) ? viagem.Origem : pedido.Recolha.Trim();
         var destino = string.IsNullOrWhiteSpace(pedido.Destino) ? viagem.Destino : pedido.Destino.Trim();
@@ -76,22 +79,24 @@ public sealed class SimulacoesController(CampusCarpoolDbContext db, MapasService
         limite.CancelAfter(TimeSpan.FromSeconds(10));
         try
         {
-            var passageiros = aceites.Select(p => new ParagemPassageiro(
-                string.IsNullOrWhiteSpace(p.Recolha) ? viagem.Origem : p.Recolha.Trim(),
-                string.IsNullOrWhiteSpace(p.Destino) ? viagem.Destino : p.Destino.Trim())).ToList();
-            var original = await OtimizadorRotas.CalcularAsync(mapas, viagem.Origem, viagem.Destino, passageiros, limite.Token);
-            passageiros.Add(new ParagemPassageiro(recolha, destino));
-            var simulada = await OtimizadorRotas.CalcularAsync(mapas, viagem.Origem, viagem.Destino, passageiros, limite.Token);
+            // A rota atual é a guardada; só falta calculá-la se estiver por recalcular (P-19). Nada é gravado.
+            var servicoRotas = rotaViagem ?? new RotaViagemService(mapas);
+            var original = RotaViagemService.Ler(viagem) ?? await servicoRotas.CalcularAsync(viagem, aceites, limite.Token);
+            var simulada = await servicoRotas.CalcularAsync(viagem, [.. aceites, pedido], limite.Token);
+
+            if (original is null || simulada is null)
+                return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });
+
             return Ok(new RespostaSimulacao(
                 viagem.Id, pedido.Id, viagem.Origem, viagem.Destino, recolha, destino,
-                original.DistanciaKm, original.DuracaoMinutos,
-                simulada.DistanciaKm, simulada.DuracaoMinutos,
-                Math.Round(simulada.DistanciaKm - original.DistanciaKm, 2),
-                simulada.DuracaoMinutos - original.DuracaoMinutos,
-                original.Ordem, simulada.Ordem));
+                original.DistanciaTotalKm, original.DuracaoTotalMinutos,
+                simulada.DistanciaTotalKm, simulada.DuracaoTotalMinutos,
+                Math.Round(simulada.DistanciaTotalKm - original.DistanciaTotalKm, 2),
+                simulada.DuracaoTotalMinutos - original.DuracaoTotalMinutos,
+                original.PontosOrdenados.Select(p => p.Local).ToList(),
+                simulada.PontosOrdenados.Select(p => p.Local).ToList()));
         }
         catch (ArgumentException ex) { return BadRequest(new { erro = ex.Message }); }
-        catch (InvalidOperationException ex) { return UnprocessableEntity(new { erro = ex.Message }); }
         catch (HttpRequestException) { return StatusCode(502, new { erro = "Falha na comunicação com o serviço de mapas." }); }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         { return StatusCode(504, new { erro = "O serviço de mapas excedeu o limite de 10 segundos." }); }

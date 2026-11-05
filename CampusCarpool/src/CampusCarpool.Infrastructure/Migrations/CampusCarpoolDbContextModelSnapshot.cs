@@ -406,6 +406,9 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<DateTime>("PartidaEm")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("RotaPontos")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<byte[]>("Versao")
                         .IsConcurrencyToken()
                         .IsRequired()

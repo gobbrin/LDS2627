@@ -10,12 +10,14 @@ public enum ResultadoGestaoParticipacao
     NaoEncontrada,
     /// <summary>O utilizador não tem permissão para esta operação (403).</summary>
     NaoAutorizado,
-    /// <summary>O estado atual não permite a operação: pedido já decidido, viagem não ativa ou já partida (409).</summary>
+    /// <summary>O estado atual não permite a operação: pedido já decidido, viagem não ativa ou participação aceite já depois da partida (409).</summary>
     Conflito,
     /// <summary>A viagem não tem lugares disponíveis (409, RF-F004-11).</summary>
     SemCapacidade,
     /// <summary><c>LugaresDisponiveis</c> não bate com os aceites contados; a operação é recusada para não agravar o erro (409).</summary>
-    DadosInconsistentes
+    DadosInconsistentes,
+    /// <summary>A aceitação não conseguiu recalcular a rota, por o Serviço de Mapas estar indisponível (503, P-19).</summary>
+    RotaIndisponivel
 }
 
 /// <summary>

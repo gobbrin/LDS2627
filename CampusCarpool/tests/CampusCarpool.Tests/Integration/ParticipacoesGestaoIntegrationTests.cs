@@ -156,7 +156,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
             repositorioViagens,
             unidadeDeTrabalho,
             notificacaoService,
-            new NotificadorPedidosTempoRealFalso());
+            new NotificadorPedidosTempoRealFalso(),
+            new RotaViagemFalsa());
 
         var controller = new GestaoParticipacoesController(participacaoService);
 

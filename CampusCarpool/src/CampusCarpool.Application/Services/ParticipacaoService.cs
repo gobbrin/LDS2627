@@ -21,7 +21,8 @@ public sealed class ParticipacaoService(
     IRepositorioViagens repositorioViagens,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     INotificacaoService notificacaoService,
-    INotificadorPedidosTempoReal notificadorPedidosTempoReal) : IParticipacaoService
+    INotificadorPedidosTempoReal notificadorPedidosTempoReal,
+    IRotaViagemService rotaViagemService) : IParticipacaoService
 {
     /// <inheritdoc />
     public async Task<ResultadoGestaoParticipacao> AceitarAsync(
@@ -67,6 +68,15 @@ public sealed class ParticipacaoService(
 
         if (lugaresCalculados == 0)
             return ResultadoGestaoParticipacao.SemCapacidade;
+
+        // RF-F008-05 / P-19: a aceitação recalcula a rota; sem o Serviço de Mapas é recusada e nada muda.
+        var rotaAtualizada = await rotaViagemService.RecalcularAsync(
+            viagem,
+            [.. aceites, participacao],
+            ct);
+
+        if (!rotaAtualizada)
+            return ResultadoGestaoParticipacao.RotaIndisponivel;
 
         participacao.Estado = EstadoParticipacao.Aceite;
         // AceiteEm fica mesmo que a participação seja cancelada depois (histórico, RF-F009-08).
@@ -208,6 +218,15 @@ public sealed class ParticipacaoService(
             // RF-F004-17: liberta o lugar (recalculado a partir dos aceites, sem contar este).
             viagem.LugaresDisponiveis =
                 viagem.LugaresOferecidos - (aceites.Count - 1);
+
+            // RF-F008-05 / P-19: o cancelamento nunca é recusado; sem o Serviço de Mapas, a rota fica por recalcular.
+            var rotaAtualizada = await rotaViagemService.RecalcularAsync(
+                viagem,
+                aceites.Where(p => p.Id != participacao.Id).ToList(),
+                ct);
+
+            if (!rotaAtualizada)
+                viagem.RotaPontos = null;
         }
 
         participacao.Estado = EstadoParticipacao.Cancelada;

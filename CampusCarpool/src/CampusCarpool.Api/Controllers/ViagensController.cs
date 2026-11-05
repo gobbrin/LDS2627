@@ -28,9 +28,11 @@ public sealed class ViagensController(
     CampusCarpoolDbContext db,
     MapasService maps,
     EstimativaCustoService? custos = null,
-    ConsultaRotaViagemService? consultaRotas = null,
+    RotaViagemService? rotaViagem = null,
     INotificacaoService? notificacaoService = null) : ControllerBase
 {
+    private RotaViagemService Rotas => rotaViagem ?? new RotaViagemService(maps);
+
     /// <summary>Corpo de <c>POST /viagens</c>. <c>PartidaEm</c> em UTC; <c>Lugares</c> de 1 a 8 (P-11).</summary>
     public sealed record CriarViagem(string Origem, string Destino, DateTime PartidaEm, int Lugares);
     /// <summary>Corpo de <c>PUT /viagens/{id}</c>: só a data/hora e os lugares podem mudar (DEF-BE-007).</summary>
@@ -44,7 +46,7 @@ public sealed class ViagensController(
     /// <summary>Cria uma viagem <c>Ativa</c> com o utilizador como condutor (RF-F002-01 a RF-F002-06).</summary>
     /// <remarks>
     /// Geocodifica a origem e o destino e calcula a rota no Serviço de Mapas (RF-F008-01, RF-F008-02); sem ele a
-    /// criação é recusada (RF-F002-17, P-19). Guarda as coordenadas, a distância e a duração.
+    /// criação é recusada (RF-F002-17, P-19). Guarda as coordenadas, a distância, a duração e a rota.
     /// </remarks>
     /// <returns>
     /// 201 viagem criada; 400 dados inválidos (vazios, mais de 250 caracteres, origem e destino no mesmo local,
@@ -103,9 +105,9 @@ public sealed class ViagensController(
             OrigemLongitude = rota.Origem.Longitude,
             DestinoLatitude = rota.Destino.Latitude,
             DestinoLongitude = rota.Destino.Longitude,
-            DistanciaKm = rota.DistanciaKm,
             DuracaoMinutos = rota.DuracaoMinutos
         };
+        RotaViagemService.GuardarDireta(v, rota);
         db.Viagens.Add(v);
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Consultar), new { id = v.Id },
@@ -114,17 +116,17 @@ public sealed class ViagensController(
 
     /// <summary>Detalhes de uma viagem com a estimativa de custo por participante (RF-F003-06, RF-F008-08, RF-F008-10).</summary>
     /// <remarks>
-    /// Qualquer utilizador autenticado pode consultar qualquer viagem, em qualquer estado. A estimativa usa a
-    /// distância guardada quando não há passageiros; com passageiros aceites, recalcula a rota com os seus pontos
-    /// (sem os expor, RF-F003-08). Se não for possível, devolve <c>EstimativaCusto = null</c> e o motivo em
+    /// Qualquer utilizador autenticado pode consultar qualquer viagem, em qualquer estado. A distância, a duração e
+    /// a estimativa vêm da rota guardada (sem expor os pontos, RF-F003-08); uma rota por recalcular é recalculada aqui
+    /// (P-19). Se não for possível, devolve <c>EstimativaCusto = null</c> e o motivo em
     /// <c>EstimativaIndisponivelMotivo</c> (RF-F008-12), em vez de falhar o pedido.
     /// </remarks>
     /// <returns>200 detalhes; 401; 404 viagem inexistente.</returns>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Consultar(Guid id, CancellationToken ct)
     {
-        var viagem = await db.Viagens.AsNoTracking()
-            .FirstOrDefaultAsync(v => v.Id == id, ct);
+        // Seguida pelo contexto: uma rota por recalcular é gravada ao ser obtida.
+        var viagem = await db.Viagens.FirstOrDefaultAsync(v => v.Id == id, ct);
 
         if (viagem is null) return NotFound();
 
@@ -132,6 +134,7 @@ public sealed class ViagensController(
             .Where(p => p.ViagemId == id && p.Estado == EstadoParticipacao.Aceite)
             .ToListAsync(ct);
 
+        ResultadoRotaComPontos? rota = RotaViagemService.Ler(viagem);
         ResultadoEstimativaCusto? estimativa = null;
         string? motivoIndisponibilidade = null;
 
@@ -142,14 +145,7 @@ public sealed class ViagensController(
         }
         else
         {
-            decimal? distanciaParaEstimativa = null;
-
-            // Sem passageiros, a distância da rota original guardada é suficiente.
-            if (participacoesAceites.Count == 0 && viagem.DistanciaKm > 0)
-            {
-                distanciaParaEstimativa = viagem.DistanciaKm;
-            }
-            else if (!maps.Configurado)
+            if (rota is null && !maps.Configurado)
             {
                 motivoIndisponibilidade = "Serviço de mapas não configurado.";
             }
@@ -157,10 +153,7 @@ public sealed class ViagensController(
             {
                 try
                 {
-                    // A rota completa é calculada internamente; os seus pontos não são expostos.
-                    var resultado = await (consultaRotas ?? new ConsultaRotaViagemService(maps))
-                        .CalcularAsync(viagem, participacoesAceites, ct);
-                    distanciaParaEstimativa = resultado?.DistanciaTotalKm;
+                    rota = await Rotas.ObterAsync(db, viagem, participacoesAceites, ct);
                 }
                 catch (HttpRequestException)
                 {
@@ -172,10 +165,10 @@ public sealed class ViagensController(
                 }
             }
 
-            if (distanciaParaEstimativa is > 0)
+            if (rota is { DistanciaTotalKm: > 0 })
             {
                 // Erros de configuração não são silenciosamente convertidos em valores indicativos.
-                estimativa = custos.Calcular(distanciaParaEstimativa.Value, participacoesAceites.Count);
+                estimativa = custos.Calcular(rota.DistanciaTotalKm, participacoesAceites.Count);
             }
             else
             {
@@ -191,8 +184,8 @@ public sealed class ViagensController(
             viagem.PartidaEm,
             viagem.LugaresDisponiveis,
             viagem.Estado,
-            viagem.DistanciaKm,
-            viagem.DuracaoMinutos,
+            DistanciaKm = rota?.DistanciaTotalKm ?? viagem.DistanciaKm,
+            DuracaoMinutos = rota?.DuracaoTotalMinutos ?? viagem.DuracaoMinutos,
             viagem.CondutorId,
             EstimativaCusto = estimativa,
             EstimativaIndisponivelMotivo = motivoIndisponibilidade
@@ -280,6 +273,8 @@ public sealed class ViagensController(
         foreach (var p in afetadas) p.Estado = EstadoParticipacao.Cancelada;
         // Sem participações aceites, todos os lugares ficam livres.
         v.LugaresDisponiveis = v.LugaresOferecidos;
+        // RF-F008-05 / P-19: como no cancelamento, a rota sem passageiros nunca impede a operação.
+        if (!await Rotas.RecalcularAsync(v, [], ct)) v.RotaPontos = null;
         await db.SaveChangesAsync(ct);
 
         // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou

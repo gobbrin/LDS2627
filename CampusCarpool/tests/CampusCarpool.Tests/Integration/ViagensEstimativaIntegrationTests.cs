@@ -41,7 +41,7 @@ public sealed class ViagensEstimativaIntegrationTests
             _connection.Dispose();
         }
 
-        public async Task<Viagem> CriarViagemAsync(decimal distanciaKm)
+        public async Task<Viagem> CriarViagemAsync(decimal distanciaKm, bool rotaGuardada = true)
         {
             var condutor = new Utilizador
             {
@@ -66,37 +66,24 @@ public sealed class ViagensEstimativaIntegrationTests
                 DistanciaKm = distanciaKm,
                 Estado = "Ativa"
             };
+
+            if (rotaGuardada && distanciaKm > 0)
+            {
+                RotaViagemService.GuardarDireta(viagem, new ResultadoRota(
+                    distanciaKm,
+                    30,
+                    new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
+                    new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude)));
+            }
+
             Db.Viagens.Add(viagem);
             await Db.SaveChangesAsync();
             return viagem;
         }
     }
 
-    private sealed class MapasSimulados : HttpMessageHandler
-    {
-        public int Chamadas { get; private set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            Chamadas++;
-            var resposta = """
-                {
-                  "features": [{
-                    "properties": { "summary": { "distance": 30000, "duration": 1800 } }
-                  }]
-                }
-                """;
-
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(resposta, Encoding.UTF8, "application/json")
-            });
-        }
-    }
-
     private static ViagensController CriarController(
-        CampusCarpoolDbContext db, MapasSimulados handler)
+        CampusCarpoolDbContext db, MapasFalsos handler)
     {
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -112,8 +99,7 @@ public sealed class ViagensEstimativaIntegrationTests
         };
         var mapas = new MapasService(cliente, configuracao);
         var custos = new EstimativaCustoService(configuracao);
-        var consultaRotas = new ConsultaRotaViagemService(mapas);
-        return new ViagensController(db, mapas, custos, consultaRotas);
+        return new ViagensController(db, mapas, custos, new RotaViagemService(mapas));
     }
 
     private static T Campo<T>(object resposta, string nome)
@@ -128,7 +114,7 @@ public sealed class ViagensEstimativaIntegrationTests
     {
         using var f = new Fixture();
         var viagem = await f.CriarViagemAsync(30m);
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = CriarController(f.Db, handler);
 
         var resposta = Assert.IsType<OkObjectResult>(
@@ -138,14 +124,15 @@ public sealed class ViagensEstimativaIntegrationTests
         Assert.Equal(3m, estimativa.CustoPorParticipante);
         Assert.Equal(1, estimativa.TotalParticipantes);
         Assert.True(estimativa.Indicativo);
-        Assert.Equal(0, handler.Chamadas);
+        Assert.Equal(0, handler.ChamadasRotas);
     }
 
     [Fact]
     public async Task DoisPassageirosAceites_UtilizaRotaCompletaEDividePorTres()
     {
         using var f = new Fixture();
-        var viagem = await f.CriarViagemAsync(10m); // Diferente da rota simulada de 30 km.
+        // Rota por recalcular, com uma distância antiga diferente da rota simulada de 30 km.
+        var viagem = await f.CriarViagemAsync(10m, rotaGuardada: false);
         var passageiros = new List<Participacao>();
 
         for (var i = 0; i < 2; i++)
@@ -169,7 +156,7 @@ public sealed class ViagensEstimativaIntegrationTests
 
         f.Db.Participacoes.AddRange(passageiros);
         await f.Db.SaveChangesAsync();
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = CriarController(f.Db, handler);
 
         var resposta = Assert.IsType<OkObjectResult>(
@@ -179,7 +166,7 @@ public sealed class ViagensEstimativaIntegrationTests
         Assert.Equal(30m, estimativa.DistanciaKm);
         Assert.Equal(1m, estimativa.CustoPorParticipante);
         Assert.Equal(3, estimativa.TotalParticipantes);
-        Assert.True(handler.Chamadas > 0);
+        Assert.True(handler.ChamadasRotas > 0);
         Assert.DoesNotContain("PontosOrdenados", resposta.Value!.GetType().GetProperties()
             .Select(p => p.Name));
         Assert.DoesNotContain("Segmentos", resposta.Value!.GetType().GetProperties()
@@ -191,7 +178,7 @@ public sealed class ViagensEstimativaIntegrationTests
     {
         using var f = new Fixture();
         var viagem = await f.CriarViagemAsync(0m);
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = new ViagensController(
             f.Db,
             new MapasService(new HttpClient(), new ConfigurationBuilder().Build()),

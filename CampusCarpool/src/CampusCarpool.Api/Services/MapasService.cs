@@ -123,7 +123,7 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     }
 
     /// <summary>Calcular uma rota com várias paragens, pela ordem dada, num só pedido.</summary>
-    /// <remarks>Só é usado pelos testes; a rota da viagem calcula segmento a segmento (<c>CalculadorRotaComPontos</c>).</remarks>
+    /// <remarks>Só é usado pelos testes; a rota da viagem usa a matriz (<see cref="CalcularMatrizAsync"/>).</remarks>
     /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<ResultadoRota?> CalcularComParagensAsync(
@@ -178,7 +178,7 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     }
 
     /// <summary>Calcular matriz de distâncias e durações entre todos os pares de pontos (Matrix API), num só pedido.</summary>
-    /// <remarks>Usado pelo <c>OtimizadorRotas</c> na simulação.</remarks>
+    /// <remarks>Usado pelo <c>OtimizadorRotas</c>, na rota guardada e na simulação.</remarks>
     /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
     public async Task<MatrizRotas?> CalcularMatrizAsync(

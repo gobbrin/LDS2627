@@ -563,7 +563,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, null!)
+        var controller = new ViagensController(db, new MapasFalsos().CriarServico(configurado: false))
         {
             ControllerContext = new ControllerContext
             {
@@ -632,7 +632,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, null!)
+        var controller = new ViagensController(db, new MapasFalsos().CriarServico(configurado: false))
         {
             ControllerContext = new ControllerContext
             {

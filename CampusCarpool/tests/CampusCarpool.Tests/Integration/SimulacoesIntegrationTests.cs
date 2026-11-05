@@ -45,6 +45,10 @@ public sealed class SimulacoesIntegrationTests
                 CondutorId = Condutor.Id,
                 Origem = "Porto",
                 Destino = "Felgueiras",
+                OrigemLatitude = 41m,
+                OrigemLongitude = 1m,
+                DestinoLatitude = 41m,
+                DestinoLongitude = 2m,
                 PartidaEm = DateTime.UtcNow.AddDays(3),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
@@ -57,7 +61,11 @@ public sealed class SimulacoesIntegrationTests
                 PassageiroId = Passageiro.Id,
                 Estado = EstadoParticipacao.Pendente,
                 Recolha = "Lousada",
-                Destino = "Penafiel"
+                RecolhaLatitude = 41m,
+                RecolhaLongitude = 3m,
+                Destino = "Penafiel",
+                DestinoLatitude = 41m,
+                DestinoLongitude = 4m
             };
             Db.Participacoes.Add(Pedido);
             Db.SaveChanges();
@@ -215,6 +223,17 @@ public sealed class SimulacoesIntegrationTests
     }
 
     [Fact]
+    /// <summary>F5: a simulação antecede a aceitação, que é permitida depois da partida enquanto a viagem estiver Ativa.</summary>
+    public async Task I110_30_ViagemAtivaJaPartida_PodeSerSimulada()
+    {
+        using var f = new Fixture();
+        f.Viagem.PartidaEm = DateTime.UtcNow.AddMinutes(-1);
+        await f.Db.SaveChangesAsync();
+        Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+    }
+
+    [Fact]
     public async Task I040_08_SemPontos_Devolve400()
     {
         using var f = new Fixture();
@@ -287,7 +306,11 @@ public sealed class SimulacoesIntegrationTests
             PassageiroId = f.Terceiro.Id,
             Estado = EstadoParticipacao.Aceite,
             Recolha = "Amarante",
-            Destino = "Trofa"
+            RecolhaLatitude = 41m,
+            RecolhaLongitude = 5m,
+            Destino = "Trofa",
+            DestinoLatitude = 41m,
+            DestinoLongitude = 6m
         });
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
