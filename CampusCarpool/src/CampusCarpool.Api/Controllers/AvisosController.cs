@@ -21,7 +21,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
         out var id) ? id : null;
 
     /// <summary>Cria um aviso e notifica os passageiros com participação aceite.</summary>
-    /// <returns>201; 400 texto inválido; 401; 403 não é o condutor; 404 viagem inexistente.</returns>
+    /// <returns>201; 400 texto inválido; 401; 403 não é o condutor; 404 viagem inexistente; 409 viagem não ativa.</returns>
     [HttpPost]
     public async Task<IActionResult> Criar(Guid viagemId, CriarAviso? input, CancellationToken ct)
     {
@@ -37,6 +37,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
                 new { resultado.Aviso!.Id, resultado.Aviso.Conteudo, resultado.Aviso.CriadoEm }),
             ResultadoCriacaoAviso.ViagemNaoEncontrada => NotFound(),
             ResultadoCriacaoAviso.NaoAutorizado => Forbid(),
+            ResultadoCriacaoAviso.ViagemNaoAtiva => Conflict(new { erro = "A viagem não está ativa." }),
             _ => BadRequest(new { erro = "Conteúdo do aviso inválido." })
         };
     }

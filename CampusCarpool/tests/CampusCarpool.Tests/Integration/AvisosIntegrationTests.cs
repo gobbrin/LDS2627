@@ -127,6 +127,27 @@ public sealed class AvisosIntegrationTests
         };
     }
 
+    [Theory]
+    [InlineData(nameof(EstadoViagem.Indisponibilizada))]
+    [InlineData(nameof(EstadoViagem.Concluida))]
+    public async Task I110_ViagemNaoAtiva_RecusaOAvisoSemGravarNada(string estado)
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        await f.CriarParticipacao(viagem.Id, passageiro.Id, EstadoParticipacao.Aceite);
+        viagem.Estado = estado;
+        await f.Db.SaveChangesAsync();
+
+        var resultado = await CriarAvisosController(f.Db, condutor.Id)
+            .Criar(viagem.Id, new AvisosController.CriarAviso("Atraso de 5 minutos."), default);
+
+        Assert.IsType<ConflictObjectResult>(resultado);
+        Assert.Empty(f.Db.Avisos);
+        Assert.Empty(f.Db.Notificacoes);
+    }
+
     [Fact]
     public async Task CondutorCriaAviso_NotificaApenasPassageirosAceites()
     {

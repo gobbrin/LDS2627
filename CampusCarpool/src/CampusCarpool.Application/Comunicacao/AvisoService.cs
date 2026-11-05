@@ -35,7 +35,9 @@ public sealed class AvisoService(
         if (viagem.CondutorId != condutorId)
             return (ResultadoCriacaoAviso.NaoAutorizado, null);
 
-        // DEF-BE-017 (fica para m4): RF-F005-05 só permite avisos em viagens Ativas; o estado não é verificado.
+        // RF-F005-05 (DEF-BE-017): só em viagens Ativas.
+        if (viagem.Estado != nameof(EstadoViagem.Ativa))
+            return (ResultadoCriacaoAviso.ViagemNaoAtiva, null);
 
         var aviso = new Aviso
         {

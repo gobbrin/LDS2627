@@ -3,7 +3,7 @@ using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Comunicacao;
 
 /// <summary>Resultado da criação de um aviso e das notificações associadas.</summary>
-/// <remarks>O <c>AvisosController</c> traduz cada valor num código HTTP (201, 404, 403, 400).</remarks>
+/// <remarks>O <c>AvisosController</c> traduz cada valor num código HTTP (201, 404, 403, 409, 400).</remarks>
 public enum ResultadoCriacaoAviso
 {
     /// <summary>Aviso criado e passageiros notificados.</summary>
@@ -12,6 +12,8 @@ public enum ResultadoCriacaoAviso
     ViagemNaoEncontrada,
     /// <summary>O utilizador não é o condutor da viagem (RF-F005-07).</summary>
     NaoAutorizado,
+    /// <summary>A viagem não está <c>Ativa</c> (RF-F005-05).</summary>
+    ViagemNaoAtiva,
     /// <summary>Texto vazio ou com mais de 100 caracteres (P-28, RF-F005-10).</summary>
     ConteudoInvalido
 }
@@ -21,7 +23,7 @@ public enum ResultadoCriacaoAviso
 public interface IAvisoService
 {
     /// <summary>Cria um aviso e uma notificação para cada passageiro aceite.</summary>
-    /// <remarks>RF-F005-05, RF-F006-05. O aviso é aceite mesmo que a viagem não esteja <c>Ativa</c> (DEF-BE-017, fica para m4).</remarks>
+    /// <remarks>RF-F005-05, RF-F006-05. Só em viagens <c>Ativas</c> (DEF-BE-017).</remarks>
     Task<(ResultadoCriacaoAviso Resultado, Aviso? Aviso)> CriarAsync(Guid viagemId, Guid condutorId, string? conteudo, CancellationToken ct);
 
     /// <summary>Consulta os avisos de uma viagem para um utilizador autorizado.</summary>
