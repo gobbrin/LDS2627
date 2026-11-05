@@ -39,14 +39,11 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
     public bool Configurado => !string.IsNullOrWhiteSpace(config["Maps:ApiKey"]);
 
     /// <summary>Geocodificar uma localização: devolve o primeiro resultado do Pelias, ou <c>null</c> se não houver nenhum.</summary>
-    /// <remarks>
-    /// A chave vai na query string (exigência do Pelias), por isso pode aparecer em logs de pedidos HTTP.
-    /// A mensagem da exceção abaixo tem uma gralha de codificação ("nÃ£o"), a corrigir num commit de código.
-    /// </remarks>
+    /// <remarks>A chave vai na query string (exigência do Pelias), por isso pode aparecer em logs de pedidos HTTP.</remarks>
     /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
     public async Task<Coordenadas?> GeocodificarAsync(string texto, CancellationToken ct)
     {
-        if (!Configurado) throw new InvalidOperationException("Maps:ApiKey nÃ£o configurada.");
+        if (!Configurado) throw new InvalidOperationException("Maps:ApiKey não configurada.");
 
         var url = "https://api.heigit.org/pelias/v1/search?api_key=" +
     Uri.EscapeDataString(config["Maps:ApiKey"]!.Trim()) +

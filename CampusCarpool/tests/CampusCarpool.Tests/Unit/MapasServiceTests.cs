@@ -38,7 +38,10 @@ public sealed class MapasServiceTests
     public async Task GeocodificarSemChaveFalha()
     {
         var service = Criar(null, _ => Json("{}"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GeocodificarAsync("Porto", CancellationToken.None));
+        var erro = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GeocodificarAsync("Porto", CancellationToken.None));
+
+        // DEF-BE-033: a mensagem chegou a sair com a codificação errada.
+        Assert.Equal("Maps:ApiKey não configurada.", erro.Message);
     }
 
     [Fact]
