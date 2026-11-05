@@ -123,61 +123,6 @@ public sealed class MapasService(HttpClient http, IConfiguration config)
             destino);
     }
 
-    /// <summary>Calcular uma rota com várias paragens, pela ordem dada, num só pedido.</summary>
-    /// <remarks>Só é usado pelos testes; a rota da viagem usa a matriz (<see cref="CalcularMatrizAsync"/>).</remarks>
-    /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>
-    /// <exception cref="ArgumentException">Menos de dois pontos.</exception>
-    public async Task<ResultadoRota?> CalcularComParagensAsync(
-        IReadOnlyList<Coordenadas> pontos,
-        CancellationToken ct)
-    {
-        if (!Configurado)
-            throw new InvalidOperationException(
-                "Maps:ApiKey não configurada.");
-
-        if (pontos.Count < 2)
-            throw new ArgumentException(
-                "São necessários pelo menos dois pontos.",
-                nameof(pontos));
-
-        var coordenadas = pontos
-            .Select(p => new[] { p.Longitude, p.Latitude })
-            .ToArray();
-
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            "https://api.heigit.org/openrouteservice/v2/directions/driving-car");
-
-        request.Headers.TryAddWithoutValidation(
-            "Authorization",
-            config["Maps:ApiKey"]!.Trim());
-
-        request.Content = JsonContent.Create(new
-        {
-            coordinates = coordenadas
-        });
-
-        using var response = await http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
-
-        using var json = await JsonDocument.ParseAsync(
-            await response.Content.ReadAsStreamAsync(ct),
-            cancellationToken: ct);
-
-        var summary = json.RootElement
-            .GetProperty("routes")[0]
-            .GetProperty("summary");
-
-        return new ResultadoRota(
-            Math.Round(
-                summary.GetProperty("distance").GetDecimal() / 1000m,
-                2),
-            (int)Math.Ceiling(
-                summary.GetProperty("duration").GetDecimal() / 60m),
-            pontos[0],
-            pontos[^1]);
-    }
-
     /// <summary>Calcular matriz de distâncias e durações entre todos os pares de pontos (Matrix API), num só pedido.</summary>
     /// <remarks>Usado pelo <c>OtimizadorRotas</c>, na rota guardada e na simulação.</remarks>
     /// <exception cref="InvalidOperationException">Sem <c>Maps:ApiKey</c>.</exception>

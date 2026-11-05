@@ -7,7 +7,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
-/// <summary>Casos adicionais do <c>MapasService</c> (rota com paragens e matriz) com respostas HTTP simuladas.</summary>
+/// <summary>Casos adicionais do <c>MapasService</c> (matriz) com respostas HTTP simuladas.</summary>
 public sealed class MapasServiceCoberturaAdicionalTests
 {
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
@@ -30,58 +30,6 @@ public sealed class MapasServiceCoberturaAdicionalTests
         => new(estado) { Content = new StringContent(conteudo, Encoding.UTF8, "application/json") };
 
     private static readonly Coordenadas[] Pontos = [new(41.15m, -8.61m), new(41.16m, -8.62m)];
-
-    [Fact]
-    public async Task ParagensSemChaveRejeitadas()
-    {
-        var servico = Criar(null, _ => throw new HttpRequestException("Não deveria enviar HTTP"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            servico.CalcularComParagensAsync(Pontos, CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task ParagensInsuficientesRejeitadas()
-    {
-        var servico = Criar("chave", _ => throw new HttpRequestException("Não deveria enviar HTTP"));
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            servico.CalcularComParagensAsync([Pontos[0]], CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task ParagensEnviamCoordenadasEConvertemDistanciaEDuracao()
-    {
-        string? pedido = null;
-        string? autorizacao = null;
-        HttpMethod? metodo = null;
-        var servico = Criar(" chave ", request =>
-        {
-            metodo = request.Method;
-            autorizacao = request.Headers.GetValues("Authorization").Single();
-            pedido = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-            return Json("{\"routes\":[{\"summary\":{\"distance\":12345,\"duration\":121}}]}");
-        });
-        var resultado = await servico.CalcularComParagensAsync(Pontos, CancellationToken.None);
-        Assert.Equal(HttpMethod.Post, metodo);
-        Assert.Equal("chave", autorizacao);
-        Assert.NotNull(pedido);
-        using var documento = JsonDocument.Parse(pedido);
-        var coords = documento.RootElement.GetProperty("coordinates");
-        Assert.Equal(-8.61m, coords[0][0].GetDecimal());
-        Assert.Equal(41.15m, coords[0][1].GetDecimal());
-        Assert.NotNull(resultado);
-        Assert.Equal(12.34m, resultado.DistanciaKm);
-        Assert.Equal(3, resultado.DuracaoMinutos);
-        Assert.Equal(Pontos[0], resultado.Origem);
-        Assert.Equal(Pontos[1], resultado.Destino);
-    }
-
-    [Fact]
-    public async Task ParagensPropagamErroHttp()
-    {
-        var servico = Criar("chave", _ => Json("{}", HttpStatusCode.BadGateway));
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
-            servico.CalcularComParagensAsync(Pontos, CancellationToken.None));
-    }
 
     [Fact]
     public async Task MatrizSemChaveRejeitada()
