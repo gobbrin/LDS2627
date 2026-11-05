@@ -986,7 +986,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"teste@example.com\",\n  \"password\": \"PasswordSegura123!\"\n}",
+              "raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"nao-academico@example.com\",\n  \"password\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1034,7 +1034,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"teste@estg.ipp.pt\",\n  \"password\": \"123\"\n}",
+              "raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"{{email}}\",\n  \"password\": \"123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1082,7 +1082,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"senha-incorreta\"\n}",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"errada-de-teste\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1460,15 +1460,15 @@
     },
     {
       "key": "email",
-      "value": "teste@estg.ipp.pt"
+      "value": ""
     },
     {
       "key": "password",
-      "value": "SubstituirPorPasswordValida123!"
+      "value": ""
     },
     {
       "key": "nome",
-      "value": "Utilizador Teste"
+      "value": ""
     },
     {
       "key": "confirmToken",

@@ -86,7 +86,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"teste@gmail.com\",\n  \"password\": \"{{password}}\"\n}",
+							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"nao-academico@example.com\",\n  \"password\": \"{{password}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1561,11 +1561,11 @@
 		},
 		{
 			"key": "email",
-			"value": "teste@estg.ipp.pt"
+			"value": ""
 		},
 		{
 			"key": "password",
-			"value": "PasswordSegura123!"
+			"value": ""
 		},
 		{
 			"key": "confirmToken",
