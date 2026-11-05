@@ -1,7 +1,6 @@
 
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -95,8 +94,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes",
-                ["Custos:PrecoPorKm"] = "0.10"
+                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes"
             })
             .Build();
 
@@ -107,7 +105,7 @@ public sealed class RotasParticipacoesIntegrationTests
         };
 
         var mapas = new ServicoMapasRotas(cliente, configuracao);
-        var custos = new EstimativaCustoService(configuracao);
+        var custos = ServicosDeTeste.CriarCustos();
         var controller = ServicosDeTeste.CriarRotasController(mapas, custos, db);
 
         var claims = utilizadorId.HasValue

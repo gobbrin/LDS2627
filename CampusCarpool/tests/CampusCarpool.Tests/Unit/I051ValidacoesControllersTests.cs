@@ -3,7 +3,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;

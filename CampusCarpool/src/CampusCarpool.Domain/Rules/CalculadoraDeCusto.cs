@@ -5,7 +5,7 @@ namespace CampusCarpool.Domain.Rules;
 /// </summary>
 /// <remarks>
 /// Valor indicativo (RF-F008-11). O preço por km vem da configuração <c>Custos:PrecoPorKm</c> (0,10 por
-/// omissão) e a distância é escolhida por <c>EstimativaCustoService</c> (Api).
+/// omissão) e a distância é escolhida por <c>EstimativaCustoService</c> (Application).
 /// </remarks>
 public static class CalculadoraDeCusto
 {

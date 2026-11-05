@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
@@ -23,17 +23,7 @@ namespace CampusCarpool.Tests.Integration;
 public sealed class EndpointsAdditionalTests
 {
 
-    private static EstimativaCustoService Custos()
-    {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Custos:PrecoPorKm"] = "0.10"
-            })
-            .Build();
-
-        return new EstimativaCustoService(config);
-    }
+    private static EstimativaCustoService Custos() => ServicosDeTeste.CriarCustos();
 
     private sealed class Fixture : IDisposable
     {

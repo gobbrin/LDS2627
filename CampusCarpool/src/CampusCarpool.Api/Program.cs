@@ -2,7 +2,6 @@ using System.Text;
 using CampusCarpool.Api.Configuration;
 using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Middleware;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.DependencyInjection;
 using CampusCarpool.Application.Rotas;
@@ -19,14 +18,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// Serviços da própria Api: tempo real (SignalR), custos e rotas.
+// Serviços da própria Api: tempo real (SignalR).
 builder.Services.AddScoped<
     INotificadorPedidosTempoReal,
     NotificadorPedidosSignalR>();
 builder.Services.AddSingleton<
     Microsoft.AspNetCore.SignalR.IUserIdProvider,
     PedidosUserIdProvider>();
-builder.Services.AddScoped<EstimativaCustoService>();
+builder.Services.Configure<OpcoesCustos>(builder.Configuration.GetSection(OpcoesCustos.Seccao));
 // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();

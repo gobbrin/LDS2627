@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Enums;

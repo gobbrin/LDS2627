@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
@@ -219,24 +218,12 @@ public sealed class ApiIntegrationTests
 /// <summary>Casos do I031 que não precisam de base de dados: geocodificação e mapas sem chave (503) e divisão do custo.</summary>
 public sealed class MapasAndValidationTests
 {
-    private static EstimativaCustoService CriarCustos()
-    {
-        var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Custos:PrecoPorKm"] = "0.10"
-            })
-            .Build();
-
-        return new EstimativaCustoService(configuracao);
-    }
-
     [Fact]
     public async Task CT032_MapasSemChave_Devolve503()
     {
         var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
-        var controller = ServicosDeTeste.CriarRotasController(service, CriarCustos());
+        var controller = ServicosDeTeste.CriarRotasController(service, ServicosDeTeste.CriarCustos());
 
         var result = await controller.Calcular(new("Porto", "Braga"), default);
 
@@ -248,7 +235,7 @@ public sealed class MapasAndValidationTests
     {
         var service = new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build());
 
-        var controller = ServicosDeTeste.CriarRotasController(service, CriarCustos());
+        var controller = ServicosDeTeste.CriarRotasController(service, ServicosDeTeste.CriarCustos());
 
         Assert.IsType<BadRequestResult>(await controller.Geocodificar(" ", default));
     }

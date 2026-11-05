@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
@@ -89,8 +88,7 @@ public sealed class ViagensEstimativaIntegrationTests
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes",
-                ["Custos:PrecoPorKm"] = "0.10"
+                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes"
             })
             .Build();
 
@@ -99,7 +97,7 @@ public sealed class ViagensEstimativaIntegrationTests
             BaseAddress = new Uri("https://api.openrouteservice.org/")
         };
         var mapas = new ServicoMapasRotas(cliente, configuracao);
-        var custos = new EstimativaCustoService(configuracao);
+        var custos = ServicosDeTeste.CriarCustos();
         return ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas, custos));
     }
 
@@ -197,11 +195,7 @@ public sealed class ViagensEstimativaIntegrationTests
         var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(
             f.Db,
             new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()),
-            new EstimativaCustoService(new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Custos:PrecoPorKm"] = "0.10"
-                }).Build())));
+            ServicosDeTeste.CriarCustos()));
 
         var resposta = Assert.IsType<OkObjectResult>(
             await controller.Consultar(viagem.Id, default));

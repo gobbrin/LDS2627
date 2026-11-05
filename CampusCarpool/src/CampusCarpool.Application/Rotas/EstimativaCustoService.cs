@@ -1,7 +1,7 @@
-
-namespace CampusCarpool.Api.Services;
-
 using CampusCarpool.Domain.Rules;
+using Microsoft.Extensions.Options;
+
+namespace CampusCarpool.Application.Rotas;
 
 /// <summary>Estimativa de custo devolvida ao cliente (RF-F008-10, RF-F008-11).</summary>
 /// <remarks><c>Indicativo</c> é sempre <c>true</c>: o valor é só uma referência para dividir despesas, não um preço.</remarks>
@@ -16,9 +16,8 @@ public sealed record ResultadoEstimativaCusto(
     string Moeda
 );
 
-/// <summary>Junta a configuração (<c>Custos:PrecoPorKm</c>) ao cálculo do Domain (<see cref="CalculadoraDeCusto"/>, P-06).</summary>
-public sealed class EstimativaCustoService(
-    IConfiguration config)
+/// <summary>Junta a configuração (<see cref="OpcoesCustos"/>) ao cálculo do Domain (<see cref="CalculadoraDeCusto"/>, P-06).</summary>
+public sealed class EstimativaCustoService(IOptions<OpcoesCustos> opcoes)
 {
     /// <summary>Calcula o custo total e por participante (condutor incluído).</summary>
     /// <param name="distanciaKm">Distância total da rota; tem de ser positiva.</param>
@@ -43,8 +42,7 @@ public sealed class EstimativaCustoService(
                 "O número de passageiros aceites é inválido.");
         }
 
-        var precoPorKm = config.GetValue<decimal?>(
-            "Custos:PrecoPorKm");
+        var precoPorKm = opcoes.Value.PrecoPorKm;
 
         if (!precoPorKm.HasValue || precoPorKm.Value <= 0)
         {

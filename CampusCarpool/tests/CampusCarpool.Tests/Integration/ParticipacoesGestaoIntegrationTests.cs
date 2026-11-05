@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;

@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
@@ -100,12 +99,8 @@ public sealed class RotaGuardadaTests : IDisposable
 
     private Task<IActionResult> ConsultarRota()
     {
-        var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Custos:PrecoPorKm"] = "0.10" })
-            .Build();
-
         return ComUtilizador(
-            ServicosDeTeste.CriarRotasController(mapas.CriarServico(), new EstimativaCustoService(configuracao), db),
+            ServicosDeTeste.CriarRotasController(mapas.CriarServico(), ServicosDeTeste.CriarCustos(), db),
             condutor.Id).ConsultarRotaViagem(viagem.Id, default);
     }
 
