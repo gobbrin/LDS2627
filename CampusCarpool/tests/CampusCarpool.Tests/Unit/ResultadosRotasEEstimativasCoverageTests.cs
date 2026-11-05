@@ -1,4 +1,6 @@
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Rotas;
+using CampusCarpool.Domain.Entities;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using CampusCarpool.Api.Services;
+using CampusCarpool.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 

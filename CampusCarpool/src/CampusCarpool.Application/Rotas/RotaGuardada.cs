@@ -1,47 +1,7 @@
 using System.Text.Json;
+using CampusCarpool.Domain.Entities;
 
-namespace CampusCarpool.Api.Services;
-
-/// <summary>Tipos de ponto de uma rota.</summary>
-public static class TiposPontoRota
-{
-    /// <summary>Origem da viagem.</summary>
-    public const string Origem = "Origem";
-    /// <summary>Destino da viagem.</summary>
-    public const string DestinoViagem = "DestinoViagem";
-    /// <summary>Recolha de um passageiro.</summary>
-    public const string Recolha = "Recolha";
-    /// <summary>Destino de um passageiro.</summary>
-    public const string DestinoPassageiro = "DestinoPassageiro";
-}
-
-/// <summary>Ponto de uma rota.</summary>
-/// <param name="ParticipacaoId">Participação a que o ponto pertence; <c>null</c> na origem e no destino da viagem.</param>
-/// <param name="Tipo">Um dos valores de <see cref="TiposPontoRota"/>.</param>
-/// <param name="Local">Texto do local, tal como foi indicado.</param>
-/// <param name="Coordenadas">Coordenadas geocodificadas.</param>
-public sealed record PontoRota(
-    Guid? ParticipacaoId,
-    string Tipo,
-    string Local,
-    Coordenadas Coordenadas
-);
-
-/// <summary>Troço entre dois pontos consecutivos, com distância (km) e duração (min).</summary>
-public sealed record SegmentoRota(
-    PontoRota Origem,
-    PontoRota Destino,
-    decimal DistanciaKm,
-    int DuracaoMinutos
-);
-
-/// <summary>Rota completa: pontos por ordem, segmentos e totais (soma dos segmentos).</summary>
-public sealed record ResultadoRotaComPontos(
-    IReadOnlyList<PontoRota> PontosOrdenados,
-    IReadOnlyList<SegmentoRota> Segmentos,
-    decimal DistanciaTotalKm,
-    int DuracaoTotalMinutos
-);
+namespace CampusCarpool.Application.Rotas;
 
 /// <summary>Formato JSON da coluna <c>Viagem.RotaPontos</c> (modelo de dados: <c>rota_pontos</c>).</summary>
 /// <remarks>

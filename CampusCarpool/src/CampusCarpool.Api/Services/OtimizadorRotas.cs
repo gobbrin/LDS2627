@@ -1,3 +1,7 @@
+using CampusCarpool.Application.Rotas;
+
+using CampusCarpool.Domain.Entities;
+
 namespace CampusCarpool.Api.Services;
 
 /// <summary>Ordena os pontos de uma rota pela menor duração total, com a recolha antes do destino de cada passageiro.</summary>

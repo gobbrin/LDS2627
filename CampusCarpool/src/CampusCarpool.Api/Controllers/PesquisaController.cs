@@ -1,4 +1,5 @@
 using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;
 using CampusCarpool.Infrastructure.Persistence;

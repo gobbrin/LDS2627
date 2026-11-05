@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Services;
 using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;

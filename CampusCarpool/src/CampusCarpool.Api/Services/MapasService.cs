@@ -1,12 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
+using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Api.Services;
-
-/// <summary>Coordenadas geográficas em graus decimais (WGS 84).</summary>
-public sealed record Coordenadas(
-    decimal Latitude,
-    decimal Longitude);
 
 /// <summary>Rota entre dois pontos: distância em km (2 casas) e duração em minutos (arredondada para cima).</summary>
 public sealed record ResultadoRota(
