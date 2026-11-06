@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -124,10 +125,15 @@ public sealed class TerminarSessaoHttpTests : IDisposable
     public async Task I110_45_LimiteGlobal_Devolve429AoCentesimoPrimeiroPedidoDoUtilizador()
     {
         var token = await IniciarSessaoAsync();
+        var respostas = new ConcurrentBag<HttpStatusCode>();
 
-        for (var i = 0; i < 100; i++)
-            Assert.Equal(HttpStatusCode.OK, await EnviarAsync(HttpMethod.Get, "/api/v1/autenticacao/me", token));
+        // Em paralelo, para caber na janela de um minuto: em série, com SQL Server na CI, demorava mais do que isso.
+        await Parallel.ForEachAsync(
+            Enumerable.Range(0, 100),
+            new ParallelOptions { MaxDegreeOfParallelism = 16 },
+            async (_, _) => respostas.Add(await EnviarAsync(HttpMethod.Get, "/api/v1/autenticacao/me", token)));
 
+        Assert.Equal(100, respostas.Count(estado => estado == HttpStatusCode.OK));
         Assert.Equal((HttpStatusCode)429, await EnviarAsync(HttpMethod.Get, "/api/v1/autenticacao/me", token));
     }
 
