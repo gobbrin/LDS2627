@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -99,6 +98,6 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
         using var comNovo = await ConfirmarAsync(cliente, novo);
 
         Assert.Equal(HttpStatusCode.NoContent, comNovo.StatusCode);
-        Assert.True(await _app.NaBaseDeDados(db => db.Utilizadores.AnyAsync(u => u.Email == Email && u.EmailConfirmado)));
+        Assert.True(_app.NaBaseDeDados(db => db.Utilizadores.Any(u => u.Email == Email && u.EmailConfirmado)));
     }
 }
