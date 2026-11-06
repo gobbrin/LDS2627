@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Abstractions.Persistence;
 
@@ -12,6 +13,9 @@ public interface IRepositorioViagens
     /// A implementação deve permitir atualizar a entidade obtida.
     /// </summary>
     Task<Viagem?> ObterPorIdAsync(Guid viagemId, CancellationToken ct);
+
+    /// <summary>Lê o estado atual na BD, mesmo que a viagem já esteja carregada no pedido; <c>null</c> se não existir.</summary>
+    Task<EstadoViagem?> ObterEstadoAsync(Guid viagemId, CancellationToken ct);
 
     /// <summary>Lista as viagens ativas cuja partida já passou, só com o necessário para ver se terminaram.</summary>
     /// <param name="agora">Momento de referência (UTC).</param>

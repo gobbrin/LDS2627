@@ -29,10 +29,23 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
             await db.SaveChangesAsync(ct);
             return true;
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            return false;
+        }
         catch (DbUpdateException)
         {
-            // Por exemplo, o índice único do par recusa o segundo de dois pedidos simultâneos.
-            return false;
+            // O índice único do par recusa o segundo de dois pedidos simultâneos. Qualquer outra recusa é uma falha real
+            // e segue para o GlobalExceptionHandler.
+            db.Entry(avaliacao).State = EntityState.Detached;
+
+            if (await db.Avaliacoes.AsNoTracking().AnyAsync(
+                a => a.AvaliadorId == avaliacao.AvaliadorId && a.AvaliadoId == avaliacao.AvaliadoId, ct))
+            {
+                return false;
+            }
+
+            throw;
         }
     }
     /// <inheritdoc />

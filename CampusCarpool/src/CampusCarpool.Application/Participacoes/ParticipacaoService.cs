@@ -151,6 +151,11 @@ public sealed class ParticipacaoService(
         if (pontos.Erro is { } erroMapas)
             return erroMapas;
 
+        // Os mapas podem demorar até 20 s e a gravação do pedido não toca na linha da viagem, por isso Versao não
+        // deteta a mudança. Sem isto, o pedido ficaria Pendente para sempre numa viagem já terminada.
+        if (await repositorioViagens.ObterEstadoAsync(viagem.Id, ct) != EstadoViagem.Ativa)
+            return new Erro(TipoErro.Conflito, "Viagem indisponível.");
+
         // As mesmas regras, agora pelas coordenadas. Um ponto omitido usa as coordenadas da viagem (P-20).
         var origemViagem = new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
         var destinoViagem = new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);

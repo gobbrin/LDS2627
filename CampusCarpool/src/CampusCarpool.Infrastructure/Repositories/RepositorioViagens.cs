@@ -23,6 +23,15 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
     }
 
     /// <inheritdoc />
+    public async Task<EstadoViagem?> ObterEstadoAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Viagens.AsNoTracking()
+            .Where(v => v.Id == viagemId)
+            .Select(v => (EstadoViagem?)v.Estado)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct)
     {
         return await context.Viagens

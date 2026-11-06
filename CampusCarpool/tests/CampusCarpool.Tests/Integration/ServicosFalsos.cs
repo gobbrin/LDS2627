@@ -224,7 +224,13 @@ public static class ServicosDeTeste
         CampusCarpoolDbContext db,
         IConfiguration configuracao,
         IServicoEmail email) =>
-        new(new AutenticacaoService(
+        new(CriarAutenticacaoService(db, configuracao, email));
+
+    public static AutenticacaoService CriarAutenticacaoService(
+        CampusCarpoolDbContext db,
+        IConfiguration configuracao,
+        IServicoEmail email) =>
+        new(
             new RepositorioUtilizadores(db),
             new RepositorioConfirmacoesConta(db),
             new RepositorioTokensRevogados(db),
@@ -234,7 +240,7 @@ public static class ServicosDeTeste
             new HashPalavraPasse(),
             new GeradorTokensJwt(configuracao),
             CriarValidadorEmail(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<AutenticacaoService>.Instance));
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AutenticacaoService>.Instance);
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,
@@ -266,6 +272,9 @@ public sealed class MapasFalsos : HttpMessageHandler
     public double MetrosPorSegmento { get; set; } = 1000;
     public double SegundosPorSegmento { get; set; } = 120;
     public Func<int, int, double>? Duracao { get; set; }
+
+    /// <summary>Executado em cada geocodificação, para mudar a BD enquanto um pedido espera pelos mapas.</summary>
+    public Action? AntesDeGeocodificar { get; set; }
     public Dictionary<string, (double Latitude, double Longitude)> Locais { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Cria o cliente de mapas que usa este simulador.</summary>
@@ -295,6 +304,7 @@ public sealed class MapasFalsos : HttpMessageHandler
         if (caminho.Contains("/pelias/v1/search", StringComparison.OrdinalIgnoreCase))
         {
             ChamadasGeocodificacao++;
+            AntesDeGeocodificar?.Invoke();
             var query = Uri.UnescapeDataString(request.RequestUri.Query);
             var inicio = query.IndexOf("text=", StringComparison.Ordinal) + 5;
             var (latitude, longitude) = Coordenadas(query[inicio..].Split('&')[0].Replace('+', ' '));

@@ -16,7 +16,7 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     public async Task<IActionResult> Listar([FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken ct = default)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
-        if (pagina < 1 || tamanhoPagina is < 1 or > 100)
+        if (pagina < 1 || tamanhoPagina is < 1 or > 100 || (long)(pagina - 1) * tamanhoPagina > int.MaxValue)
             return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Parâmetros de paginação inválidos."));
         return Ok(await notificacaoService.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct));
     }
