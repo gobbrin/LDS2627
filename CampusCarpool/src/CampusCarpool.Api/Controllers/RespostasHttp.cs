@@ -15,19 +15,19 @@ internal static class RespostasHttp
     public static IActionResult Responder(this ControllerBase controller, Resultado resultado, Func<IActionResult> sucesso) =>
         resultado.Erro is { } erro ? controller.RespostaDeErro(erro) : sucesso();
 
-    /// <summary>Resposta de um erro: com corpo <c>{ erro }</c> se tiver mensagem, sem corpo se não tiver.</summary>
+    /// <summary>Resposta de um erro, sempre com o corpo <c>{ erro }</c> (RNF-USA-02).</summary>
     public static IActionResult RespostaDeErro(this ControllerBase controller, Erro erro)
     {
-        var corpo = erro.Mensagem is null ? null : new CorpoErro(erro.Mensagem);
+        var corpo = new CorpoErro(erro.Mensagem);
 
         return erro.Tipo switch
         {
-            TipoErro.DadosInvalidos => corpo is null ? controller.BadRequest() : controller.BadRequest(corpo),
-            TipoErro.NaoAutenticado => corpo is null ? controller.Unauthorized() : controller.Unauthorized(corpo),
-            TipoErro.Proibido => corpo is null ? controller.Forbid() : controller.StatusCode(StatusCodes.Status403Forbidden, corpo),
-            TipoErro.NaoEncontrado => corpo is null ? controller.NotFound() : controller.NotFound(corpo),
-            TipoErro.Conflito => corpo is null ? controller.Conflict() : controller.Conflict(corpo),
-            TipoErro.NaoProcessavel => corpo is null ? controller.UnprocessableEntity() : controller.UnprocessableEntity(corpo),
+            TipoErro.DadosInvalidos => controller.BadRequest(corpo),
+            TipoErro.NaoAutenticado => controller.Unauthorized(corpo),
+            TipoErro.Proibido => controller.StatusCode(StatusCodes.Status403Forbidden, corpo),
+            TipoErro.NaoEncontrado => controller.NotFound(corpo),
+            TipoErro.Conflito => controller.Conflict(corpo),
+            TipoErro.NaoProcessavel => controller.UnprocessableEntity(corpo),
             TipoErro.FalhaServicoExterno => controller.StatusCode(StatusCodes.Status502BadGateway, corpo),
             TipoErro.ServicoIndisponivel => controller.StatusCode(StatusCodes.Status503ServiceUnavailable, corpo),
             TipoErro.TempoEsgotado => controller.StatusCode(StatusCodes.Status504GatewayTimeout, corpo),

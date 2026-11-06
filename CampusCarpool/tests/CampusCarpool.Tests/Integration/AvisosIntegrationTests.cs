@@ -184,7 +184,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Criar(
             viagem.Id, new("Mensagem não autorizada"), default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -198,7 +198,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id).Criar(
             Guid.NewGuid(), new("Mensagem"), default);
 
-        Assert.IsType<NotFoundResult>(resultado);
+        Assert.IsType<NotFoundObjectResult>(resultado);
         Assert.Empty(f.Db.Avisos);
     }
 
@@ -277,7 +277,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, passageiro.Id).Listar(viagem.Id, default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
     }
 
     [Fact]
@@ -290,7 +290,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Listar(viagem.Id, default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
     }
 
     [Fact]
@@ -399,7 +399,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarNotificacoesController(f.Db, utilizador.Id)
             .MarcarComoLida(notificacao.Id, default);
 
-        Assert.IsType<NotFoundResult>(resultado);
+        Assert.IsType<NotFoundObjectResult>(resultado);
         Assert.Null((await f.Db.Notificacoes.FindAsync(notificacao.Id))!.LidaEm);
     }
 

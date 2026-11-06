@@ -25,8 +25,8 @@ public enum TipoErro
 
 /// <summary>Erro previsto de uma operação.</summary>
 /// <param name="Tipo">Motivo.</param>
-/// <param name="Mensagem">Texto para o cliente; sem ele, a resposta HTTP não tem corpo.</param>
-public sealed record Erro(TipoErro Tipo, string? Mensagem = null);
+/// <param name="Mensagem">Texto para o utilizador, com a causa e, quando existe, como a corrigir (RNF-USA-02).</param>
+public sealed record Erro(TipoErro Tipo, string Mensagem);
 
 /// <summary>Resultado de uma operação sem valor a devolver: sucesso ou um <see cref="Comum.Erro"/>.</summary>
 /// <remarks>

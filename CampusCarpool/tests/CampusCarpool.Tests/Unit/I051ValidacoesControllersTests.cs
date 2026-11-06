@@ -49,7 +49,7 @@ public sealed class I051ValidacoesControllersTests
     {
         var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.IniciarSessao(new AutenticacaoController.Login(email, password), default);
-        Assert.IsType<UnauthorizedResult>(result);
+        Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public sealed class I051ValidacoesControllersTests
     public async Task F001_ConfirmacaoSemToken_Devolve400()
     {
         var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
-        Assert.IsType<BadRequestResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
+        Assert.IsType<BadRequestObjectResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resultado = await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), CancellationToken.None);
 
-        Assert.IsType<BadRequestResult>(resultado);
+        Assert.IsType<BadRequestObjectResult>(resultado);
         Assert.False(utilizador.EmailConfirmado);
         Assert.Null(confirmacao.ConsumidoEm);
     }

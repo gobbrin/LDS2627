@@ -31,7 +31,7 @@ public sealed class ConsultaRotasService(
             async () =>
             {
                 var resultado = await mapas.GeocodificarAsync(texto, ct);
-                return resultado is null ? new Erro(TipoErro.NaoEncontrado) : resultado;
+                return resultado is null ? new Erro(TipoErro.NaoEncontrado, "Local não encontrado.") : resultado;
             },
             FalhaServicoExterno,
             TempoExcedido,

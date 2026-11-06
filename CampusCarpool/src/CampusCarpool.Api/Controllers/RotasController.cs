@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Rotas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,8 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     [HttpGet("geocodificar")]
     public async Task<IActionResult> Geocodificar([FromQuery] string texto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(texto)) return BadRequest();
+        if (string.IsNullOrWhiteSpace(texto))
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica o local a procurar."));
 
         return this.Responder(await rotas.GeocodificarAsync(texto, ct), coordenadas => Ok(coordenadas));
     }
@@ -30,7 +32,7 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     public async Task<IActionResult> Calcular(Pedido input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Origem) || string.IsNullOrWhiteSpace(input.Destino))
-            return BadRequest();
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica a origem e o destino."));
 
         return this.Responder(await rotas.CalcularAsync(input.Origem, input.Destino, ct), rota => Ok(rota));
     }

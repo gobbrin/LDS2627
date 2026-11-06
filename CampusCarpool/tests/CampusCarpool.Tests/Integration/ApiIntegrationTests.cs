@@ -146,7 +146,7 @@ public sealed class ApiIntegrationTests
         var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
-        Assert.IsType<NotFoundResult>(await controller.Consultar(Guid.NewGuid(), default));
+        Assert.IsType<NotFoundObjectResult>(await controller.Consultar(Guid.NewGuid(), default));
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class ApiIntegrationTests
         var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
-        Assert.IsType<ForbidResult>(await controller.Editar(trip.Id,
+        RespostaEsperada.Proibido(await controller.Editar(trip.Id,
             new(DateTime.UtcNow.AddDays(3), 4), default));
     }
 
@@ -240,7 +240,7 @@ public sealed class MapasAndValidationTests
 
         var controller = ServicosDeTeste.CriarRotasController(service, ServicosDeTeste.CriarCustos());
 
-        Assert.IsType<BadRequestResult>(await controller.Geocodificar(" ", default));
+        Assert.IsType<BadRequestObjectResult>(await controller.Geocodificar(" ", default));
     }
 
     [Fact]

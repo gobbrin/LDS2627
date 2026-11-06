@@ -27,8 +27,8 @@ public sealed class ViagemService(
     private const string TempoExcedido = "Tempo de resposta dos mapas excedido.";
 
     private static readonly Erro DadosInvalidos = new(TipoErro.DadosInvalidos, "Dados de viagem inválidos.");
-    private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado);
-    private static readonly Erro Proibido = new(TipoErro.Proibido);
+    private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado, "Viagem não encontrada.");
+    private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para gerir esta viagem.");
     private static readonly Erro LocalNaoEncontrado = new(TipoErro.NaoProcessavel, "Origem ou destino não encontrado.");
     private static readonly Erro RotaNaoCalculada = new(TipoErro.NaoProcessavel, "Não foi possível calcular a rota.");
     private static readonly Erro MesmoLocal = new(TipoErro.DadosInvalidos, "A origem e o destino não podem ser o mesmo local.");
@@ -279,7 +279,7 @@ public sealed class ViagemService(
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
         if (viagem is null) return NaoEncontrada;
         if (viagem.CondutorId != utilizadorId) return Proibido;
-        if (!viagem.EstaAtiva) return new Erro(TipoErro.Conflito);
+        if (!viagem.EstaAtiva) return new Erro(TipoErro.Conflito, "A viagem já não está ativa.");
 
         viagem.Indisponibilizar();
 
@@ -316,7 +316,7 @@ public sealed class ViagemService(
         var agora = DateTime.UtcNow;
 
         if (!viagem.PodeConcluir(agora))
-            return new Erro(TipoErro.Conflito);
+            return new Erro(TipoErro.Conflito, "A viagem só pode ser concluída depois da partida e enquanto estiver ativa.");
 
         viagem.Concluir(agora);
 

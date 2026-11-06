@@ -23,8 +23,8 @@ public sealed class AvisoService(
     // P-28 (100 caracteres); o mesmo limite está no DbContext (HasMaxLength(100)).
     private const int TamanhoMaximoConteudo = 100;
 
-    private static readonly Erro ViagemNaoEncontrada = new(TipoErro.NaoEncontrado);
-    private static readonly Erro Proibido = new(TipoErro.Proibido);
+    private static readonly Erro ViagemNaoEncontrada = new(TipoErro.NaoEncontrado, "Viagem não encontrada.");
+    private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para aceder aos avisos desta viagem.");
 
     /// <inheritdoc />
     public async Task<Resultado<AvisoCriado>> CriarAsync(

@@ -39,9 +39,9 @@ public sealed class ParticipacaoService(
         "A recolha e o destino não podem ser o mesmo local, a recolha não pode ser o destino da viagem e o destino não pode ser a origem da viagem.";
 
     private static readonly Erro PontosIncompativeisErro = new(TipoErro.DadosInvalidos, MensagemPontosIncompativeis);
-    private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado);
-    private static readonly Erro Proibido = new(TipoErro.Proibido);
-    private static readonly Erro EstadoNaoPermite = new(TipoErro.Conflito);
+    private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado, "Pedido não encontrado.");
+    private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para gerir este pedido.");
+    private static readonly Erro EstadoNaoPermite = new(TipoErro.Conflito, "O estado atual do pedido não permite esta operação.");
     private static readonly Erro SemCapacidade = new(TipoErro.Conflito, "Sem lugares disponíveis.");
     private static readonly Erro LugaresInconsistentes = new(TipoErro.Conflito, "A capacidade da viagem está inconsistente.");
     private static readonly Erro RotaIndisponivel = new(
@@ -72,7 +72,7 @@ public sealed class ParticipacaoService(
     {
         // Confirmar que o passageiro tem uma conta validada.
         if (!await repositorioUtilizadores.ContaConfirmadaAsync(passageiroId, ct))
-            return new Erro(TipoErro.Proibido);
+            return new Erro(TipoErro.Proibido, "Confirma a tua conta antes de pedir participação numa viagem.");
 
         // A viagem deve existir, estar ativa e ainda não ter começado.
         var viagem = await repositorioViagens.ObterPorIdAsync(viagemId, ct);
@@ -215,7 +215,7 @@ public sealed class ParticipacaoService(
             return new Erro(TipoErro.NaoEncontrado, "Viagem não encontrada.");
 
         if (viagem.CondutorId != utilizadorId)
-            return new Erro(TipoErro.Proibido);
+            return new Erro(TipoErro.Proibido, "Só o condutor da viagem pode simular este pedido.");
 
         // A simulação antecede a decisão (RF-F004-09), por isso segue a mesma regra da aceitação (RF-F004-10).
         if (!viagem.EstaAtiva)

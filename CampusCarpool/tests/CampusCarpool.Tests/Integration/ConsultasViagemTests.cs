@@ -87,7 +87,7 @@ public sealed class ConsultasViagemTests : IDisposable
     {
         var viagem = await CriarViagem(estado, lugares);
 
-        Assert.IsType<NotFoundResult>(await Controller(outro.Id).Consultar(viagem.Id, default));
+        Assert.IsType<NotFoundObjectResult>(await Controller(outro.Id).Consultar(viagem.Id, default));
         Assert.IsType<OkObjectResult>(await Controller(condutor.Id).Consultar(viagem.Id, default));
         Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).Consultar(viagem.Id, default));
         Assert.IsType<OkObjectResult>(await Controller(pendente.Id).Consultar(viagem.Id, default));
@@ -147,9 +147,9 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal("Maia", Campo<string>(passageiroListado, "Recolha"));
 
         Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).ListarPassageiros(viagem.Id, default));
-        Assert.IsType<ForbidResult>(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default));
-        Assert.IsType<ForbidResult>(await Controller(outro.Id).ListarPassageiros(viagem.Id, default));
-        Assert.IsType<NotFoundResult>(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default));
+        RespostaEsperada.Proibido(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default));
+        RespostaEsperada.Proibido(await Controller(outro.Id).ListarPassageiros(viagem.Id, default));
+        Assert.IsType<NotFoundObjectResult>(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default));
     }
 
     [Fact]
@@ -163,8 +163,8 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal("Pendente", Campo<string>(pedido, "Nome"));
         Assert.Equal("Trofa", Campo<string>(pedido, "Destino"));
 
-        Assert.IsType<ForbidResult>(await Controller(passageiro.Id).ListarPedidosPendentes(viagem.Id, default));
-        Assert.IsType<NotFoundResult>(await Controller(condutor.Id).ListarPedidosPendentes(Guid.NewGuid(), default));
+        RespostaEsperada.Proibido(await Controller(passageiro.Id).ListarPedidosPendentes(viagem.Id, default));
+        Assert.IsType<NotFoundObjectResult>(await Controller(condutor.Id).ListarPedidosPendentes(Guid.NewGuid(), default));
     }
 
     [Fact]

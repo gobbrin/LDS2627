@@ -88,7 +88,7 @@ public sealed class EndpointsAdditionalTests
     public async Task LoginSemCredenciais_Devolve401()
     {
         using var f = new Fixture();
-        Assert.IsType<UnauthorizedResult>(await AuthController(f).IniciarSessao(new("", ""), default));
+        Assert.IsType<UnauthorizedObjectResult>(await AuthController(f).IniciarSessao(new("", ""), default));
     }
     [Fact]
     public async Task LoginContaNaoConfirmada_Devolve403()
@@ -103,7 +103,7 @@ public sealed class EndpointsAdditionalTests
     public async Task ConfirmarTokenVazio_Devolve400()
     {
         using var f = new Fixture();
-        Assert.IsType<BadRequestResult>(await AuthController(f).ConfirmarConta(new(" "), default));
+        Assert.IsType<BadRequestObjectResult>(await AuthController(f).ConfirmarConta(new(" "), default));
     }
     [Fact]
     public async Task ReenviarConfirmacaoEmailVazio_Devolve400()
@@ -162,7 +162,7 @@ public sealed class EndpointsAdditionalTests
     public async Task CriarViagemContaNaoConfirmada_Devolve403()
     {
         using var f = new Fixture(); var u = await f.User(confirmed: false); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ForbidResult>(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
+        RespostaEsperada.Proibido(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
     }
     [Theory]
     [InlineData("Porto", "Porto", 2)]
@@ -192,7 +192,7 @@ public sealed class EndpointsAdditionalTests
     public async Task EditarViagemInexistente_Devolve404()
     {
         using var f = new Fixture(); var u = await f.User(); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<NotFoundResult>(await c.Editar(Guid.NewGuid(),
+        Assert.IsType<NotFoundObjectResult>(await c.Editar(Guid.NewGuid(),
             new(DateTime.UtcNow.AddDays(3), 3), default));
     }
     [Fact]
@@ -250,14 +250,14 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, Guid.NewGuid());
-        Assert.IsType<ForbidResult>(await c.Indisponibilizar(v.Id, default));
+        RespostaEsperada.Proibido(await c.Indisponibilizar(v.Id, default));
     }
     [Fact]
     public async Task ConcluirViagemFutura_Devolve409()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ConflictResult>(await c.Concluir(v.Id, default));
+        Assert.IsType<ConflictObjectResult>(await c.Concluir(v.Id, default));
     }
     [Fact]
     public async Task ConcluirViagemPassada_AlteraEstado()
@@ -303,6 +303,6 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task CalcularOrigemVazia_Devolve400()
     {
-        Assert.IsType<BadRequestResult>(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
+        Assert.IsType<BadRequestObjectResult>(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
     }
 }

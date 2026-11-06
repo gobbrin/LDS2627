@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CampusCarpool.Api.Configuration;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +57,8 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     [HttpPost("confirmar")]
     public async Task<IActionResult> ConfirmarConta(Confirmar input, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Token)) return BadRequest();
+        if (string.IsNullOrWhiteSpace(input.Token))
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Ligação de confirmação inválida. Pede uma nova ligação."));
 
         return this.Responder(await autenticacao.ConfirmarContaAsync(input.Token, ct), () => NoContent());
     }
@@ -73,7 +75,8 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     [HttpPost("login"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> IniciarSessao(Login input, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password))
+            return this.RespostaDeErro(new Erro(TipoErro.NaoAutenticado, "Credenciais inválidas."));
 
         return this.Responder(
             await autenticacao.IniciarSessaoAsync(input.Email, input.Password, ct),

@@ -159,9 +159,9 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_02_ApenasCondutorPodeSimular()
     {
         using var f = new Fixture();
-        Assert.IsType<ForbidResult>(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
+        RespostaEsperada.Proibido(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.IsType<ForbidResult>(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
+        RespostaEsperada.Proibido(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
     }
 

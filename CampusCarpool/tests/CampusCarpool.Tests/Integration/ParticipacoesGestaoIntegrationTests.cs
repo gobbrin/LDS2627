@@ -282,7 +282,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, passageiro.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ConflictResult>(resultado);
+        Assert.IsType<ConflictObjectResult>(resultado);
         Assert.Equal(EstadoParticipacao.Aceite, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
         Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
@@ -319,7 +319,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, condutor.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
         Assert.Equal(estado, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
@@ -374,9 +374,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var rejeitar = await CriarController(f.Db, outroUtilizador.Id).Rejeitar(participacao.Id, default);
         var cancelar = await CriarController(f.Db, outroUtilizador.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ForbidResult>(aceitar);
-        Assert.IsType<ForbidResult>(rejeitar);
-        Assert.IsType<ForbidResult>(cancelar);
+        RespostaEsperada.Proibido(aceitar);
+        RespostaEsperada.Proibido(rejeitar);
+        RespostaEsperada.Proibido(cancelar);
         Assert.Equal(EstadoParticipacao.Pendente, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
@@ -391,8 +391,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
         var controller = CriarController(f.Db, passageiro.Id);
 
-        Assert.IsType<ForbidResult>(await controller.Aceitar(participacao.Id, default));
-        Assert.IsType<ForbidResult>(await controller.Rejeitar(participacao.Id, default));
+        RespostaEsperada.Proibido(await controller.Aceitar(participacao.Id, default));
+        RespostaEsperada.Proibido(await controller.Rejeitar(participacao.Id, default));
     }
 
     [Fact]
@@ -410,11 +410,11 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var cancelada = await f.CriarParticipacao(viagem.Id, passageiroCancelado.Id, EstadoParticipacao.Cancelada);
         var controller = CriarController(f.Db, condutor.Id);
 
-        Assert.IsType<ConflictResult>(await controller.Aceitar(aceite.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Rejeitar(aceite.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Aceitar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(aceite.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Rejeitar(aceite.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(rejeitada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default));
     }
 
     [Fact]

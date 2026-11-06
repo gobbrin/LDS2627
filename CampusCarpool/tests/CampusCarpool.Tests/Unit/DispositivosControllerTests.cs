@@ -185,7 +185,7 @@ public sealed class DispositivosControllerTests
             new DispositivosController.TokenDispositivo("   "),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestResult>(resposta);
+        Assert.IsType<BadRequestObjectResult>(resposta);
         Assert.Equal(0, repositorio.Remocoes);
     }
 

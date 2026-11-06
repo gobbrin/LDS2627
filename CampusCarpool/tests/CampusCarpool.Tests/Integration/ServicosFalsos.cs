@@ -122,6 +122,18 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
 }
 
 /// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
+/// <summary>Verificações de respostas devolvidas diretamente por um controller.</summary>
+public static class RespostaEsperada
+{
+    /// <summary>A resposta é 403 e diz o motivo no corpo <c>{ erro }</c>.</summary>
+    public static void Proibido(Microsoft.AspNetCore.Mvc.IActionResult resposta)
+    {
+        var resultado = Xunit.Assert.IsType<Microsoft.AspNetCore.Mvc.ObjectResult>(resposta);
+        Xunit.Assert.Equal(403, resultado.StatusCode);
+        Xunit.Assert.IsType<CampusCarpool.Api.Controllers.CorpoErro>(resultado.Value);
+    }
+}
+
 public static class ServicosDeTeste
 {
     public static ConsultaViagensService CriarConsultas(CampusCarpoolDbContext db) => new(

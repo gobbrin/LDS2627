@@ -157,7 +157,7 @@ public sealed class AutenticacaoService(
         var utilizador = await utilizadores.ObterParaAlterarAsync(confirmacao.UtilizadorId, ct);
 
         if (utilizador is null)
-            return new Erro(TipoErro.NaoEncontrado);
+            return new Erro(TipoErro.NaoEncontrado, "A conta desta ligação já não existe.");
 
         utilizador.Confirmar();
         confirmacao.Utilizar(agora);

@@ -286,7 +286,7 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(Guid.NewGuid(), null, null),
             default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
     }
 
     [Fact]

@@ -23,7 +23,7 @@ public sealed class DispositivoService(IRepositorioDispositivos dispositivos) : 
     public async Task<Resultado> DesativarAsync(Guid utilizadorId, string token, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(token))
-            return new Erro(TipoErro.DadosInvalidos);
+            return new Erro(TipoErro.DadosInvalidos, "Token FCM em falta.");
 
         await dispositivos.DesativarAsync(utilizadorId, token.Trim(), ct);
 

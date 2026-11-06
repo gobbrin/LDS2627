@@ -102,7 +102,7 @@ public sealed class NotificacaoService(
         var notificacao = await repositorioNotificacoes.ObterAsync(notificacaoId, utilizadorId, ct);
 
         if (notificacao is null)
-            return new Erro(TipoErro.NaoEncontrado);
+            return new Erro(TipoErro.NaoEncontrado, "Notificação não encontrada.");
 
         notificacao.MarcarComoLida(DateTime.UtcNow);
 
