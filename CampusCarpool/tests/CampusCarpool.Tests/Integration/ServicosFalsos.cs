@@ -124,7 +124,8 @@ public static class ServicosDeTeste
         new RepositorioUtilizadores(db),
         new RepositorioAvaliacoes(db));
 
-    public static PesquisaController CriarPesquisaController(CampusCarpoolDbContext db) => new(db, CriarConsultas(db));
+    public static PesquisaController CriarPesquisaController(CampusCarpoolDbContext db) =>
+        new(new PesquisaService(new RepositorioViagens(db), CriarConsultas(db)));
 
     public static HistoricoService CriarHistorico(CampusCarpoolDbContext db) => new(new RepositorioHistorico(db));
 

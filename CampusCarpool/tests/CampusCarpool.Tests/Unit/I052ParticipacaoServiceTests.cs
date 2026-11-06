@@ -137,6 +137,7 @@ public sealed class I052ParticipacaoServiceTests
         public Viagem? Item { get; set; }
         public Task<Viagem?> ObterPorIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Item?.Id == id ? Item : null);
         public Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct) => Task.FromResult<IReadOnlyList<ViagemEmCurso>>(Array.Empty<ViagemEmCurso>());
+        public Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct) => throw new NotSupportedException();
     }
     private sealed class TrabalhoFake : IUnidadeDeTrabalho
     {

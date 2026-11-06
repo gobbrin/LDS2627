@@ -144,7 +144,7 @@ public sealed class I051ValidacoesControllersTests
     [InlineData(-1, 20)]
     public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho)
     {
-        var controller = new PesquisaController(null!, null!);
+        var controller = new PesquisaController(null!);
         var result = await controller.Pesquisar(null, null, null, null, pagina, tamanho);
         Assert.IsType<BadRequestObjectResult>(result);
     }
