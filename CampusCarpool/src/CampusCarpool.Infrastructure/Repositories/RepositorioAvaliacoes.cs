@@ -1,6 +1,7 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Exceptions;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Infrastructure.Repositories;
@@ -23,7 +24,17 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
     {
         // Uma entidade "Detached" é nova; uma obtida por ObterPorParAsync já está rastreada e só é gravada.
         if (db.Entry(avaliacao).State == EntityState.Detached) db.Avaliacoes.Add(avaliacao);
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Por exemplo, o índice único do par recusa o segundo de dois pedidos simultâneos.
+            throw new RegraDeNegocioException("Não foi possível gravar a avaliação.", ex);
+        }
+
         return avaliacao;
     }
     /// <inheritdoc />

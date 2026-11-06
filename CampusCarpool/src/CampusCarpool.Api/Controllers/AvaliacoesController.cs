@@ -1,15 +1,15 @@
 using System.Security.Claims;
 using CampusCarpool.Application.Avaliacoes;
+using CampusCarpool.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Avaliações entre participantes (F007). Rotas em <c>/api/v1/avaliacoes</c>.</summary>
 /// <remarks>
 /// As regras estão no <see cref="IAvaliacaoService"/>; aqui converte-se o tipo de exceção em código HTTP:
 /// <see cref="ArgumentException"/> → 400, <see cref="KeyNotFoundException"/> → 404,
-/// <see cref="InvalidOperationException"/> → 409 e <see cref="DbUpdateException"/> (índice único) → 409.
+/// <see cref="InvalidOperationException"/> → 409 e <see cref="RegraDeNegocioException"/> (a BD recusou a gravação) → 409.
 /// </remarks>
 [ApiController, Authorize, Route("api/v1/avaliacoes")]
 public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : ControllerBase
@@ -27,7 +27,7 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
         catch (ArgumentException ex) { return BadRequest(new { erro = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { erro = ex.Message }); }
         catch (InvalidOperationException ex) { return Conflict(new { erro = ex.Message }); }
-        catch (DbUpdateException) { return Conflict(new { erro = "Não foi possível registar a avaliação; poderá já existir." }); }
+        catch (RegraDeNegocioException) { return Conflict(new { erro = "Não foi possível registar a avaliação; poderá já existir." }); }
     }
     /// <summary>Altera a avaliação do utilizador autenticado sobre <paramref name="avaliadoId"/> (RF-F007-05). 200; 400; 401; 404; 409.</summary>
     [HttpPut("utilizadores/{avaliadoId:guid}")]
@@ -37,7 +37,7 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
         try { return Ok(await avaliacoes.AlterarAsync(id.Value, avaliadoId, pedido.Classificacao, ct)); }
         catch (ArgumentException ex) { return BadRequest(new { erro = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { erro = ex.Message }); }
-        catch (DbUpdateException) { return Conflict(new { erro = "Não foi possível alterar a avaliação." }); }
+        catch (RegraDeNegocioException) { return Conflict(new { erro = "Não foi possível alterar a avaliação." }); }
     }
     /// <summary>Avaliações recebidas por um utilizador, sem o autor, e a média (RF-F007-07, RF-F007-11). 200; 401; 404.</summary>
     [HttpGet("utilizadores/{utilizadorId:guid}")]

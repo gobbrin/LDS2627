@@ -14,6 +14,7 @@ public interface IRepositorioAvaliacoes
     /// <summary>Obtém a avaliação atual do par (avaliador, avaliado), em qualquer viagem (RF-F007-04); fica rastreada para ser alterada.</summary>
     Task<Avaliacao?> ObterPorParAsync(Guid avaliadorId, Guid avaliadoId, CancellationToken ct);
     /// <summary>Insere a avaliação, se for nova, e grava as alterações.</summary>
+    /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">A BD recusou a gravação.</exception>
     Task<Avaliacao> GuardarAsync(Avaliacao avaliacao, CancellationToken ct);
     /// <summary>Lista as avaliações recebidas pelo utilizador, das mais recentes para as mais antigas.</summary>
     Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct);
