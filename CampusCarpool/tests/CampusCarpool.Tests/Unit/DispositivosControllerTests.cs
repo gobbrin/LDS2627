@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -67,7 +68,7 @@ public sealed class DispositivosControllerTests
             }
             : Array.Empty<Claim>();
 
-        var controller = new DispositivosController(repositorio)
+        var controller = new DispositivosController(new DispositivoService(repositorio))
         {
             ControllerContext = new ControllerContext
             {

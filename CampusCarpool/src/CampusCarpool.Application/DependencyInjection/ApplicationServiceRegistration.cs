@@ -27,6 +27,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IHistoricoService, HistoricoService>();
         services.AddScoped<IPerfilService, PerfilService>();
         services.AddScoped<IAutenticacaoService, AutenticacaoService>();
+        services.AddScoped<IDispositivoService, DispositivoService>();
         services.AddSingleton<ValidadorEmailAcademico>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();

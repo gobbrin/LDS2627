@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace CampusCarpool.Api.Controllers;
@@ -10,7 +10,7 @@ namespace CampusCarpool.Api.Controllers;
 /// em <c>POST /autenticacao/logout</c>, que desativa o dispositivo (RF-F006-18); o <c>DELETE</c> também o desativa.
 /// </remarks>
 [ApiController, Authorize, Route("api/v1/dispositivos")]
-public sealed class DispositivosController(IRepositorioDispositivos repositorio) : ControllerBase
+public sealed class DispositivosController(IDispositivoService dispositivos) : ControllerBase
 {
     /// <summary>Corpo dos pedidos: o token FCM do dispositivo.</summary>
     public sealed record TokenDispositivo(string Token);
@@ -21,18 +21,15 @@ public sealed class DispositivosController(IRepositorioDispositivos repositorio)
     public async Task<IActionResult> Registar([FromBody] TokenDispositivo input, CancellationToken ct)
     {
         if (UtilizadorId is not Guid id) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(input.Token) || input.Token.Length > 4096)
-            return BadRequest(new { erro = "Token FCM inválido." });
-        await repositorio.RegistarAsync(id, input.Token.Trim(), ct);
-        return NoContent();
+
+        return this.Responder(await dispositivos.RegistarAsync(id, input.Token, ct), () => NoContent());
     }
     /// <summary>Desativa o dispositivo (deixa de receber push). 204 mesmo que o token não exista; 400; 401.</summary>
     [HttpDelete]
     public async Task<IActionResult> Remover([FromBody] TokenDispositivo input, CancellationToken ct)
     {
         if (UtilizadorId is not Guid id) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(input.Token)) return BadRequest();
-        await repositorio.DesativarAsync(id, input.Token.Trim(), ct);
-        return NoContent();
+
+        return this.Responder(await dispositivos.DesativarAsync(id, input.Token, ct), () => NoContent());
     }
 }
