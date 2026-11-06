@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +13,11 @@ public sealed class DispositivosController(IDispositivoService dispositivos) : C
 {
     /// <summary>Corpo dos pedidos: o token FCM do dispositivo.</summary>
     public sealed record TokenDispositivo(string Token);
-    private Guid? UtilizadorId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-        ?? User.FindFirstValue("sub"), out var id) ? id : null;
     /// <summary>Regista (ou reativa) o dispositivo para o utilizador autenticado. 204; 400 token inválido; 401.</summary>
     [HttpPost]
     public async Task<IActionResult> Registar([FromBody] TokenDispositivo input, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid id) return Unauthorized();
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
 
         return this.Responder(await dispositivos.RegistarAsync(id, input.Token, ct), () => NoContent());
     }
@@ -28,7 +25,7 @@ public sealed class DispositivosController(IDispositivoService dispositivos) : C
     [HttpDelete]
     public async Task<IActionResult> Remover([FromBody] TokenDispositivo input, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid id) return Unauthorized();
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
 
         return this.Responder(await dispositivos.DesativarAsync(id, input.Token, ct), () => NoContent());
     }

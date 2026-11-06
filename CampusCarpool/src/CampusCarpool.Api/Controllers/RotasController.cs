@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Rotas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,10 +44,7 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     [HttpGet("viagens/{viagemId:guid}")]
     public async Task<IActionResult> ConsultarRotaViagem(Guid viagemId, CancellationToken ct)
     {
-        var idTexto = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub");
-
-        if (!Guid.TryParse(idTexto, out var utilizadorId))
+        if (User.IdUtilizador() is not Guid utilizadorId)
             return Unauthorized();
 
         return this.Responder(

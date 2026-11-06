@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Comunicacao;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,16 +15,12 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     /// <summary>Corpo de <c>POST</c>: o texto do aviso (até 100 caracteres, P-28).</summary>
     public sealed record CriarAviso(string? Conteudo);
 
-    private Guid? UtilizadorId => Guid.TryParse(
-        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"),
-        out var id) ? id : null;
-
     /// <summary>Cria um aviso e notifica os passageiros com participação aceite.</summary>
     /// <returns>201; 400 texto inválido; 401; 403 não é o condutor; 404 viagem inexistente; 409 viagem não ativa.</returns>
     [HttpPost]
     public async Task<IActionResult> Criar(Guid viagemId, CriarAviso? input, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid condutorId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid condutorId) return Unauthorized();
 
         var resultado = await avisoService.CriarAsync(viagemId, condutorId, input?.Conteudo, ct);
         return resultado.Resultado switch
@@ -47,7 +42,7 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     [HttpGet]
     public async Task<IActionResult> Listar(Guid viagemId, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid utilizadorId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
 
         var resultado = await avisoService.ListarAsync(viagemId, utilizadorId, ct);
         return resultado.Resultado switch

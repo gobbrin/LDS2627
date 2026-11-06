@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -17,14 +16,6 @@ namespace CampusCarpool.Api.Controllers;
 [Route("api/v1/mensagens")]
 public sealed class MensagensController(IMensagemService mensagemService) : ControllerBase
 {
-    //Obtém o identificador do utilizador autenticado através do JWT.
-    private Guid? UtilizadorId =>
-        Guid.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub"),
-            out var id)
-            ? id
-            : null;
 
     //Envia uma mensagem ao destinatário indicado no pedido.
     /// <summary>Envia uma mensagem (RF-F005-01, RF-F005-02). 201 com a mensagem; 400; 401.</summary>
@@ -32,7 +23,7 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
     public async Task<ActionResult> Enviar([FromBody] EnviarMensagemRequest pedido, CancellationToken ct)
     {
         //Impede operações sem um identificador de utilizador válido.
-        if (UtilizadorId is not Guid remetenteId)
+        if (User.IdUtilizador() is not Guid remetenteId)
         {
             return Unauthorized();
         }
@@ -60,7 +51,7 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
     [HttpGet("conversas")]
     public async Task<IActionResult> ListarConversas(CancellationToken ct)
     {
-        if (UtilizadorId is not Guid utilizadorId)
+        if (User.IdUtilizador() is not Guid utilizadorId)
         {
             return Unauthorized();
         }
@@ -74,7 +65,7 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
     public async Task<IActionResult> ObterConversa(Guid outroUtilizadorId, CancellationToken ct)
     {
         //Impede operações sem um identificador de utilizador válido.
-        if (UtilizadorId is not Guid utilizadorId)
+        if (User.IdUtilizador() is not Guid utilizadorId)
         {
             return Unauthorized();
         }

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Viagens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +16,6 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     /// <summary>Corpo de <c>PUT /viagens/{id}</c>. <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual.</summary>
     public sealed record EditarViagem(DateTime PartidaEm, int Lugares, string? Origem = null, string? Destino = null);
 
-    // Id do utilizador autenticado (claim "sub"); null se o token não o tiver.
-    private Guid? Id => Guid.TryParse(
-        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"),
-        out var id) ? id : null;
-
     /// <summary>Cria uma viagem <c>Ativa</c> com o utilizador como condutor (RF-F002-01 a RF-F002-06).</summary>
     /// <returns>
     /// 201 viagem criada; 400 dados inválidos (vazios, mais de 250 caracteres, origem e destino no mesmo local,
@@ -31,7 +25,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Criar(CriarViagem input, CancellationToken ct)
     {
-        if (Id is not Guid id) return Unauthorized();
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
 
         return this.Responder(
             await viagens.CriarAsync(id, input.Origem, input.Destino, input.PartidaEm, input.Lugares, ct),
@@ -42,7 +36,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     /// <returns>200 detalhes; 401; 404 viagem inexistente ou que o utilizador não pode consultar.</returns>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Consultar(Guid id, CancellationToken ct) =>
-        this.Responder(await viagens.ConsultarAsync(id, Id, ct), detalhes => Ok(detalhes));
+        this.Responder(await viagens.ConsultarAsync(id, User.IdUtilizador(), ct), detalhes => Ok(detalhes));
 
     /// <summary>Viagens ativas do condutor autenticado, por ordem de partida, para as gerir (RF-F002-15, DEF-BE-010).</summary>
     /// <remarks>As viagens noutros estados estão no histórico (RF-F009-02).</remarks>
@@ -50,7 +44,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpGet("minhas")]
     public async Task<IActionResult> ListarMinhas(CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return Ok(await viagens.ListarDoCondutorAsync(userId, ct));
     }
@@ -61,7 +55,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpGet("{id:guid}/passageiros")]
     public async Task<IActionResult> ListarPassageiros(Guid id, CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(await viagens.ListarPassageirosAsync(id, userId, ct), passageiros => Ok(passageiros));
     }
@@ -71,7 +65,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpGet("{id:guid}/pedidos")]
     public async Task<IActionResult> ListarPedidosPendentes(Guid id, CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(await viagens.ListarPedidosPendentesAsync(id, userId, ct), pedidos => Ok(pedidos));
     }
@@ -86,7 +80,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Editar(Guid id, EditarViagem input, CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(
             await viagens.EditarAsync(id, userId, input.PartidaEm, input.Lugares, input.Origem, input.Destino, ct),
@@ -99,7 +93,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpPost("{id:guid}/indisponibilizar")]
     public async Task<IActionResult> Indisponibilizar(Guid id, CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(await viagens.IndisponibilizarAsync(id, userId, ct), () => NoContent());
     }
@@ -110,7 +104,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     [HttpPost("{id:guid}/concluir")]
     public async Task<IActionResult> Concluir(Guid id, CancellationToken ct)
     {
-        if (Id is not Guid userId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(await viagens.ConcluirAsync(id, userId, ct), () => NoContent());
     }

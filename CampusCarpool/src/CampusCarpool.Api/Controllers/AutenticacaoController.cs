@@ -97,7 +97,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
             ? DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime
             : null;
 
-        Guid? utilizadorId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+        var utilizadorId = User.IdUtilizador();
 
         await autenticacao.TerminarSessaoAsync(jti, expiraEm, utilizadorId, input?.TokenDispositivo, ct);
 
@@ -107,5 +107,5 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// <summary>Devolve o id do utilizador autenticado (útil para o frontend validar o token). 200; 401 sem sessão.</summary>
     /// <remarks>O perfil completo está em <c>GET /api/v1/utilizadores/me</c>.</remarks>
     [Authorize, HttpGet("me")]
-    public IActionResult Me() => Ok(new { id = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") });
+    public IActionResult Me() => Ok(new { id = User.TextoDoId() });
 }

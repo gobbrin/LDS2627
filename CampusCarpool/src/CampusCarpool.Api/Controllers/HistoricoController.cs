@@ -1,5 +1,4 @@
 
-using System.Security.Claims;
 using CampusCarpool.Application.Historico;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,11 +17,7 @@ public sealed class HistoricoController(
     [HttpGet]
     public async Task<IActionResult> Consultar(CancellationToken ct)
     {
-        var identificador =
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub");
-
-        if (!Guid.TryParse(identificador, out var utilizadorId))
+        if (User.IdUtilizador() is not Guid utilizadorId)
             return Unauthorized();
 
         var resultado = await historicoService.ConsultarAsync(

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Participacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,15 +20,6 @@ public sealed class PedidosController(IParticipacaoService participacoes) : Cont
         string? Recolha,
         string? Destino);
 
-    // Id do utilizador autenticado (claim "sub").
-    private Guid? UtilizadorId =>
-        Guid.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub"),
-            out var id)
-            ? id
-            : null;
-
     /// <summary>Submete um pedido de participação, no estado <c>Pendente</c> (RF-F004-01 a RF-F004-07, RF-F004-13).</summary>
     /// <remarks>Ver <see cref="IParticipacaoService.CriarPedidoAsync"/>.</remarks>
     /// <returns>
@@ -41,7 +31,7 @@ public sealed class PedidosController(IParticipacaoService participacoes) : Cont
     [HttpPost]
     public async Task<IActionResult> Criar(CriarPedido input, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid passageiroId)
+        if (User.IdUtilizador() is not Guid passageiroId)
             return Unauthorized();
 
         return this.Responder(

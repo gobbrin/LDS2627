@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Participacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,8 +26,7 @@ public sealed class SimulacoesController(IParticipacaoService participacoes) : C
     [HttpPost]
     public async Task<IActionResult> Simular(Guid viagemId, [FromBody] SimularPedido? input, CancellationToken ct)
     {
-        var textoId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(textoId, out var utilizadorId)) return Unauthorized();
+        if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         if (input is null || input.PedidoId == Guid.Empty)
             return BadRequest(new { erro = "Indica um pedidoId válido." });
 

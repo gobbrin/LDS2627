@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,24 +20,13 @@ public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBa
         string? Instituicao
     );
 
-    // Id do utilizador autenticado, lido da claim "sub" (o JwtBearer mapeia-a para NameIdentifier).
-    private Guid? ObterUtilizadorId()
-    {
-        var valor =
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-            ?? User.FindFirstValue("sub");
-
-        return Guid.TryParse(valor, out var id) ? id : null;
-    }
-
     // GET /api/v1/utilizadores/me
     /// <summary>Perfil do próprio utilizador, incluindo o email e as ligações externas (RF-F001-20). 200; 401; 404.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> ConsultarPerfil(
         CancellationToken ct)
     {
-        if (ObterUtilizadorId() is not Guid id)
+        if (User.IdUtilizador() is not Guid id)
             return Unauthorized();
 
         return this.Responder(await perfis.ConsultarAsync(id, ct), perfil => Ok(perfil));
@@ -50,7 +37,7 @@ public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBa
     [HttpPost("me/ligacoes")]
     public async Task<IActionResult> AdicionarLigacao([FromBody] NovaLigacao input, CancellationToken ct)
     {
-        if (ObterUtilizadorId() is not Guid id)
+        if (User.IdUtilizador() is not Guid id)
             return Unauthorized();
 
         return this.Responder(
@@ -62,7 +49,7 @@ public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBa
     [HttpDelete("me/ligacoes/{ligacaoId:guid}")]
     public async Task<IActionResult> RemoverLigacao(Guid ligacaoId, CancellationToken ct)
     {
-        if (ObterUtilizadorId() is not Guid id)
+        if (User.IdUtilizador() is not Guid id)
             return Unauthorized();
 
         return this.Responder(await perfis.RemoverLigacaoAsync(id, ligacaoId, ct), () => NoContent());
@@ -79,7 +66,7 @@ public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBa
         Guid id,
         CancellationToken ct)
     {
-        if (ObterUtilizadorId() is null)
+        if (User.IdUtilizador() is null)
             return Unauthorized();
 
         return this.Responder(await perfis.ConsultarPublicoAsync(id, ct), perfil => Ok(perfil));
@@ -97,7 +84,7 @@ public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBa
         [FromBody] AtualizarPerfil input,
         CancellationToken ct)
     {
-        if (ObterUtilizadorId() is not Guid id)
+        if (User.IdUtilizador() is not Guid id)
             return Unauthorized();
 
         return this.Responder(

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -22,8 +21,8 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] CriarAvaliacao pedido, CancellationToken ct)
     {
-        var id = IdAutenticado(); if (id is null) return Unauthorized();
-        try { return StatusCode(201, await avaliacoes.CriarAsync(pedido.ViagemId, id.Value, pedido.AvaliadoId, pedido.Classificacao, ct)); }
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
+        try { return StatusCode(201, await avaliacoes.CriarAsync(pedido.ViagemId, id, pedido.AvaliadoId, pedido.Classificacao, ct)); }
         catch (ArgumentException ex) { return BadRequest(new { erro = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { erro = ex.Message }); }
         catch (InvalidOperationException ex) { return Conflict(new { erro = ex.Message }); }
@@ -33,8 +32,8 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
     [HttpPut("utilizadores/{avaliadoId:guid}")]
     public async Task<IActionResult> Alterar(Guid avaliadoId, [FromBody] AlterarAvaliacao pedido, CancellationToken ct)
     {
-        var id = IdAutenticado(); if (id is null) return Unauthorized();
-        try { return Ok(await avaliacoes.AlterarAsync(id.Value, avaliadoId, pedido.Classificacao, ct)); }
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
+        try { return Ok(await avaliacoes.AlterarAsync(id, avaliadoId, pedido.Classificacao, ct)); }
         catch (ArgumentException ex) { return BadRequest(new { erro = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { erro = ex.Message }); }
         catch (RegraDeNegocioException) { return Conflict(new { erro = "Não foi possível alterar a avaliação." }); }
@@ -43,10 +42,8 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
     [HttpGet("utilizadores/{utilizadorId:guid}")]
     public async Task<IActionResult> Consultar(Guid utilizadorId, CancellationToken ct)
     {
-        if (IdAutenticado() is null) return Unauthorized();
+        if (User.IdUtilizador() is null) return Unauthorized();
         try { return Ok(await avaliacoes.ConsultarAsync(utilizadorId, ct)); }
         catch (KeyNotFoundException ex) { return NotFound(new { erro = ex.Message }); }
     }
-    private Guid? IdAutenticado() => Guid.TryParse(
-        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id) ? id : null;
 }

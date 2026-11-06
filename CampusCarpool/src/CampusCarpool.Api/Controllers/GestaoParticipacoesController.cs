@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CampusCarpool.Application.Participacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,8 +17,6 @@ namespace CampusCarpool.Api.Controllers;
 [ApiController, Authorize, Route("api/v1/participacoes")]
 public sealed class GestaoParticipacoesController(IParticipacaoService participacaoService) : ControllerBase
 {
-    /// <summary>Obtém o identificador do utilizador autenticado a partir do claim JWT.</summary>
-    private Guid? UtilizadorId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id) ? id : null;
 
     /// <summary>Converte o resultado da aplicação para a resposta HTTP correspondente.</summary>
     private IActionResult ConverterResultado(ResultadoGestaoParticipacao resultado) => resultado switch
@@ -38,21 +35,21 @@ public sealed class GestaoParticipacoesController(IParticipacaoService participa
     [HttpPost("{id:guid}/aceitar")]
     public async Task<IActionResult> Aceitar(Guid id, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid utilizadorId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         return ConverterResultado(await participacaoService.AceitarAsync(id, utilizadorId, ct));
     }
     /// <summary>Rejeita um pedido pendente quando o utilizador autenticado é o condutor.</summary>
     [HttpPost("{id:guid}/rejeitar")]
     public async Task<IActionResult> Rejeitar(Guid id, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid utilizadorId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         return ConverterResultado(await participacaoService.RejeitarAsync(id, utilizadorId, ct));
     }
     /// <summary>Cancela uma participação pendente ou aceite dentro das regras temporais.</summary>
     [HttpPost("{id:guid}/cancelar")]
     public async Task<IActionResult> Cancelar(Guid id, CancellationToken ct)
     {
-        if (UtilizadorId is not Guid utilizadorId) return Unauthorized();
+        if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         return ConverterResultado(await participacaoService.CancelarAsync(id, utilizadorId, ct));
     }
 }
