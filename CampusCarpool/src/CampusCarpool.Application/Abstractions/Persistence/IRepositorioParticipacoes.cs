@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 
@@ -60,9 +61,3 @@ public interface IRepositorioParticipacoes
     /// <returns><c>false</c> se a BD o recusar, por o passageiro já ter um pedido ou uma participação ativa na viagem.</returns>
     Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct);
 }
-
-/// <summary>Passageiro aceite de uma viagem. Um ponto a <c>null</c> segue a origem ou o destino da viagem (P-20).</summary>
-public sealed record PassageiroAceite(Guid Id, Guid PassageiroId, string Nome, string? Recolha, string? Destino);
-
-/// <summary>Pedido pendente de uma viagem.</summary>
-public sealed record PedidoPendente(Guid Id, Guid PassageiroId, string Nome, string? Recolha, string? Destino, DateTime CriadoEm);

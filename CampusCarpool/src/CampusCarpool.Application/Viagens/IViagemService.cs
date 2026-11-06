@@ -1,47 +1,9 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
 
 namespace CampusCarpool.Application.Viagens;
-
-/// <summary>Viagem acabada de criar.</summary>
-public sealed record ViagemCriada(
-    Guid Id,
-    string Origem,
-    string Destino,
-    DateTime PartidaEm,
-    int LugaresDisponiveis,
-    decimal? DistanciaKm,
-    int? DuracaoMinutos);
-
-/// <summary>Detalhes de uma viagem, com a estimativa de custo por participante.</summary>
-/// <param name="Id">Identificador.</param>
-/// <param name="Origem">Origem.</param>
-/// <param name="Destino">Destino.</param>
-/// <param name="PartidaEm">Data e hora de partida.</param>
-/// <param name="LugaresDisponiveis">Lugares livres.</param>
-/// <param name="Estado">Estado da viagem.</param>
-/// <param name="DistanciaKm">Distância da rota atual.</param>
-/// <param name="DuracaoMinutos">Duração da rota atual.</param>
-/// <param name="CondutorId">Condutor.</param>
-/// <param name="Condutor">Nome e classificação média do condutor.</param>
-/// <param name="PontosAdicionais">Número de pontos adicionais da rota.</param>
-/// <param name="EstimativaCusto">Estimativa; <c>null</c> se não for possível calculá-la.</param>
-/// <param name="EstimativaIndisponivelMotivo">Motivo de não haver estimativa (RF-F008-12).</param>
-public sealed record DetalhesViagem(
-    Guid Id,
-    string Origem,
-    string Destino,
-    DateTime PartidaEm,
-    int LugaresDisponiveis,
-    string Estado,
-    decimal? DistanciaKm,
-    int? DuracaoMinutos,
-    Guid CondutorId,
-    CondutorViagem? Condutor,
-    int PontosAdicionais,
-    ResultadoEstimativaCusto? EstimativaCusto,
-    string? EstimativaIndisponivelMotivo);
 
 /// <summary>Ciclo de vida das viagens (F002): criar, consultar, editar, indisponibilizar e concluir.</summary>
 /// <remarks>

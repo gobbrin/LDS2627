@@ -3,19 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace CampusCarpool.Application.Rotas;
 
-/// <summary>Estimativa de custo devolvida ao cliente (RF-F008-10, RF-F008-11).</summary>
-/// <remarks><c>Indicativo</c> é sempre <c>true</c>: o valor é só uma referência para dividir despesas, não um preço.</remarks>
-public sealed record ResultadoEstimativaCusto(
-    decimal DistanciaKm,
-    decimal PrecoPorKm,
-    int PassageirosAceites,
-    int TotalParticipantes,
-    decimal CustoTotalEstimado,
-    decimal CustoPorParticipante,
-    bool Indicativo,
-    string Moeda
-);
-
 /// <summary>Junta a configuração (<see cref="OpcoesCustos"/>) ao cálculo do Domain (<see cref="CalculadoraDeCusto"/>, P-06).</summary>
 public sealed class EstimativaCustoService(IOptions<OpcoesCustos> opcoes)
 {

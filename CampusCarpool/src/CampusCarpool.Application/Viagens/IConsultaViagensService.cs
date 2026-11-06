@@ -2,9 +2,6 @@ using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Viagens;
 
-/// <summary>Dados públicos de um condutor nos resultados e nos detalhes de uma viagem (RF-F003-04).</summary>
-public sealed record CondutorViagem(Guid Id, string Nome, decimal? ClassificacaoMedia);
-
 /// <summary>Regras comuns às consultas de viagens: quem pode consultar e os dados do condutor.</summary>
 public interface IConsultaViagensService
 {

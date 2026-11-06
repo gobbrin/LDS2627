@@ -1,4 +1,3 @@
-using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using Microsoft.AspNetCore.Authorization;

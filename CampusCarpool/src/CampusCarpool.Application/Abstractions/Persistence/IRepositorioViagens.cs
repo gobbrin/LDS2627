@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Abstractions.Persistence;
@@ -31,32 +32,8 @@ public interface IRepositorioViagens
     void Adicionar(Viagem viagem);
 }
 
-/// <summary>Viagem ativa na lista do próprio condutor.</summary>
-public sealed record ViagemDoCondutor(
-    Guid Id,
-    string Origem,
-    string Destino,
-    DateTime PartidaEm,
-    int LugaresOferecidos,
-    int LugaresDisponiveis);
-
 /// <summary>Viagem ativa já partida: identificador, partida e duração estimada (P-04), se existir.</summary>
 public sealed record ViagemEmCurso(Guid Id, DateTime PartidaEm, int? DuracaoMinutos);
-
-/// <summary>Filtros da pesquisa de viagens. Os nulos não filtram.</summary>
-/// <param name="Origem">Texto contido na origem, sem distinguir maiúsculas nem acentos.</param>
-/// <param name="Destino">Texto contido no destino, nas mesmas condições.</param>
-/// <param name="Data">Dia da partida.</param>
-/// <param name="Hora">Hora mínima da partida.</param>
-/// <param name="Pagina">Página, a contar de 1.</param>
-/// <param name="Tamanho">Viagens por página.</param>
-public sealed record FiltroPesquisaViagens(
-    string? Origem,
-    string? Destino,
-    DateOnly? Data,
-    TimeOnly? Hora,
-    int Pagina,
-    int Tamanho);
 
 /// <summary>Dados de uma viagem usados nos resultados da pesquisa.</summary>
 public sealed record ViagemPesquisada(

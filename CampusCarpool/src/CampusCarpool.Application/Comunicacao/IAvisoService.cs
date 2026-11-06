@@ -2,12 +2,6 @@ using CampusCarpool.Application.Comum;
 
 namespace CampusCarpool.Application.Comunicacao;
 
-/// <summary>Aviso acabado de criar.</summary>
-public sealed record AvisoCriado(Guid Id, string Conteudo, DateTime CriadoEm);
-
-/// <summary>Aviso na lista de uma viagem.</summary>
-public sealed record AvisoDaViagem(Guid Id, Guid ViagemId, Guid CondutorId, string Conteudo, DateTime CriadoEm);
-
 /// <summary>Avisos do condutor aos passageiros aceites de uma viagem (RF-F005-05 a RF-F005-07).</summary>
 public interface IAvisoService
 {

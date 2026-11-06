@@ -2,6 +2,7 @@ using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;

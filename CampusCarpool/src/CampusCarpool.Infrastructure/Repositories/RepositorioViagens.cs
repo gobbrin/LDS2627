@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;

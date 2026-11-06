@@ -4,16 +4,6 @@ using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Rotas;
 
-/// <summary>Rota de uma viagem, tal como o utilizador a pode ver, com a estimativa de custo.</summary>
-public sealed record RotaDaViagem(
-    Guid ViagemId,
-    int ParticipacoesAceites,
-    IReadOnlyList<PontoRota> PontosOrdenados,
-    IReadOnlyList<SegmentoRota> Segmentos,
-    decimal DistanciaTotalKm,
-    int DuracaoTotalMinutos,
-    ResultadoEstimativaCusto EstimativaCusto);
-
 /// <summary>Consultas ao Serviço de Mapas e às rotas das viagens expostas ao frontend (F008).</summary>
 /// <remarks>
 /// Todos os métodos respondem com erro 503 se o serviço não estiver configurado, 502 se falhar e 504 se exceder o
