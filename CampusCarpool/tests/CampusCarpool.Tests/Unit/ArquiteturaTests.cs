@@ -4,6 +4,7 @@ using System.Reflection.PortableExecutable;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Infrastructure.DependencyInjection;
 using CampusCarpool.Infrastructure.Persistence;
 using Xunit;
 
@@ -59,7 +60,7 @@ public class ArquiteturaTests
     }
 
     /// <summary>
-    /// A Api só fala com a Application: não usa o <c>DbContext</c>, os repositórios concretos nem o EF Core.
+    /// A Api só fala com a Application: não usa o <c>DbContext</c>, os repositórios (nem as interfaces) nem o EF Core.
     /// </summary>
     /// <remarks>
     /// Lê as referências a tipos nos metadados do assembly, que incluem o que a reflexão não vê, como o corpo dos
@@ -70,8 +71,32 @@ public class ArquiteturaTests
     {
         var proibidas = TiposReferenciadosPelaApi()
             .Where(t => t.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
-                || t.StartsWith("CampusCarpool.Infrastructure.Persistence", StringComparison.Ordinal)
-                || t.StartsWith("CampusCarpool.Infrastructure.Repositories", StringComparison.Ordinal));
+                || t.StartsWith("CampusCarpool.Application.Abstractions.Persistence", StringComparison.Ordinal));
+
+        Assert.Empty(proibidas);
+    }
+
+    /// <summary>Da Infrastructure, a Api conhece só o ponto de registo, usado no arranque.</summary>
+    [Fact]
+    public void Api_SoConheceARegistoDaInfrastructure()
+    {
+        var proibidas = TiposReferenciadosPelaApi()
+            .Where(t => t.StartsWith("CampusCarpool.Infrastructure", StringComparison.Ordinal)
+                && t != typeof(InfrastructureServiceRegistration).FullName);
+
+        Assert.Empty(proibidas);
+    }
+
+    /// <summary>
+    /// As respostas e os pedidos da Api são DTOs, nunca entidades. <see cref="Coordenadas"/> é a exceção: é um valor,
+    /// sem identidade nem estado.
+    /// </summary>
+    [Fact]
+    public void Api_NaoUsaEntidades()
+    {
+        var proibidas = TiposReferenciadosPelaApi()
+            .Where(t => t.StartsWith("CampusCarpool.Domain.Entities", StringComparison.Ordinal)
+                && t != typeof(Coordenadas).FullName);
 
         Assert.Empty(proibidas);
     }

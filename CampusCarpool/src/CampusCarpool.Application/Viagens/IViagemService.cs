@@ -1,7 +1,5 @@
-using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Participacoes;
-using CampusCarpool.Application.Rotas;
 
 namespace CampusCarpool.Application.Viagens;
 

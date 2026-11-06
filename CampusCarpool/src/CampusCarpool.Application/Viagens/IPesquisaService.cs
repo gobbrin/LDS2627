@@ -1,5 +1,3 @@
-using CampusCarpool.Application.Abstractions.Persistence;
-
 namespace CampusCarpool.Application.Viagens;
 
 /// <summary>Pesquisa de viagens (F003).</summary>

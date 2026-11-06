@@ -1,5 +1,4 @@
 using CampusCarpool.Domain.Entities;
-using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
