@@ -414,6 +414,9 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<DateTime>("PartidaEm")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PartidaMinutoDoDia")
+                        .HasColumnType("int");
+
                     b.Property<string>("RotaPontos")
                         .HasColumnType("nvarchar(max)");
 

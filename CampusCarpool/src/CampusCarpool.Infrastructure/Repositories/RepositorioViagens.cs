@@ -34,8 +34,7 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
 
     /// <inheritdoc />
     /// <remarks>
-    /// DC-42 / API-06 (fica para m4): o dia e a hora são comparados em UTC, não na hora de Portugal; perto da
-    /// meia-noite ou com hora de verão, uma viagem pode cair no dia ou hora errados.
+    /// O dia e a hora do filtro são os de Portugal (P-12, <see cref="HoraDePortugal"/>), não os de UTC.
     /// </remarks>
     public async Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct)
     {
@@ -58,15 +57,15 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
 
         if (filtro.Data is DateOnly data)
         {
-            var inicio = data.ToDateTime(TimeOnly.MinValue);
-            var fim = inicio.AddDays(1);
+            var inicio = HoraDePortugal.InicioDoDiaEmUtc(data);
+            var fim = data < DateOnly.MaxValue ? HoraDePortugal.InicioDoDiaEmUtc(data.AddDays(1)) : DateTime.MaxValue;
             q = q.Where(v => v.PartidaEm >= inicio && v.PartidaEm < fim);
         }
 
         if (filtro.Hora is TimeOnly hora)
         {
             var minutos = hora.Hour * 60 + hora.Minute;
-            q = q.Where(v => v.PartidaEm.Hour * 60 + v.PartidaEm.Minute >= minutos);
+            q = q.Where(v => v.PartidaMinutoDoDia >= minutos);
         }
 
         var total = await q.CountAsync(ct);

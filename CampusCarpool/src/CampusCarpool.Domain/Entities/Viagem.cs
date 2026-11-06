@@ -57,6 +57,9 @@ public sealed class Viagem
     /// </summary>
     public DateTime PartidaEm { get; internal set; }
 
+    /// <summary>Minuto do dia da partida na hora de Portugal, para a pesquisa (P-12). Preenchido pelo <c>CampusCarpoolDbContext</c> ao gravar.</summary>
+    public int PartidaMinutoDoDia { get; set; }
+
     /// <summary>Número de lugares oferecidos, de 1 a 8 (P-11).</summary>
     public int LugaresOferecidos { get; internal set; }
 

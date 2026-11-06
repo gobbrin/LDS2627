@@ -43,20 +43,21 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
     /// <inheritdoc />
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        AtualizarTextosPesquisa();
+        AtualizarColunasPesquisa();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     /// <inheritdoc />
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        AtualizarTextosPesquisa();
+        AtualizarColunasPesquisa();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    // P-12 (D-009): a pesquisa não distingue maiúsculas nem acentos. Uma collation própria não funcionaria em SQLite
-    // nos testes, por isso o texto normalizado fica em colunas, escritas aqui para nenhuma gravação as esquecer.
-    private void AtualizarTextosPesquisa()
+    // P-12 (D-009): a pesquisa não distingue maiúsculas nem acentos e usa a hora de Portugal. Nem uma collation própria
+    // nem uma conversão de fuso funcionariam em SQLite nos testes, por isso os valores normalizados ficam em colunas,
+    // escritas aqui para nenhuma gravação as esquecer.
+    private void AtualizarColunasPesquisa()
     {
         foreach (var entrada in ChangeTracker.Entries<Viagem>())
         {
@@ -64,6 +65,7 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
 
             entrada.Entity.OrigemPesquisa = TextoPesquisa.Normalizar(entrada.Entity.Origem);
             entrada.Entity.DestinoPesquisa = TextoPesquisa.Normalizar(entrada.Entity.Destino);
+            entrada.Entity.PartidaMinutoDoDia = HoraDePortugal.MinutoDoDia(entrada.Entity.PartidaEm);
         }
     }
 
