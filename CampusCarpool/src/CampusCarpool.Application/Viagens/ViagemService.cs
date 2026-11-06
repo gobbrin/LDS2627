@@ -273,15 +273,14 @@ public sealed class ViagemService(
         viagem.LugaresOferecidos = lugares;
         viagem.LugaresDisponiveis = lugares - ocupados;
 
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
-
         // Notifica os passageiros com participação aceite na viagem alterada.
-        await notificacoes.NotificarAlteracaoViagemAsync(
+        notificacoes.RegistarAlteracaoViagem(
             viagem.CondutorId,
             aceites.Select(p => p.PassageiroId),
             utilizadorId,
-            "Os dados da viagem em que participas foram alterados.",
-            ct);
+            "Os dados da viagem em que participas foram alterados.");
+
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return Resultado.Sucesso;
     }
@@ -309,16 +308,15 @@ public sealed class ViagemService(
         if (!await rotas.RecalcularAsync(viagem, [], ct))
             viagem.RotaPontos = null;
 
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
-
         // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou
         // participação aceite antes da indisponibilização; o condutor originou a alteração.
-        await notificacoes.NotificarAlteracaoViagemAsync(
+        notificacoes.RegistarAlteracaoViagem(
             viagem.CondutorId,
             afetadas.Select(p => p.PassageiroId),
             utilizadorId,
-            "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.",
-            ct);
+            "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.");
+
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return Resultado.Sucesso;
     }

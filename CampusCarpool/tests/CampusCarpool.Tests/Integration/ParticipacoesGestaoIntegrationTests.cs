@@ -147,7 +147,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var notificacaoService = new NotificacaoService(
             repositorioNotificacoes,
-            fila);
+            fila,
+            new UnidadeDeTrabalhoEfCore(db));
 
         var repositorioParticipacoes = new RepositorioParticipacoes(db);
         var repositorioViagens = new RepositorioViagens(db);

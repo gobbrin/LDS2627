@@ -10,16 +10,14 @@ namespace CampusCarpool.Application.Comunicacao;
 public sealed class MensagemService(
     IRepositorioMensagens repositorioMensagens,
     IRepositorioUtilizadores repositorioUtilizadores,
-    INotificacaoService notificacaoService) : IMensagemService
+    INotificacaoService notificacaoService,
+    IUnidadeDeTrabalho unidadeDeTrabalho) : IMensagemService
 {
     // P-14: tamanho máximo do texto.
     private const int TamanhoMaximoConteudo = 1000;
 
     /// <inheritdoc />
-    /// <remarks>
-    /// Valida os participantes, guarda a mensagem e cria a notificação. São duas gravações separadas: se a
-    /// notificação falhar, a mensagem já ficou gravada (AP-02).
-    /// </remarks>
+    /// <remarks>A mensagem e a notificação são gravadas juntas (DC-37). <c>NovaMensagem</c> não gera push (RF-F006-12).</remarks>
     public async Task<Resultado<MensagemIndividual>> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
     {
         if (remetenteId == destinatarioId)
@@ -47,13 +45,14 @@ public sealed class MensagemService(
             EnviadoEm = DateTime.UtcNow
         };
 
-        await repositorioMensagens.AdicionarAsync(mensagem, ct);
+        repositorioMensagens.Adicionar(mensagem);
 
-        await notificacaoService.CriarAsync(
+        notificacaoService.Registar(
             destinatarioId,
             TipoNotificacao.NovaMensagem,
-            $"Recebeste uma nova mensagem de {remetente.Nome}.",
-            ct);
+            $"Recebeste uma nova mensagem de {remetente.Nome}.");
+
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return Dto(mensagem);
     }

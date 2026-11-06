@@ -101,15 +101,10 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
     public int Confirmacoes { get; private set; }
     public Exception? Falha { get; set; }
 
-    public void Confirmar()
+    public Task ConfirmarAsync(CancellationToken ct)
     {
         if (Falha is not null) throw Falha;
         Confirmacoes++;
-    }
-
-    public Task ConfirmarAsync(CancellationToken ct)
-    {
-        Confirmar();
         return Task.CompletedTask;
     }
 
@@ -136,7 +131,7 @@ public static class ServicosDeTeste
         new RepositorioViagens(db),
         new RepositorioParticipacoes(db),
         new RepositorioAvisos(db),
-        new RepositorioNotificacoes(db),
+        CriarNotificacoes(db),
         new UnidadeDeTrabalhoEfCore(db));
 
     public static EstimativaCustoService CriarCustos(decimal? precoPorKm = 0.10m) =>
@@ -168,7 +163,7 @@ public static class ServicosDeTeste
         new(CriarViagens(db, mapas, custos, notificacaoService));
 
     public static NotificacaoService CriarNotificacoes(CampusCarpoolDbContext db) =>
-        new(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa());
+        new(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa(), new UnidadeDeTrabalhoEfCore(db));
 
     public static ParticipacaoService CriarParticipacoes(
         CampusCarpoolDbContext db,

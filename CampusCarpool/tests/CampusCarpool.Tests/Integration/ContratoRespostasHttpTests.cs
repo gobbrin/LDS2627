@@ -246,7 +246,7 @@ public sealed class ContratoRespostasHttpTests : IDisposable
 
         var notificacao = notificacoes.GetProperty("itens")[0];
         AssertCampos(notificacao, "id", "utilizadorId", "viagemId", "tipo", "titulo", "conteudo", "lidaEm", "criadaEm");
-        Assert.Equal(JsonValueKind.Number, notificacao.GetProperty("tipo").ValueKind);
+        Assert.Equal("Aviso", notificacao.GetProperty("tipo").GetString());
 
         var marcadas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/notificacoes/ler-todas", passageiro.Id);
         AssertCampos(marcadas, "marcadas");

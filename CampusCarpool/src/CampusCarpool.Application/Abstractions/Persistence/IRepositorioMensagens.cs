@@ -7,9 +7,8 @@ namespace CampusCarpool.Application.Abstractions.Persistence;
 /// <remarks>Implementado por <c>Infrastructure/Repositories/RepositorioMensagens.cs</c>.</remarks>
 public interface IRepositorioMensagens
 {
-
-    /// <summary>Guarda uma mensagem na base de dados (grava logo, com <c>SaveChangesAsync</c>).</summary>
-    Task AdicionarAsync(Mensagem mensagem, CancellationToken ct);
+    /// <summary>Acrescenta uma mensagem; só fica gravada com a unidade de trabalho.</summary>
+    void Adicionar(Mensagem mensagem);
 
     /// <summary>
     /// Obtém as mensagens trocadas entre dois utilizadores, nos dois sentidos,

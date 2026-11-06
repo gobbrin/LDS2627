@@ -127,7 +127,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
 
         var controller = new PedidosController(ServicosDeTeste.CriarParticipacoes(db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso()));
 
@@ -571,7 +571,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(f.Db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(f.Db));
 
         var controller = new PedidosController(ServicosDeTeste.CriarParticipacoes(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso()));
 

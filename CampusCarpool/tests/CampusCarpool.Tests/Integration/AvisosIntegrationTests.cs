@@ -102,7 +102,7 @@ public sealed class AvisosIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
 
 
         var controller = new NotificacoesController(notificacaoService);

@@ -4,17 +4,13 @@ namespace CampusCarpool.Application.Abstractions.Persistence;
 
 /// <summary>Acesso a dados das notificações pessoais.</summary>
 /// <remarks>
-/// Implementado por <c>Infrastructure/Repositories/RepositorioNotificacoes.cs</c>. O <c>AdicionarAsync</c>
-/// grava logo, por isso cada notificação fica numa gravação separada da operação que a originou (AP-02, DC-37).
+/// Implementado por <c>Infrastructure/Repositories/RepositorioNotificacoes.cs</c>. Não grava: as notificações ficam
+/// na gravação da operação que as originou, feita pela unidade de trabalho (DC-37).
 /// </remarks>
 public interface IRepositorioNotificacoes
 {
-
-    /// <summary>Guarda uma nova notificação na base de dados.</summary>
-    Task AdicionarAsync(Notificacao notificacao, CancellationToken ct);
-
-    /// <summary>Junta as notificações às alterações pendentes, sem gravar, para ficarem na transação de quem as cria.</summary>
-    void AdicionarSemGravar(IEnumerable<Notificacao> notificacoes);
+    /// <summary>Acrescenta uma notificação; só fica gravada com a unidade de trabalho.</summary>
+    void Adicionar(Notificacao notificacao);
 
     /// <summary>Consulta uma página das notificações de um utilizador, ordenadas da mais recente para a mais antiga.</summary>
     Task<IReadOnlyList<Notificacao>> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct);
@@ -30,7 +26,4 @@ public interface IRepositorioNotificacoes
 
     /// <summary>Conta as notificações não lidas de um utilizador.</summary>
     Task<int> ContarNaoLidasAsync(Guid utilizadorId, CancellationToken ct);
-
-    /// <summary>Guarda as alterações efetuadas às notificações.</summary>
-    Task GuardarAlteracoesAsync(CancellationToken ct);
 }

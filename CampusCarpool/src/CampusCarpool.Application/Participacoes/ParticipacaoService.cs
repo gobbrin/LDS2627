@@ -15,8 +15,9 @@ namespace CampusCarpool.Application.Participacoes;
 /// </summary>
 /// <remarks>
 /// Padrão comum a aceitar, rejeitar e cancelar: (1) carregar a participação e a viagem (rastreadas); (2) verificar a
-/// permissão e o estado; (3) alterar as entidades e gravar com <see cref="IUnidadeDeTrabalho.Confirmar"/>;
-/// (4) só depois enviar o evento em tempo real e criar as notificações.
+/// permissão e o estado; (3) alterar as entidades, registar as notificações e gravar tudo de uma vez com
+/// <see cref="IUnidadeDeTrabalho.ConfirmarAsync"/> (DC-37); (4) só depois enviar o evento em tempo real e o push, que
+/// já não dependem do cliente: a operação aconteceu, mesmo que o pedido HTTP seja cancelado entretanto.
 /// Os lugares são verificados contra a contagem real de aceites antes de mexer em <c>LugaresDisponiveis</c>;
 /// se não baterem, a operação é recusada, para não agravar o erro.
 /// A coluna <c>Versao</c> da viagem protege a aceitação e o cancelamento de uma aceite (que mudam a viagem);
@@ -180,18 +181,17 @@ public sealed class ParticipacaoService(
             CriadoEm = DateTime.UtcNow
         };
 
-        // Dois pedidos simultâneos podem passar a verificação acima; a BD recusa o segundo.
+        var notificacao = notificacaoService.Registar(
+            viagem.CondutorId,
+            TipoNotificacao.PedidoRecebido,
+            "Recebeste um novo pedido de participação numa viagem.");
+
+        // Grava o pedido e a notificação. Dois pedidos simultâneos podem passar a verificação acima; a BD recusa o segundo.
         if (!await repositorioParticipacoes.AdicionarPedidoAsync(pedido, ct))
             return new Erro(TipoErro.Conflito, MensagemPedidoRepetido);
 
-        // Notifica o condutor após o registo bem-sucedido do pedido.
-        await notificacaoService.CriarAsync(
-            viagem.CondutorId,
-            TipoNotificacao.PedidoRecebido,
-            "Recebeste um novo pedido de participação numa viagem.",
-            ct);
-
-        await notificadorPedidosTempoReal.PedidoRecebidoAsync(viagem.CondutorId, pedido.Id, ct);
+        await notificacaoService.EnviarPushAsync(notificacao, CancellationToken.None);
+        await notificadorPedidosTempoReal.PedidoRecebidoAsync(viagem.CondutorId, pedido.Id, CancellationToken.None);
 
         return pedido;
     }
@@ -339,35 +339,23 @@ public sealed class ParticipacaoService(
         participacao.AceiteEm = DateTime.UtcNow;
         viagem.LugaresDisponiveis--;
 
-        // Guarda a decisão e a alteração de capacidade.
-        // Conflitos no token Versao são tratados pela unidade de trabalho.
-        unidadeDeTrabalho.Confirmar();
-
-        // A decisão já foi confirmada; envia o evento ao passageiro.
-        await notificadorPedidosTempoReal.PedidoAceiteAsync(
-              participacao.PassageiroId,
-              participacao.Id,
-              ct);
-
-        // As notificações são criadas depois da confirmação da operação.
-        await notificacaoService.CriarAsync(
+        var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
             TipoNotificacao.PedidoAceite,
-            "O teu pedido de participação na viagem foi aceite.",
-            ct);
+            "O teu pedido de participação na viagem foi aceite.");
 
         // RF-F006-14 / P-23: o novo passageiro recebe Pedido aceite e não Alteração da viagem pela sua entrada.
-        var restantes = await repositorioParticipacoes.ListarPorViagemAsync(
-            viagem.Id,
-            EstadoParticipacao.Aceite,
-            ct);
-
-        await notificacaoService.NotificarAlteracaoViagemAsync(
+        notificacaoService.RegistarAlteracaoViagem(
             viagem.CondutorId,
-            restantes.Select(p => p.PassageiroId).Where(id => id != participacao.PassageiroId),
+            aceites.Select(p => p.PassageiroId),
             utilizadorId,
-            "Um novo passageiro foi aceite na viagem em que participas.",
-            ct);
+            "Um novo passageiro foi aceite na viagem em que participas.");
+
+        // Conflitos no token Versao são tratados pela unidade de trabalho.
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
+
+        await notificadorPedidosTempoReal.PedidoAceiteAsync(participacao.PassageiroId, participacao.Id, CancellationToken.None);
+        await notificacaoService.EnviarPushAsync(notificacao, CancellationToken.None);
 
         return Resultado.Sucesso;
     }
@@ -398,21 +386,17 @@ public sealed class ParticipacaoService(
 
         participacao.Estado = EstadoParticipacao.Rejeitada;
 
-        // Guarda a decisão. A rejeição não mexe na viagem, por isso o token Versao não protege
-        // contra uma aceitação ou um cancelamento simultâneos do mesmo pedido (DO-03).
-        unidadeDeTrabalho.Confirmar();
-
-        // A decisão já foi confirmada; envia o evento ao passageiro.
-        await notificadorPedidosTempoReal.PedidoRejeitadoAsync(
-              participacao.PassageiroId,
-              participacao.Id,
-              ct);
-
-        await notificacaoService.CriarAsync(
+        var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
             TipoNotificacao.PedidoRejeitado,
-            "O teu pedido de participação na viagem foi rejeitado.",
-            ct);
+            "O teu pedido de participação na viagem foi rejeitado.");
+
+        // A rejeição não mexe na viagem, por isso o token Versao não protege contra uma aceitação ou um cancelamento
+        // simultâneos do mesmo pedido (DO-03).
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
+
+        await notificadorPedidosTempoReal.PedidoRejeitadoAsync(participacao.PassageiroId, participacao.Id, CancellationToken.None);
+        await notificacaoService.EnviarPushAsync(notificacao, CancellationToken.None);
 
         return Resultado.Sucesso;
     }
@@ -478,28 +462,19 @@ public sealed class ParticipacaoService(
 
             if (!rotaAtualizada)
                 viagem.RotaPontos = null;
+
+            // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
+            // P-21: cancelar um pedido pendente não gera notificação.
+            notificacaoService.RegistarAlteracaoViagem(
+                viagem.CondutorId,
+                aceites.Where(p => p.Id != participacao.Id).Select(p => p.PassageiroId),
+                utilizadorId,
+                "Um passageiro cancelou a sua participação na viagem.");
         }
 
         participacao.Estado = EstadoParticipacao.Cancelada;
 
-        unidadeDeTrabalho.Confirmar();
-
-        // P-21: cancelar um pedido pendente não gera notificação.
-        if (eraAceite)
-        {
-            // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
-            var restantes = await repositorioParticipacoes.ListarPorViagemAsync(
-                viagem.Id,
-                EstadoParticipacao.Aceite,
-                ct);
-
-            await notificacaoService.NotificarAlteracaoViagemAsync(
-                viagem.CondutorId,
-                restantes.Select(p => p.PassageiroId),
-                utilizadorId,
-                "Um passageiro cancelou a sua participação na viagem.",
-                ct);
-        }
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return Resultado.Sucesso;
     }

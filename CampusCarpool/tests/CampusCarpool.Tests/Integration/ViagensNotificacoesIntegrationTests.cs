@@ -67,7 +67,7 @@ public sealed class ViagensNotificacoesIntegrationTests
 
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
 
         var controller = ServicosDeTeste.CriarViagensController(db, mapas, notificacaoService: notificacaoService);
 

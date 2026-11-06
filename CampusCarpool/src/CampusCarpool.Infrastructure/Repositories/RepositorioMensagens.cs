@@ -9,14 +9,8 @@ namespace CampusCarpool.Infrastructure.Repositories;
 /// <summary>Implementação EF Core de <see cref="IRepositorioMensagens"/>.</summary>
 public sealed class RepositorioMensagens(CampusCarpoolDbContext context) : IRepositorioMensagens
 {
-
     /// <inheritdoc />
-    /// <remarks>Guarda a mensagem e persiste as alterações.</remarks>
-    public async Task AdicionarAsync(Mensagem mensagem, CancellationToken ct)
-    {
-        await context.Mensagens.AddAsync(mensagem, ct);
-        await context.SaveChangesAsync(ct);
-    }
+    public void Adicionar(Mensagem mensagem) => context.Mensagens.Add(mensagem);
 
     /// <inheritdoc />
     /// <remarks>

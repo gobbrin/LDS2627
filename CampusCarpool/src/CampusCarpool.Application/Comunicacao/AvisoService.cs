@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 
@@ -9,14 +10,13 @@ namespace CampusCarpool.Application.Comunicacao;
 /// <remarks>
 /// Um aviso é guardado uma vez em <c>Avisos</c>. Para cada participação aceite é criada uma cópia dirigida em
 /// <c>Notificacoes</c>. As duas gravações são um só <c>SaveChanges</c>, que é atómico, para não deixar avisos sem os
-/// seus destinatários (AP-10). As notificações de aviso não passam pelo <c>NotificacaoService</c>, por isso não geram
-/// push (RF-F006-17).
+/// seus destinatários (AP-10). As notificações de aviso não geram push (RF-F006-17).
 /// </remarks>
 public sealed class AvisoService(
     IRepositorioViagens viagens,
     IRepositorioParticipacoes participacoes,
     IRepositorioAvisos avisos,
-    IRepositorioNotificacoes notificacoes,
+    INotificacaoService notificacoes,
     IUnidadeDeTrabalho unidadeDeTrabalho) : IAvisoService
 {
     // P-28 (100 caracteres); o mesmo limite está no DbContext (HasMaxLength(100)).
@@ -52,14 +52,7 @@ public sealed class AvisoService(
 
         var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
 
-        notificacoes.AdicionarSemGravar(aceites.Select(p => p.PassageiroId).Distinct().Select(passageiroId => new Notificacao
-        {
-            UtilizadorId = passageiroId,
-            ViagemId = viagemId,
-            Tipo = TipoNotificacao.Aviso,
-            Titulo = "Aviso do condutor",
-            Conteudo = texto
-        }));
+        notificacoes.RegistarAviso(viagemId, aceites.Select(p => p.PassageiroId), texto);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

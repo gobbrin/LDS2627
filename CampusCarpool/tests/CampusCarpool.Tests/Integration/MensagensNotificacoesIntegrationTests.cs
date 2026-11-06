@@ -55,9 +55,9 @@ public sealed class MensagensNotificacoesIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
 
-        var mensagemService = new MensagemService(repositorioMensagens, repositorioUtilizadores, notificacaoService);
+        var mensagemService = new MensagemService(repositorioMensagens, repositorioUtilizadores, notificacaoService, new UnidadeDeTrabalhoEfCore(db));
 
         //Envia uma mensagem individual.
         const string conteudo = "Olá! Esta é uma mensagem de teste.";

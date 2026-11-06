@@ -24,9 +24,8 @@ public sealed record SimulacaoPedido(
 /// Contrato usado pela API para gerir participações sem conhecer a base de dados.
 /// </summary>
 /// <remarks>
-/// A implementação atual é <c>Application/Participacoes/ParticipacaoService.cs</c>.
-/// Notificações futuras devem ser publicadas depois de a operação transacional
-/// ser confirmada, para não anunciar uma alteração que sofreu rollback.
+/// Implementado por <see cref="ParticipacaoService"/>. O evento em tempo real e o push saem depois de a operação
+/// ser confirmada, para não anunciar uma alteração que não ficou gravada.
 /// </remarks>
 public interface IParticipacaoService
 {

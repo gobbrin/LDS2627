@@ -227,7 +227,7 @@ public sealed class RotaGuardadaTests : IDisposable
         ServicosDeTeste.CriarViagensController(
             db,
             mapas.CriarServico(),
-            notificacaoService: new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa())),
+            notificacaoService: new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa(), new UnidadeDeTrabalhoEfCore(db))),
         condutor.Id);
 
     private static ViagensController.EditarViagem Edicao(string? origem, string? destino) =>

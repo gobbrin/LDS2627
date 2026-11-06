@@ -151,10 +151,9 @@ public sealed class I052ParticipacaoServiceTests
     private sealed class TrabalhoFake : IUnidadeDeTrabalho
     {
         public int Confirmacoes { get; private set; }
-        public void Confirmar() => Confirmacoes++;
         public Task ConfirmarAsync(CancellationToken ct)
         {
-            Confirmar();
+            Confirmacoes++;
             return Task.CompletedTask;
         }
         public void DescartarAlteracoes()
@@ -164,18 +163,20 @@ public sealed class I052ParticipacaoServiceTests
     private sealed class NotificacoesFake : INotificacaoService
     {
         public List<(Guid id, TipoNotificacao tipo)> Enviadas { get; } = new();
-        public Task<Notificacao> CriarAsync(Guid id, TipoNotificacao tipo, string mensagem, CancellationToken ct)
+        public Notificacao Registar(Guid id, TipoNotificacao tipo, string mensagem)
         {
             Enviadas.Add((id, tipo));
-            return Task.FromResult(new Notificacao { UtilizadorId = id, Tipo = tipo, Conteudo = mensagem });
+            return new Notificacao { UtilizadorId = id, Tipo = tipo, Conteudo = mensagem };
         }
-        public async Task NotificarAlteracaoViagemAsync(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem, CancellationToken ct)
+        public void RegistarAlteracaoViagem(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
         {
             foreach (var id in passageiros.Append(condutorId).Where(id => id != origemId).Distinct())
-                await CriarAsync(id, TipoNotificacao.AlteracaoViagem, mensagem, ct);
+                Registar(id, TipoNotificacao.AlteracaoViagem, mensagem);
         }
+        public void RegistarAviso(Guid viagemId, IEnumerable<Guid> passageiros, string texto) => throw new NotSupportedException();
+        public Task EnviarPushAsync(Notificacao notificacao, CancellationToken ct) => Task.CompletedTask;
         public Task<PaginaNotificacoes> ListarAsync(Guid id, int pagina, int tamanho, CancellationToken ct) => throw new NotSupportedException();
-        public Task<bool> MarcarComoLidaAsync(Guid id, Guid utilizador, CancellationToken ct) => throw new NotSupportedException();
+        public Task<Resultado> MarcarComoLidaAsync(Guid id, Guid utilizador, CancellationToken ct) => throw new NotSupportedException();
         public Task<int> MarcarTodasComoLidasAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
     }
 }

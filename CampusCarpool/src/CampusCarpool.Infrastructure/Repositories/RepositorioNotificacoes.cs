@@ -12,19 +12,9 @@ namespace CampusCarpool.Infrastructure.Repositories;
 /// </remarks>
 public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IRepositorioNotificacoes
 {
-
-    //Adiciona a notificação e guarda as alterações na base de dados.
     /// <inheritdoc />
-    public async Task AdicionarAsync(Notificacao notificacao, CancellationToken ct)
-    {
-        await context.Notificacoes.AddAsync(notificacao, ct);
-        await context.SaveChangesAsync(ct);
-    }
+    public void Adicionar(Notificacao notificacao) => context.Notificacoes.Add(notificacao);
 
-    /// <inheritdoc />
-    public void AdicionarSemGravar(IEnumerable<Notificacao> notificacoes) => context.Notificacoes.AddRange(notificacoes);
-
-    //Consulta as notificações pessoais por ordem cronológica inversa.
     /// <inheritdoc />
     public async Task<IReadOnlyList<Notificacao>> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)
     {
@@ -38,7 +28,6 @@ public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IR
             .ToListAsync(ct);
     }
 
-    //Obtém apenas uma notificação pertencente ao utilizador indicado.
     /// <inheritdoc />
     public async Task<Notificacao?> ObterAsync(Guid notificacaoId, Guid utilizadorId, CancellationToken ct)
     {
@@ -46,7 +35,6 @@ public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IR
             .FirstOrDefaultAsync(n => n.Id == notificacaoId && n.UtilizadorId == utilizadorId, ct);
     }
 
-    //Consulta as notificações ainda não lidas do utilizador.
     /// <inheritdoc />
     public async Task<IReadOnlyList<Notificacao>> ListarNaoLidasAsync(Guid utilizadorId, CancellationToken ct)
     {
@@ -55,7 +43,6 @@ public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IR
             .ToListAsync(ct);
     }
 
-    //Conta todas as notificações do utilizador.
     /// <inheritdoc />
     public async Task<int> ContarAsync(Guid utilizadorId, CancellationToken ct)
     {
@@ -63,19 +50,10 @@ public sealed class RepositorioNotificacoes(CampusCarpoolDbContext context) : IR
             .CountAsync(n => n.UtilizadorId == utilizadorId, ct);
     }
 
-    //Conta as notificações ainda não lidas do utilizador.
     /// <inheritdoc />
     public async Task<int> ContarNaoLidasAsync(Guid utilizadorId, CancellationToken ct)
     {
         return await context.Notificacoes
             .CountAsync(n => n.UtilizadorId == utilizadorId && n.LidaEm == null, ct);
     }
-
-    //Guarda as alterações efetuadas às notificações.
-    /// <inheritdoc />
-    public async Task GuardarAlteracoesAsync(CancellationToken ct)
-    {
-        await context.SaveChangesAsync(ct);
-    }
-
 }

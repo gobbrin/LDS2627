@@ -26,9 +26,8 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     public async Task<IActionResult> MarcarComoLida(Guid id, CancellationToken ct)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
-        return await notificacaoService.MarcarComoLidaAsync(id, utilizadorId, ct)
-            ? NoContent()
-            : NotFound();
+
+        return this.Responder(await notificacaoService.MarcarComoLidaAsync(id, utilizadorId, ct), () => NoContent());
     }
 
     /// <summary>Marca todas as notificações do próprio utilizador como lidas.</summary>
