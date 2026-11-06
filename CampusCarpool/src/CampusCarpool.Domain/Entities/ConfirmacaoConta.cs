@@ -1,3 +1,5 @@
+using CampusCarpool.Domain.Exceptions;
+
 namespace CampusCarpool.Domain.Entities;
 
 /// <summary>
@@ -22,5 +24,20 @@ public sealed class ConfirmacaoConta
     public DateTime ExpiraEm { get; set; }
 
     /// <summary>Momento (UTC) em que a ligação foi usada; <c>null</c> enquanto não for usada.</summary>
-    public DateTime? ConsumidoEm { get; set; }
+    public DateTime? ConsumidoEm { get; internal set; }
+
+    /// <summary>Indica se a ligação ainda não foi usada nem expirou (P-02).</summary>
+    /// <param name="agora">Momento de referência (UTC).</param>
+    public bool EstaValida(DateTime agora) => ConsumidoEm is null && ExpiraEm > agora;
+
+    /// <summary>Consome a ligação, que não volta a servir (RF-F001-08).</summary>
+    /// <param name="agora">Momento de utilização (UTC).</param>
+    /// <exception cref="RegraDeNegocioException">A ligação já foi usada ou expirou.</exception>
+    public void Utilizar(DateTime agora)
+    {
+        if (!EstaValida(agora))
+            throw new RegraDeNegocioException("A ligação de confirmação já não é válida.");
+
+        ConsumidoEm = agora;
+    }
 }

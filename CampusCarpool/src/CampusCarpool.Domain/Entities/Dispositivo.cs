@@ -5,7 +5,7 @@ namespace CampusCarpool.Domain.Entities;
 /// </summary>
 /// <remarks>
 /// RF-F006-18 pede que o dispositivo deixe de receber push quando o utilizador termina a sessão;
-/// o fim de sessão ainda não desativa o dispositivo (DEF-BE-021, fica para m4; depende da D-020).
+/// o fim de sessão desativa o dispositivo indicado (RF-F006-18, D-020).
 /// </remarks>
 public sealed class Dispositivo
 {

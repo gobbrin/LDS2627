@@ -8,8 +8,7 @@ using CampusCarpool.Domain.Enums;
 /// ordem de chegada. Avisos do condutor são um dos tipos persistidos; não geram
 /// push Android, de acordo com a declaração de âmbito.
 /// O título e o conteúdo são copiados no momento da criação, por isso a notificação continua legível
-/// mesmo que a origem (aviso, viagem) mude depois (DO-13). Os tipos que geram push são decididos em
-/// <c>NotificacaoService</c> (RF-F006-12, RF-F006-16, RF-F006-17).
+/// mesmo que a origem (aviso, viagem) mude depois (DO-13).
 /// </remarks>
 public sealed class Notificacao
 {
@@ -32,8 +31,18 @@ public sealed class Notificacao
     public string Conteudo { get; set; } = "";
 
     /// <summary>Momento (UTC) em que o utilizador a marcou como lida; <c>null</c> se ainda não foi lida.</summary>
-    public DateTime? LidaEm { get; set; }
+    public DateTime? LidaEm { get; internal set; }
 
     /// <summary>Data de criação (UTC).</summary>
     public DateTime CriadaEm { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Indica se a notificação gera push Android: só os três tipos de pedido (RF-F006-11; RF-F006-12, RF-F006-16 e
+    /// RF-F006-17 excluem os restantes).
+    /// </summary>
+    public bool OriginaPush() => Tipo is TipoNotificacao.PedidoRecebido or TipoNotificacao.PedidoAceite or TipoNotificacao.PedidoRejeitado;
+
+    /// <summary>Marca a notificação como lida; sem efeito se já estiver lida.</summary>
+    /// <param name="agora">Momento da leitura (UTC).</param>
+    public void MarcarComoLida(DateTime agora) => LidaEm ??= agora;
 }

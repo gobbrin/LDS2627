@@ -64,7 +64,7 @@ public sealed class NotificacaoService(
     {
         ArgumentNullException.ThrowIfNull(notificacao);
 
-        if (notificacao.Tipo is not (TipoNotificacao.PedidoRecebido or TipoNotificacao.PedidoAceite or TipoNotificacao.PedidoRejeitado))
+        if (!notificacao.OriginaPush())
             return;
 
         await filaNotificacoesPush.EnfileirarAsync(
@@ -104,10 +104,7 @@ public sealed class NotificacaoService(
         if (notificacao is null)
             return new Erro(TipoErro.NaoEncontrado);
 
-        if (notificacao.LidaEm is not null)
-            return Resultado.Sucesso;
-
-        notificacao.LidaEm = DateTime.UtcNow;
+        notificacao.MarcarComoLida(DateTime.UtcNow);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 
@@ -125,7 +122,7 @@ public sealed class NotificacaoService(
         var dataLeitura = DateTime.UtcNow;
 
         foreach (var notificacao in notificacoes)
-            notificacao.LidaEm = dataLeitura;
+            notificacao.MarcarComoLida(dataLeitura);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

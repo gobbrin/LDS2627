@@ -78,9 +78,10 @@ public sealed class PerfilService(
         var utilizador = await utilizadores.ObterParaAlterarAsync(utilizadorId, ct);
         if (utilizador is null) return UtilizadorNaoEncontrado;
 
-        utilizador.Nome = nome.Trim();
-        utilizador.Curso = string.IsNullOrWhiteSpace(curso) ? null : curso.Trim();
-        utilizador.Instituicao = string.IsNullOrWhiteSpace(instituicao) ? null : instituicao.Trim();
+        utilizador.AtualizarPerfil(
+            nome.Trim(),
+            string.IsNullOrWhiteSpace(curso) ? null : curso.Trim(),
+            string.IsNullOrWhiteSpace(instituicao) ? null : instituicao.Trim());
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

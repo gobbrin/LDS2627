@@ -54,7 +54,7 @@ public sealed class AutenticacaoService(
         if (await utilizadores.ExisteEmailAsync(normalizado, ct))
             return new Erro(TipoErro.Conflito, "Email já registado.");
 
-        var utilizador = new Utilizador { Nome = nome.Trim(), Email = normalizado };
+        var utilizador = Utilizador.Registar(nome.Trim(), normalizado);
         utilizador.PasswordHash = hashPalavraPasse.Gerar(utilizador, palavraPasse);
         utilizadores.Adicionar(utilizador);
 
@@ -149,8 +149,8 @@ public sealed class AutenticacaoService(
         if (utilizador is null)
             return new Erro(TipoErro.NaoEncontrado);
 
-        utilizador.EmailConfirmado = true;
-        confirmacao.ConsumidoEm = agora;
+        utilizador.Confirmar();
+        confirmacao.Utilizar(agora);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

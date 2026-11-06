@@ -12,16 +12,13 @@ namespace CampusCarpool.Application.Avaliacoes;
 /// </remarks>
 public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAvaliacaoService
 {
-    // Valor inteiro de 1 a 5 (RF-F007-01).
     private static readonly Erro ClassificacaoInvalida = new(TipoErro.DadosInvalidos, "A classificação deve ser um número inteiro entre 1 e 5.");
     private static readonly Erro UtilizadorNaoEncontrado = new(TipoErro.NaoEncontrado, "Utilizador não encontrado.");
-
-    private static bool ValorValido(int classificacao) => classificacao is >= 1 and <= 5;
 
     /// <inheritdoc />
     public async Task<Resultado<AvaliacaoRegistada>> CriarAsync(Guid viagemId, Guid avaliadorId, Guid avaliadoId, int classificacao, CancellationToken ct)
     {
-        if (!ValorValido(classificacao)) return ClassificacaoInvalida;
+        if (!Avaliacao.ValorValido(classificacao)) return ClassificacaoInvalida;
 
         if (avaliadorId == avaliadoId)
             return new Erro(TipoErro.DadosInvalidos, "Não é permitido avaliar-se a si próprio.");
@@ -50,7 +47,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         if (await repositorio.ObterPorParAsync(avaliadorId, avaliadoId, ct) is not null)
             return new Erro(TipoErro.Conflito, "Já existe uma avaliação deste utilizador. Pode alterar a avaliação existente.");
 
-        var nova = new Avaliacao { ViagemId = viagemId, AvaliadorId = avaliadorId, AvaliadoId = avaliadoId, Classificacao = (byte)classificacao };
+        var nova = Avaliacao.Criar(viagemId, avaliadorId, avaliadoId, classificacao);
 
         if (!await repositorio.GuardarAsync(nova, ct))
             return new Erro(TipoErro.Conflito, "Não foi possível registar a avaliação; poderá já existir.");
@@ -61,15 +58,14 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
     /// <inheritdoc />
     public async Task<Resultado<AvaliacaoRegistada>> AlterarAsync(Guid avaliadorId, Guid avaliadoId, int classificacao, CancellationToken ct)
     {
-        if (!ValorValido(classificacao)) return ClassificacaoInvalida;
+        if (!Avaliacao.ValorValido(classificacao)) return ClassificacaoInvalida;
 
         var avaliacao = await repositorio.ObterPorParAsync(avaliadorId, avaliadoId, ct);
 
         if (avaliacao is null)
             return new Erro(TipoErro.NaoEncontrado, "Não existe uma avaliação sua para este utilizador.");
 
-        // Só o valor muda; CriadoEm mantém a data original (DO-10, P-22 por decidir).
-        avaliacao.Classificacao = (byte)classificacao;
+        avaliacao.Alterar(classificacao);
 
         if (!await repositorio.GuardarAsync(avaliacao, ct))
             return new Erro(TipoErro.Conflito, "Não foi possível alterar a avaliação.");
