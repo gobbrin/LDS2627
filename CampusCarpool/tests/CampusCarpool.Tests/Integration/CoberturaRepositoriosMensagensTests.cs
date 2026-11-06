@@ -31,9 +31,10 @@ public sealed class CoberturaRepositoriosMensagensTests
         var recente = new Mensagem { RemetenteId = primeiro.Id, DestinatarioId = segundo.Id, Conteudo = "recente", EnviadoEm = data.AddMinutes(2) };
         var antiga = new Mensagem { RemetenteId = segundo.Id, DestinatarioId = primeiro.Id, Conteudo = "antiga", EnviadoEm = data };
         var irrelevante = new Mensagem { RemetenteId = terceiro.Id, DestinatarioId = primeiro.Id, Conteudo = "outra conversa", EnviadoEm = data.AddMinutes(1) };
-        await repositorio.AdicionarAsync(recente, CancellationToken.None);
-        await repositorio.AdicionarAsync(antiga, CancellationToken.None);
-        await repositorio.AdicionarAsync(irrelevante, CancellationToken.None);
+        repositorio.Adicionar(recente);
+        repositorio.Adicionar(antiga);
+        repositorio.Adicionar(irrelevante);
+        await db.SaveChangesAsync();
 
         var conversa = await repositorio.ObterConversaAsync(primeiro.Id, segundo.Id, CancellationToken.None);
         Assert.Equal(new[] { antiga.Id, recente.Id }, conversa.Select(m => m.Id));
@@ -52,7 +53,7 @@ public sealed class CoberturaRepositoriosMensagensTests
         await db.Database.EnsureCreatedAsync();
         var utilizador = new Utilizador { Nome = "Persistido", Email = "persistido@teste.pt" };
         db.Utilizadores.Add(utilizador);
-        new UnidadeDeTrabalhoEfCore(db).Confirmar();
+        await new UnidadeDeTrabalhoEfCore(db).ConfirmarAsync(CancellationToken.None);
         db.ChangeTracker.Clear();
         Assert.Equal("Persistido", (await db.Utilizadores.SingleAsync(u => u.Id == utilizador.Id)).Nome);
     }

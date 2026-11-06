@@ -44,8 +44,9 @@ public sealed class CoberturaMensagensCenariosAdicionaisTests
         var primeiroId = Guid.Parse("00000000-0000-0000-0000-000000000001");
         var segundoId = Guid.Parse("00000000-0000-0000-0000-000000000002");
         var repo = new RepositorioMensagens(db);
-        await repo.AdicionarAsync(new Mensagem { Id = segundoId, RemetenteId = a.Id, DestinatarioId = b.Id, Conteudo = "segunda", EnviadoEm = instante }, CancellationToken.None);
-        await repo.AdicionarAsync(new Mensagem { Id = primeiroId, RemetenteId = b.Id, DestinatarioId = a.Id, Conteudo = "primeira", EnviadoEm = instante }, CancellationToken.None);
+        repo.Adicionar(new Mensagem { Id = segundoId, RemetenteId = a.Id, DestinatarioId = b.Id, Conteudo = "segunda", EnviadoEm = instante });
+        repo.Adicionar(new Mensagem { Id = primeiroId, RemetenteId = b.Id, DestinatarioId = a.Id, Conteudo = "primeira", EnviadoEm = instante });
+        await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
         var resultado = await repo.ObterConversaAsync(a.Id, b.Id, CancellationToken.None);
