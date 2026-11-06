@@ -8,9 +8,7 @@ namespace CampusCarpool.Domain.Entities;
 /// <remarks>
 /// As regras de elegibilidade (P-16: avaliador e avaliado participaram na mesma viagem <c>Concluida</c>;
 /// ninguém se avalia a si próprio) estão em <c>AvaliacaoService</c>, não nesta entidade.
-/// RF-F007-04 exige uma só avaliação atual por par (avaliador, avaliado): a migration
-/// <c>I048_AvaliacoesPorPar</c> cria esse índice único, mas o <c>CampusCarpoolDbContext</c> e o snapshot
-/// ainda declaram o índice triplo (viagem, avaliador, avaliado) (IN-01 / DEF-BE-025, fica para m4).
+/// RF-F007-04 exige uma só avaliação atual por par (avaliador, avaliado), garantida por um índice único.
 /// O autor (<see cref="AvaliadorId"/>) nunca é exposto a outros utilizadores (RF-F007-07).
 /// </remarks>
 public sealed class Avaliacao

@@ -42,8 +42,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
             return new Erro(TipoErro.Conflito, "Ambos os utilizadores devem ter participado na viagem concluída com participação aceite.");
 
         // RF-F007-04: uma só avaliação por par, seja qual for a viagem. Dois pedidos simultâneos podem passar
-        // esta verificação; numa BD migrada o índice único do par recusa o segundo, mas numa BD criada com
-        // EnsureCreated (testes) o índice é o triplo e não recusa (IN-01).
+        // esta verificação; o índice único do par recusa o segundo.
         if (await repositorio.ObterPorParAsync(avaliadorId, avaliadoId, ct) is not null)
             return new Erro(TipoErro.Conflito, "Já existe uma avaliação deste utilizador. Pode alterar a avaliação existente.");
 

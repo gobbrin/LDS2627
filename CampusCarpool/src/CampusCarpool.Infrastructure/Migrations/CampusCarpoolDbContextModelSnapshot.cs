@@ -47,9 +47,9 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("AvaliadoId");
 
-                    b.HasIndex("AvaliadorId");
+                    b.HasIndex("ViagemId");
 
-                    b.HasIndex("ViagemId", "AvaliadorId", "AvaliadoId")
+                    b.HasIndex("AvaliadorId", "AvaliadoId")
                         .IsUnique();
 
                     b.ToTable("Avaliacoes");
