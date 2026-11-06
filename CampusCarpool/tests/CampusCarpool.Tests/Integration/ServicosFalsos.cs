@@ -4,6 +4,7 @@ using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Application.Historico;
 using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
@@ -149,8 +150,25 @@ public static class ServicosDeTeste
         INotificacaoService? notificacaoService = null) =>
         new(db, mapas, CriarRotas(db, mapas), CriarConsultas(db), custos, notificacaoService);
 
+    public static NotificacaoService CriarNotificacoes(CampusCarpoolDbContext db) =>
+        new(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa());
+
+    public static ParticipacaoService CriarParticipacoes(
+        CampusCarpoolDbContext db,
+        IServicoMapasRotas mapas,
+        INotificacaoService? notificacoes = null,
+        INotificadorPedidosTempoReal? tempoReal = null) => new(
+        new RepositorioParticipacoes(db),
+        new RepositorioViagens(db),
+        new UnidadeDeTrabalhoEfCore(db),
+        notificacoes ?? CriarNotificacoes(db),
+        tempoReal ?? new NotificadorPedidosFalso(),
+        CriarRotas(db, mapas),
+        mapas,
+        new RepositorioUtilizadores(db));
+
     public static SimulacoesController CriarSimulacoesController(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
-        new(db, mapas, CriarRotas(db, mapas));
+        new(CriarParticipacoes(db, mapas));
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,

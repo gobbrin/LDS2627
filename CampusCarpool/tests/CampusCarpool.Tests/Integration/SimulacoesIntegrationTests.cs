@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Integrations;
@@ -270,7 +271,7 @@ public sealed class SimulacoesIntegrationTests
         var antesEstado = f.Pedido.Estado;
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Equal(f.Viagem.Id, resposta.ViagemId);
         Assert.Equal(f.Pedido.Id, resposta.PedidoId);
         Assert.Equal("Porto", resposta.OrdemSimulada[0]);
@@ -291,7 +292,7 @@ public sealed class SimulacoesIntegrationTests
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Equal(soRecolha ? "Lousada" : "Porto", resposta.RecolhaPassageiro);
         Assert.Equal(soRecolha ? "Felgueiras" : "Penafiel", resposta.DestinoPassageiro);
     }
@@ -315,7 +316,7 @@ public sealed class SimulacoesIntegrationTests
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Contains("Amarante", resposta.OrdemOriginal);
         Assert.Contains("Trofa", resposta.OrdemOriginal);
         Assert.True(Array.IndexOf(resposta.OrdemOriginal.ToArray(), "Amarante") < Array.IndexOf(resposta.OrdemOriginal.ToArray(), "Trofa"));

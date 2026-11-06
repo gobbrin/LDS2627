@@ -15,4 +15,7 @@ public interface IRepositorioUtilizadores
 
     /// <summary>Obtém os nomes dos utilizadores indicados, por identificador; os inexistentes ficam de fora.</summary>
     Task<IReadOnlyDictionary<Guid, string>> ObterNomesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
+
+    /// <summary>Indica se o utilizador existe e já confirmou a conta.</summary>
+    Task<bool> ContaConfirmadaAsync(Guid utilizadorId, CancellationToken ct);
 }

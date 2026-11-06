@@ -129,7 +129,7 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
-        var controller = new PedidosController(db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
+        var controller = new PedidosController(ServicosDeTeste.CriarParticipacoes(db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso()));
 
         var claims = utilizadorId.HasValue
             ? new[]
@@ -573,7 +573,7 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
 
-        var controller = new PedidosController(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso());
+        var controller = new PedidosController(ServicosDeTeste.CriarParticipacoes(f.Db, mapas, notificacaoService, new NotificadorPedidosTempoRealFalso()));
 
         controller.ControllerContext = new ControllerContext
         {

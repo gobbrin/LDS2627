@@ -2,6 +2,7 @@ using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Repositories;
@@ -9,6 +10,8 @@ namespace CampusCarpool.Infrastructure.Repositories;
 /// <summary>Implementação EF Core de <see cref="IRepositorioParticipacoes"/>.</summary>
 public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : IRepositorioParticipacoes
 {
+    // Índice único filtrado (pendente ou aceite) criado no DbContext (I038); usado para reconhecer a violação.
+    private const string IndicePedidosAtivos = "IX_Participacoes_ViagemId_PassageiroId";
 
     /// <summary>
     /// Obtém uma participação pelo identificador.
@@ -78,5 +81,25 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
         return await context.Participacoes
             .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Pendente)
             .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct)
+    {
+        context.Participacoes.Add(pedido);
+
+        try
+        {
+            await context.SaveChangesAsync(ct);
+            return true;
+        }
+        // Erros 2601/2627 do SQL Server. Em SQLite (testes) a exceção é outra e não é apanhada aqui.
+        catch (DbUpdateException ex) when (
+            ex.InnerException is SqlException sqlEx
+            && (sqlEx.Number == 2601 || sqlEx.Number == 2627)
+            && sqlEx.Message.Contains(IndicePedidosAtivos, StringComparison.Ordinal))
+        {
+            return false;
+        }
     }
 }

@@ -29,4 +29,10 @@ public sealed class RepositorioUtilizadores(CampusCarpoolDbContext context) : IR
             .Where(u => ids.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.Nome, ct);
     }
+
+    /// <inheritdoc />
+    public async Task<bool> ContaConfirmadaAsync(Guid utilizadorId, CancellationToken ct)
+    {
+        return await context.Utilizadores.AnyAsync(u => u.Id == utilizadorId && u.EmailConfirmado, ct);
+    }
 }

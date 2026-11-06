@@ -47,4 +47,7 @@ public interface IRepositorioParticipacoes
     /// <summary>Lista os pedidos pendentes de uma viagem (rastreados, para serem alterados).</summary>
     Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid viagemId, CancellationToken ct);
 
+    /// <summary>Grava um pedido novo.</summary>
+    /// <returns><c>false</c> se a BD o recusar, por o passageiro já ter um pedido ou uma participação ativa na viagem.</returns>
+    Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct);
 }

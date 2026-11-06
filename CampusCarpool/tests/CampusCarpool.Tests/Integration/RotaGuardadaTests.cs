@@ -77,13 +77,7 @@ public sealed class RotaGuardadaTests : IDisposable
         ligacao.Dispose();
     }
 
-    private ParticipacaoService Servico() => new(
-        new RepositorioParticipacoes(db),
-        new RepositorioViagens(db),
-        new UnidadeDeTrabalhoEfCore(db),
-        new NotificacaoService(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa()),
-        new NotificadorPedidosFalso(),
-        ServicosDeTeste.CriarRotas(db, mapas.CriarServico()));
+    private ParticipacaoService Servico() => ServicosDeTeste.CriarParticipacoes(db, mapas.CriarServico());
 
     private static T ComUtilizador<T>(T controller, Guid id) where T : ControllerBase
     {
@@ -191,7 +185,7 @@ public sealed class RotaGuardadaTests : IDisposable
         mapas.Duracao = (i, j) => (i, j) is (0, 1) or (1, 2) or (2, 3) ? 60 : 3000;
 
         var controller = ComUtilizador(ServicosDeTeste.CriarSimulacoesController(db, mapas.CriarServico()), condutor.Id);
-        var simulacao = Assert.IsType<SimulacoesController.RespostaSimulacao>(
+        var simulacao = Assert.IsType<SimulacaoPedido>(
             Assert.IsType<OkObjectResult>(await controller.Simular(
                 viagem.Id, new SimulacoesController.SimularPedido(pedido.Id), default)).Value);
 

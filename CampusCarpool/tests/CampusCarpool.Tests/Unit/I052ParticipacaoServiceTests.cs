@@ -20,7 +20,9 @@ public sealed class I052ParticipacaoServiceTests
     private ParticipacaoService CriarServico() =>
     new(participacoes, viagens, trabalho, notificacoes,
         new CampusCarpool.Tests.NotificadorPedidosFalso(),
-        new CampusCarpool.Tests.RotaViagemFalsa());
+        new CampusCarpool.Tests.RotaViagemFalsa(),
+        null!,
+        null!);
 
     private (Participacao pedido, Viagem viagem, Guid condutor) Preparar()
     {
@@ -131,6 +133,7 @@ public sealed class I052ParticipacaoServiceTests
         public Task<bool> ExistePedidoAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
         public Task<bool> ExisteAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
         public Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
+        public Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct) => throw new NotSupportedException();
     }
     private sealed class ViagensFake : IRepositorioViagens
     {
