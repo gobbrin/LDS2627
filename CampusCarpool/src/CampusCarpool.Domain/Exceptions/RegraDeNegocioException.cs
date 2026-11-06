@@ -4,12 +4,9 @@ namespace CampusCarpool.Domain.Exceptions;
 /// Representa uma violação de uma regra de negócio.
 /// </summary>
 /// <remarks>
-/// Se não for apanhada no controller, o <c>GlobalExceptionHandler</c> da Api converte-a num 409
-/// <c>ProblemDetails</c> com um texto genérico (a mensagem da exceção não é enviada ao cliente).
-/// É lançada pela <c>UnidadeDeTrabalhoEfCore</c>, quando há um conflito de concorrência ao gravar, e pelo
-/// <c>RepositorioAvaliacoes</c>, quando a BD recusa a gravação.
-/// Os erros previstos dos serviços saem como <c>Resultado</c> (decisão D3), ou como exceções genéricas do
-/// .NET que o controller converte, nas avaliações e nas mensagens (DO-09, DEF-BE-028).
+/// O <c>GlobalExceptionHandler</c> da Api converte-a num 409 <c>ProblemDetails</c>, com a mensagem da exceção.
+/// É lançada pela <c>UnidadeDeTrabalhoEfCore</c>, quando há um conflito de concorrência ao gravar. Os erros
+/// previstos dos serviços saem como <c>Resultado</c> (decisão D3).
 /// </remarks>
 public sealed class RegraDeNegocioException : Exception
 {

@@ -1,7 +1,6 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Domain.Exceptions;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 namespace CampusCarpool.Infrastructure.Repositories;
@@ -20,7 +19,7 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
     public Task<Avaliacao?> ObterPorParAsync(Guid avaliadorId, Guid avaliadoId, CancellationToken ct) =>
         db.Avaliacoes.FirstOrDefaultAsync(a => a.AvaliadorId == avaliadorId && a.AvaliadoId == avaliadoId, ct);
     /// <inheritdoc />
-    public async Task<Avaliacao> GuardarAsync(Avaliacao avaliacao, CancellationToken ct)
+    public async Task<bool> GuardarAsync(Avaliacao avaliacao, CancellationToken ct)
     {
         // Uma entidade "Detached" é nova; uma obtida por ObterPorParAsync já está rastreada e só é gravada.
         if (db.Entry(avaliacao).State == EntityState.Detached) db.Avaliacoes.Add(avaliacao);
@@ -28,14 +27,13 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
         try
         {
             await db.SaveChangesAsync(ct);
+            return true;
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException)
         {
             // Por exemplo, o índice único do par recusa o segundo de dois pedidos simultâneos.
-            throw new RegraDeNegocioException("Não foi possível gravar a avaliação.", ex);
+            return false;
         }
-
-        return avaliacao;
     }
     /// <inheritdoc />
     public async Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct) =>

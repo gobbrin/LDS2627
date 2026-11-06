@@ -47,6 +47,7 @@ public sealed class PerfilService(
 
         var lista = await ListarLigacoesAsync(utilizadorId, ct);
         var resumo = await avaliacoes.ConsultarAsync(utilizadorId, ct);
+        if (resumo.Erro is { } erro) return erro;
 
         return new PerfilPublico(
             utilizador.Id,
@@ -54,8 +55,8 @@ public sealed class PerfilService(
             utilizador.Curso,
             utilizador.Instituicao,
             lista,
-            resumo.Media,
-            resumo.Total);
+            resumo.Valor.Media,
+            resumo.Valor.Total);
     }
 
     /// <inheritdoc />

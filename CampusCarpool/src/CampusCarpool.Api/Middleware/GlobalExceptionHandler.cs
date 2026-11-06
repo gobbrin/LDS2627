@@ -8,10 +8,10 @@ namespace CampusCarpool.Api.Middleware;
 /// Último recurso para exceções não tratadas nos controllers: responde em formato <c>ProblemDetails</c> (RFC 7807).
 /// </summary>
 /// <remarks>
-/// <see cref="RegraDeNegocioException"/> → 409 (aviso no log); qualquer outra → 500 (erro no log, com a exceção).
-/// Os textos são genéricos: a mensagem e a stack trace nunca vão para o cliente. Outras exceções conhecidas
-/// (<c>ArgumentException</c>, ...) também dão 500 se chegarem aqui; a tabela
-/// única exceção → código está por fazer (DC-41, fica para m4).
+/// <see cref="RegraDeNegocioException"/> → 409 (aviso no log), com a mensagem da exceção, que é escrita para o
+/// utilizador; hoje só a lança um conflito de concorrência ao gravar. Qualquer outra → 500 (erro no log, com a
+/// exceção), com um texto genérico: a mensagem e a stack trace nunca vão para o cliente. Os erros previstos não
+/// passam por aqui: saem como <c>Resultado</c> e são traduzidos no <c>RespostasHttp</c> (DC-41).
 /// </remarks>
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetails) : IExceptionHandler
 {
@@ -61,7 +61,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 ? "Conflito de regra de negócio"
                 : "Erro interno do servidor",
             Detail = eConflitoNegocio
-                ? "A operação não pode ser concluída devido ao estado atual do recurso."
+                ? exception.Message
                 : "Ocorreu um erro inesperado."
         };
 
