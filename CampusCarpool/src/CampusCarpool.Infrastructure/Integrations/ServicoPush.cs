@@ -143,9 +143,9 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                 using var response = resposta;
                 if (response.IsSuccessStatusCode) continue;
                 var error = await response.Content.ReadAsStringAsync(ct);
-                // Desativar apenas tokens explicitamente inválidos/não registados.
-                if (response.StatusCode == HttpStatusCode.NotFound ||
-                    (response.StatusCode == HttpStatusCode.BadRequest && error.Contains("UNREGISTERED", StringComparison.Ordinal)))
+                // Desativar apenas tokens explicitamente não registados: um ProjectId errado também dá 404.
+                if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest
+                    && error.Contains("UNREGISTERED", StringComparison.Ordinal))
                     await dispositivos.DesativarTokenInvalidoAsync(dispositivo.Token, ct);
                 LogRespostaFcm(logger, (int)response.StatusCode, utilizadorId, error.Length > 500 ? error[..500] : error, null);
             }

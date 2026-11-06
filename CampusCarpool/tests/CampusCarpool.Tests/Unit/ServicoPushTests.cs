@@ -115,7 +115,7 @@ public sealed class ServicoPushTests
                     return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste"}""");
                 }
 
-                return Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND"}}""");
+                return Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND","details":[{"errorCode":"UNREGISTERED"}]}}""");
             }
         ));
 
@@ -125,6 +125,38 @@ public sealed class ServicoPushTests
 
         Assert.Equal(1, repositorio.Desativacoes);
         Assert.Equal(tokenDispositivo, repositorio.UltimoTokenDesativado);
+    }
+
+    [Fact]
+    public async Task EnviarAsync_Com404SemTokenInvalido_MantemODispositivo()
+    {
+        var utilizadorId = Guid.NewGuid();
+
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos =
+            [
+                new Dispositivo
+                {
+                    UtilizadorId = utilizadorId,
+                    Token = "token-valido",
+                    Ativo = true
+                }
+            ]
+        };
+
+        // Por exemplo, Firebase:ProjectId errado.
+        using var http = new HttpClient(new HandlerHttpFalso(
+            (pedido, _) => pedido.RequestUri!.Host == "oauth2.googleapis.com"
+                ? Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste"}""")
+                : Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND"}}""")
+        ));
+
+        var servico = CriarServico(http, repositorio);
+
+        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoAceite", CancellationToken.None);
+
+        Assert.Equal(0, repositorio.Desativacoes);
     }
 
     [Fact]
