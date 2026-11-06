@@ -17,7 +17,7 @@ namespace CampusCarpool.Tests.Integration;
 
 /// <summary>Hub SignalR: ligação sem autenticação recusada e eventos entregues só ao destinatário.</summary>
 /// <remarks>
-/// Constrói uma aplicação mínima própria (Kestrel numa porta livre, esquema de autenticação de teste, só o hub), não o <c>Program.cs</c>: não testa o <c>access_token</c> na query string nem o JwtBearer real (TE-04).
+/// Constrói uma aplicação mínima própria (Kestrel numa porta livre, esquema de autenticação de teste, só o hub), não o <c>Program.cs</c>. O <c>access_token</c> na query string e o JwtBearer real estão em <see cref="AutenticacaoRealHttpTests"/>.
 /// </remarks>
 public sealed class PedidosHubIntegrationTests
 {
@@ -78,10 +78,12 @@ public sealed class PedidosHubIntegrationTests
 
         Assert.Equal(pedidoId, pedidoRecebido);
 
-        // Dá tempo para detetar uma eventual entrega indevida a B.
-        await Task.Delay(300);
+        // Os eventos chegam por ordem: se o de A tivesse chegado a B, seria esse o primeiro que B via.
+        var pedidoDeB = Guid.NewGuid();
 
-        Assert.False(notificacaoB.Task.IsCompleted);
+        await notificador.PedidoRecebidoAsync(UtilizadorB, pedidoDeB, CancellationToken.None);
+
+        Assert.Equal(pedidoDeB, await notificacaoB.Task.WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
     [Theory]
@@ -115,28 +117,22 @@ public sealed class PedidosHubIntegrationTests
 
         var notificador = app.Services.GetRequiredService<INotificadorPedidosTempoReal>();
 
-        if (nomeEvento == "PedidoAceite")
-        {
-            await notificador.PedidoAceiteAsync(
-                UtilizadorA,
-                pedidoId,
-                CancellationToken.None);
-        }
-        else
-        {
-            await notificador.PedidoRejeitadoAsync(
-                UtilizadorA,
-                pedidoId,
-                CancellationToken.None);
-        }
+        Task EnviarAsync(Guid destinatarioId, Guid id) => nomeEvento == "PedidoAceite"
+            ? notificador.PedidoAceiteAsync(destinatarioId, id, CancellationToken.None)
+            : notificador.PedidoRejeitadoAsync(destinatarioId, id, CancellationToken.None);
+
+        await EnviarAsync(UtilizadorA, pedidoId);
 
         var pedidoRecebido = await notificacaoA.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Equal(pedidoId, pedidoRecebido);
 
-        await Task.Delay(300);
+        // Os eventos chegam por ordem: se o de A tivesse chegado a B, seria esse o primeiro que B via.
+        var pedidoDeB = Guid.NewGuid();
 
-        Assert.False(notificacaoB.Task.IsCompleted);
+        await EnviarAsync(UtilizadorB, pedidoDeB);
+
+        Assert.Equal(pedidoDeB, await notificacaoB.Task.WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
     private static async Task<WebApplication> CriarAplicacaoAsync()
