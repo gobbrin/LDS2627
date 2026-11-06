@@ -72,7 +72,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         public async Task<Viagem> CriarViagem(
             Guid condutorId,
             int lugares = 2,
-            string estado = "Ativa",
+            EstadoViagem estado = EstadoViagem.Ativa,
             DateTime? partida = null)
         {
             var viagem = new Viagem
@@ -314,7 +314,7 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         var viagem = await f.CriarViagem(
             condutor.Id,
-            estado: "Indisponibilizada");
+            estado: EstadoViagem.Indisponibilizada);
 
         var controller = CriarController(f.Db, passageiro.Id);
 

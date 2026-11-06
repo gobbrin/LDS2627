@@ -82,6 +82,13 @@ public sealed class RotaViagemFalsa : IRotaService
         CancellationToken ct)
         => Task.FromResult<ResultadoRotaComPontos?>(null);
 
+    public Task<ResultadoRotaComPontos?> CalcularEntreAsync(
+        PontoRota origem,
+        PontoRota destino,
+        IEnumerable<Participacao> participacoes,
+        CancellationToken ct)
+        => Task.FromResult<ResultadoRotaComPontos?>(null);
+
     public Task<bool> RecalcularAsync(
         Viagem viagem,
         IReadOnlyCollection<Participacao> aceites,

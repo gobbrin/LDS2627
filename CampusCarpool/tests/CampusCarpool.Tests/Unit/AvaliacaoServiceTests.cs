@@ -2,6 +2,7 @@ using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
@@ -19,7 +20,7 @@ public sealed class AvaliacaoServiceTests
     private readonly Guid _viagemId = Guid.NewGuid();
     private readonly RepositorioEmMemoria _repo = new();
 
-    private AvaliacaoService CriarServico(string estado = "Concluida", bool aceitarA = true, bool aceitarB = true)
+    private AvaliacaoService CriarServico(EstadoViagem estado = EstadoViagem.Concluida, bool aceitarA = true, bool aceitarB = true)
     {
         _repo.Viagens[_viagemId] = new Viagem { Id = _viagemId, CondutorId = _condutor, Estado = estado };
         _repo.Utilizadores.UnionWith(new[] { _condutor, _passageiroA, _passageiroB, _externo });
@@ -62,11 +63,9 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Theory]
-    [InlineData("Ativa")]
-    [InlineData("Indisponibilizada")]
-    // DC-32 (I110): a grafia com acento já não é um estado válido; a migration converte-a.
-    [InlineData("Concluída")]
-    public async Task Criar_RejeitaViagemNaoConcluida(string estado)
+    [InlineData(EstadoViagem.Ativa)]
+    [InlineData(EstadoViagem.Indisponibilizada)]
+    public async Task Criar_RejeitaViagemNaoConcluida(EstadoViagem estado)
     {
         var servico = CriarServico(estado);
         Assert.Equal(TipoErro.Conflito, (await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 5, CancellationToken.None)).Erro?.Tipo);
@@ -75,7 +74,7 @@ public sealed class AvaliacaoServiceTests
     [Fact]
     public async Task Criar_AceitaViagemConcluida()
     {
-        var servico = CriarServico("Concluida");
+        var servico = CriarServico(EstadoViagem.Concluida);
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 5, CancellationToken.None);
         Assert.Single(_repo.Avaliacoes);
     }
@@ -139,7 +138,7 @@ public sealed class AvaliacaoServiceTests
         var servico = CriarServico();
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 3, CancellationToken.None);
         var outra = Guid.NewGuid();
-        _repo.Viagens[outra] = new Viagem { Id = outra, CondutorId = _condutor, Estado = "Concluida" };
+        _repo.Viagens[outra] = new Viagem { Id = outra, CondutorId = _condutor, Estado = EstadoViagem.Concluida };
         _repo.Aceites.Add((outra, _passageiroA));
         Assert.Equal(TipoErro.Conflito, (await servico.CriarAsync(outra, _condutor, _passageiroA, 5, CancellationToken.None)).Erro?.Tipo);
         Assert.Single(_repo.Avaliacoes);

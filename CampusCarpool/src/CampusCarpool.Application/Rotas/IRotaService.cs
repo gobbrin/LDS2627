@@ -17,6 +17,21 @@ public interface IRotaService
         IEnumerable<Participacao> participacoes,
         CancellationToken ct);
 
+    /// <summary>Calcula a rota entre os pontos indicados com os das participações, sem gravar nada.</summary>
+    /// <remarks>Serve para a alteração de uma viagem, em que a origem e o destino ainda não estão na entidade.</remarks>
+    /// <param name="origem">Origem da rota.</param>
+    /// <param name="destino">Destino da rota.</param>
+    /// <param name="participacoes">Participações a incluir.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A rota, ou <c>null</c> se o serviço não encontrar nenhuma.</returns>
+    /// <exception cref="HttpRequestException">O Serviço de Mapas respondeu com erro.</exception>
+    /// <exception cref="TaskCanceledException">O Serviço de Mapas não respondeu a tempo.</exception>
+    Task<ResultadoRotaComPontos?> CalcularEntreAsync(
+        PontoRota origem,
+        PontoRota destino,
+        IEnumerable<Participacao> participacoes,
+        CancellationToken ct);
+
     /// <summary>Recalcula a rota com as participações indicadas e escreve-a na viagem, sem gravar.</summary>
     /// <param name="viagem">Viagem a atualizar.</param>
     /// <param name="aceites">Participações que a rota deve incluir.</param>

@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -177,7 +178,7 @@ public sealed class HistoricoHttpIntegrationTests
                     CondutorId = primeiroId,
                     Origem = "Porto",
                     Destino = "Braga",
-                    Estado = "Concluida",
+                    Estado = EstadoViagem.Concluida,
                     PartidaEm = DateTime.UtcNow.AddDays(-2),
                     LugaresOferecidos = 2,
                     LugaresDisponiveis = 2
@@ -187,7 +188,7 @@ public sealed class HistoricoHttpIntegrationTests
                     CondutorId = segundoId,
                     Origem = "Lisboa",
                     Destino = "Coimbra",
-                    Estado = "Concluida",
+                    Estado = EstadoViagem.Concluida,
                     PartidaEm = DateTime.UtcNow.AddDays(-2),
                     LugaresOferecidos = 2,
                     LugaresDisponiveis = 2

@@ -70,7 +70,7 @@ public sealed class RotasParticipacoesIntegrationTests
                 PartidaEm = DateTime.UtcNow.AddDays(3),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
 
             Db.Viagens.Add(viagem);
@@ -289,7 +289,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var condutor = await f.CriarUtilizador();
         var outro = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
-        viagem.Estado = "Indisponibilizada";
+        viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
 
         Assert.IsType<NotFoundObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())

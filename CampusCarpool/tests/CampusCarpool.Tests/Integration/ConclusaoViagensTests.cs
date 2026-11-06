@@ -44,7 +44,7 @@ public sealed class ConclusaoViagensTests : IDisposable
     private ConclusaoViagensService CriarServico() =>
         new(new RepositorioViagens(_db), new RepositorioParticipacoes(_db), new UnidadeDeTrabalhoEfCore(_db), NullLogger<ConclusaoViagensService>.Instance);
 
-    private Viagem CriarViagem(DateTime partidaEm, int? duracaoMinutos, string estado = nameof(EstadoViagem.Ativa))
+    private Viagem CriarViagem(DateTime partidaEm, int? duracaoMinutos, EstadoViagem estado = EstadoViagem.Ativa)
     {
         var viagem = new Viagem
         {
@@ -61,7 +61,7 @@ public sealed class ConclusaoViagensTests : IDisposable
         return viagem;
     }
 
-    private async Task<string> EstadoAsync(Guid viagemId) =>
+    private async Task<EstadoViagem> EstadoAsync(Guid viagemId) =>
         (await _db.Viagens.AsNoTracking().SingleAsync(v => v.Id == viagemId)).Estado;
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class ConclusaoViagensTests : IDisposable
 
         Assert.Equal(1, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
 
-        Assert.Equal(nameof(EstadoViagem.Concluida), await EstadoAsync(viagem.Id));
+        Assert.Equal(EstadoViagem.Concluida, await EstadoAsync(viagem.Id));
         var participacoes = await _db.Participacoes.AsNoTracking().ToDictionaryAsync(p => p.Id, p => p.Estado);
         Assert.Equal(EstadoParticipacao.Aceite, participacoes[aceite.Id]);
         Assert.Equal(EstadoParticipacao.Cancelada, participacoes[pendente.Id]);
@@ -92,7 +92,7 @@ public sealed class ConclusaoViagensTests : IDisposable
         await _db.SaveChangesAsync();
 
         Assert.Equal(0, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
-        Assert.Equal(nameof(EstadoViagem.Ativa), await EstadoAsync(viagem.Id));
+        Assert.Equal(EstadoViagem.Ativa, await EstadoAsync(viagem.Id));
     }
 
     [Fact]
@@ -102,19 +102,19 @@ public sealed class ConclusaoViagensTests : IDisposable
         await _db.SaveChangesAsync();
 
         Assert.Equal(1, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
-        Assert.Equal(nameof(EstadoViagem.Concluida), await EstadoAsync(viagem.Id));
+        Assert.Equal(EstadoViagem.Concluida, await EstadoAsync(viagem.Id));
     }
 
     [Fact]
     public async Task I110_14_ViagensFuturasOuNaoAtivas_NaoSaoAlteradas()
     {
         var futura = CriarViagem(Agora.AddHours(1), duracaoMinutos: 30);
-        var indisponivel = CriarViagem(Agora.AddDays(-1), duracaoMinutos: 30, nameof(EstadoViagem.Indisponibilizada));
+        var indisponivel = CriarViagem(Agora.AddDays(-1), duracaoMinutos: 30, EstadoViagem.Indisponibilizada);
         await _db.SaveChangesAsync();
 
         Assert.Equal(0, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
-        Assert.Equal(nameof(EstadoViagem.Ativa), await EstadoAsync(futura.Id));
-        Assert.Equal(nameof(EstadoViagem.Indisponibilizada), await EstadoAsync(indisponivel.Id));
+        Assert.Equal(EstadoViagem.Ativa, await EstadoAsync(futura.Id));
+        Assert.Equal(EstadoViagem.Indisponibilizada, await EstadoAsync(indisponivel.Id));
     }
 
     [Fact]
@@ -130,8 +130,8 @@ public sealed class ConclusaoViagensTests : IDisposable
         await _db.Database.ExecuteSqlRawAsync(gatilho);
 
         Assert.Equal(1, await CriarServico().ConcluirViagensTerminadasAsync(Agora, default));
-        Assert.Equal(nameof(EstadoViagem.Ativa), await EstadoAsync(comFalha.Id));
-        Assert.Equal(nameof(EstadoViagem.Concluida), await EstadoAsync(normal.Id));
+        Assert.Equal(EstadoViagem.Ativa, await EstadoAsync(comFalha.Id));
+        Assert.Equal(EstadoViagem.Concluida, await EstadoAsync(normal.Id));
     }
 
     [Theory]

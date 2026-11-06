@@ -27,7 +27,7 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
     {
         return await context.Viagens
             .AsNoTracking()
-            .Where(v => v.Estado == nameof(EstadoViagem.Ativa) && v.PartidaEm <= agora)
+            .Where(v => v.Estado == EstadoViagem.Ativa && v.PartidaEm <= agora)
             .Select(v => new ViagemEmCurso(v.Id, v.PartidaEm, v.DuracaoMinutos))
             .ToListAsync(ct);
     }
@@ -42,7 +42,7 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
         ArgumentNullException.ThrowIfNull(filtro);
 
         var q = context.Viagens.AsNoTracking()
-            .Where(v => v.Estado == nameof(EstadoViagem.Ativa) && v.LugaresDisponiveis > 0 && v.PartidaEm > agora);
+            .Where(v => v.Estado == EstadoViagem.Ativa && v.LugaresDisponiveis > 0 && v.PartidaEm > agora);
 
         if (!string.IsNullOrWhiteSpace(filtro.Origem))
         {
@@ -89,7 +89,7 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
     {
         return await context.Viagens
             .AsNoTracking()
-            .Where(v => v.CondutorId == condutorId && v.Estado == nameof(EstadoViagem.Ativa))
+            .Where(v => v.CondutorId == condutorId && v.Estado == EstadoViagem.Ativa)
             .OrderBy(v => v.PartidaEm)
             .Select(v => new ViagemDoCondutor(v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresOferecidos, v.LugaresDisponiveis))
             .ToListAsync(ct);

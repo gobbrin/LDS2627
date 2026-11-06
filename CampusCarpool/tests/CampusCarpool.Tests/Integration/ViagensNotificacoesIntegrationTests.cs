@@ -107,7 +107,7 @@ public sealed class ViagensNotificacoesIntegrationTests
             PartidaEm = DateTime.UtcNow.AddDays(3),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         f.Db.Viagens.Add(viagem);
@@ -168,7 +168,7 @@ public sealed class ViagensNotificacoesIntegrationTests
             PartidaEm = DateTime.UtcNow.AddDays(3),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         f.Db.Viagens.Add(viagem);
@@ -200,7 +200,7 @@ public sealed class ViagensNotificacoesIntegrationTests
             .AsNoTracking()
             .SingleAsync(v => v.Id == viagem.Id);
 
-        Assert.Equal("Indisponibilizada", viagemAtualizada.Estado);
+        Assert.Equal(EstadoViagem.Indisponibilizada, viagemAtualizada.Estado);
 
 
         // P-25 / RF-F002-10 (DEF-BE-008, I110): o pedido pendente e a participação aceite

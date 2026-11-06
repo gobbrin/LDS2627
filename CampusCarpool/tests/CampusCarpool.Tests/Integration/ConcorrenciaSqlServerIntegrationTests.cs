@@ -70,7 +70,7 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
                 PartidaEm = DateTime.UtcNow.AddDays(2),
                 LugaresOferecidos = 1,
                 LugaresDisponiveis = 1,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
 
             preparacao.Viagens.Add(viagem);

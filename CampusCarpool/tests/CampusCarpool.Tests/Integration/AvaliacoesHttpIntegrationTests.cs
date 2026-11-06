@@ -152,7 +152,7 @@ public sealed class AvaliacoesHttpIntegrationTests
             Origem = "Porto",
             Destino = "Braga",
             PartidaEm = DateTime.UtcNow.AddDays(-2),
-            Estado = "Concluida",
+            Estado = EstadoViagem.Concluida,
             LugaresOferecidos = 3,
             LugaresDisponiveis = 2
         };

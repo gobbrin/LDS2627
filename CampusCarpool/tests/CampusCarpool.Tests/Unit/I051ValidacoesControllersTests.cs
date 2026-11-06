@@ -5,6 +5,7 @@ using System.Text.Json;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -551,7 +552,7 @@ public sealed class I051ValidacoesControllersTests
             PartidaEm = DateTime.UtcNow.AddDays(2),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Utilizadores.Add(utilizador);
@@ -586,7 +587,7 @@ public sealed class I051ValidacoesControllersTests
             .AsNoTracking()
             .SingleAsync(v => v.Id == viagem.Id);
 
-        Assert.Equal("Indisponibilizada", viagemAtualizada.Estado);
+        Assert.Equal(EstadoViagem.Indisponibilizada, viagemAtualizada.Estado);
     }
 
 
@@ -622,7 +623,7 @@ public sealed class I051ValidacoesControllersTests
             PartidaEm = partidaOriginal,
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Utilizadores.Add(utilizador);
@@ -665,7 +666,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(novaPartida, viagemAtualizada.PartidaEm);
         Assert.Equal(4, viagemAtualizada.LugaresOferecidos);
         Assert.Equal(4, viagemAtualizada.LugaresDisponiveis);
-        Assert.Equal("Ativa", viagemAtualizada.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagemAtualizada.Estado);
     }
 
     [Fact]
@@ -776,7 +777,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(3, viagem.LugaresDisponiveis);
         Assert.Equal(12m, viagem.DistanciaKm);
         Assert.Equal(30, viagem.DuracaoMinutos);
-        Assert.Equal("Ativa", viagem.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagem.Estado);
     }
 
     [Fact]
@@ -815,7 +816,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = partidaMaisTardia,
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -825,7 +826,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = partidaMaisProxima,
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -835,7 +836,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = DateTime.UtcNow.AddDays(1),
                 LugaresOferecidos = 4,
                 LugaresDisponiveis = 4,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
@@ -921,7 +922,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = agora.AddDays(2),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -931,7 +932,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = agora.AddDays(3),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 0,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -941,7 +942,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = agora.AddDays(4),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Indisponibilizada"
+                Estado = EstadoViagem.Indisponibilizada
             },
             new Viagem
             {
@@ -951,7 +952,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = agora.AddDays(-1),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
@@ -1014,7 +1015,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = dataPartida.ToDateTime(new TimeOnly(10, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -1024,7 +1025,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = dataPartida.ToDateTime(new TimeOnly(15, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
@@ -1035,7 +1036,7 @@ public sealed class I051ValidacoesControllersTests
                     .ToDateTime(new TimeOnly(16, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
@@ -1098,7 +1099,7 @@ public sealed class I051ValidacoesControllersTests
                 PartidaEm = agora.AddDays(i),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             });
         }
 

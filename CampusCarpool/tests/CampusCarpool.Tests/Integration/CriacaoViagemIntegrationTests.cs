@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -143,7 +144,7 @@ public sealed class CriacaoViagemIntegrationTests
         Assert.Equal(55m, viagem.DistanciaKm);
         Assert.Equal(60, viagem.DuracaoMinutos);
 
-        Assert.Equal("Ativa", viagem.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagem.Estado);
         Assert.True(viagem.PartidaEm > DateTime.UtcNow);
 
         // DEF-BE-030 / D-008: textos diferentes com as mesmas coordenadas são o mesmo local.

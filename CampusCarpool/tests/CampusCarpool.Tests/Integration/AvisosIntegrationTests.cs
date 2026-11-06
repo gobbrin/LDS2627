@@ -56,7 +56,7 @@ public sealed class AvisosIntegrationTests
                 PartidaEm = DateTime.UtcNow.AddDays(2),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
             Db.Viagens.Add(viagem);
             await Db.SaveChangesAsync();
@@ -128,9 +128,9 @@ public sealed class AvisosIntegrationTests
     }
 
     [Theory]
-    [InlineData(nameof(EstadoViagem.Indisponibilizada))]
-    [InlineData(nameof(EstadoViagem.Concluida))]
-    public async Task I110_ViagemNaoAtiva_RecusaOAvisoSemGravarNada(string estado)
+    [InlineData(EstadoViagem.Indisponibilizada)]
+    [InlineData(EstadoViagem.Concluida)]
+    public async Task I110_ViagemNaoAtiva_RecusaOAvisoSemGravarNada(EstadoViagem estado)
     {
         using var f = new Fixture();
         var condutor = await f.CriarUtilizador();

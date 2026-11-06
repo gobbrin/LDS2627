@@ -53,7 +53,7 @@ public sealed class SimulacoesIntegrationTests
                 PartidaEm = DateTime.UtcNow.AddDays(3),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
             Db.Viagens.Add(Viagem);
             Pedido = new Participacao
@@ -217,7 +217,7 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_07_ViagemInativa_Devolve409()
     {
         using var f = new Fixture();
-        f.Viagem.Estado = "Indisponibilizada";
+        f.Viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
         Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));

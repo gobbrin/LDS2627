@@ -39,8 +39,7 @@ public static class RotaGuardada
         ArgumentNullException.ThrowIfNull(viagem);
         ArgumentNullException.ThrowIfNull(rota);
 
-        viagem.RotaPontos = Serializar(rota);
-        viagem.DistanciaKm = rota.DistanciaTotalKm;
+        viagem.AtualizarRota(Serializar(rota), rota.DistanciaTotalKm);
     }
 
     /// <summary>Escreve na viagem a rota direta devolvida pelo Serviço de Mapas (criação, ainda sem passageiros).</summary>

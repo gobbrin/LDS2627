@@ -64,7 +64,7 @@ public sealed class ViagensEstimativaIntegrationTests
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
                 DistanciaKm = distanciaKm,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
 
             if (rotaGuardada && distanciaKm > 0)

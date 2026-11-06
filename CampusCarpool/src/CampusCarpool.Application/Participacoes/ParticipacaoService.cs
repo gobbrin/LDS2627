@@ -18,7 +18,7 @@ namespace CampusCarpool.Application.Participacoes;
 /// permissão e o estado; (3) alterar as entidades, registar as notificações e gravar tudo de uma vez com
 /// <see cref="IUnidadeDeTrabalho.ConfirmarAsync"/> (DC-37); (4) só depois enviar o evento em tempo real e o push, que
 /// já não dependem do cliente: a operação aconteceu, mesmo que o pedido HTTP seja cancelado entretanto.
-/// Os lugares são verificados contra a contagem real de aceites antes de mexer em <c>LugaresDisponiveis</c>;
+/// As transições estão nas entidades (AD-001). Os lugares são verificados contra a contagem real de aceites;
 /// se não baterem, a operação é recusada, para não agravar o erro.
 /// A coluna <c>Versao</c> da viagem protege a aceitação e o cancelamento de uma aceite (que mudam a viagem);
 /// a rejeição e o cancelamento de um pendente só mudam a participação, que não tem versão (DO-03).
@@ -80,7 +80,7 @@ public sealed class ParticipacaoService(
         if (viagem is null)
             return new Erro(TipoErro.NaoEncontrado, "Viagem não encontrada.");
 
-        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm <= DateTime.UtcNow)
+        if (!viagem.PorPartir(DateTime.UtcNow))
             return new Erro(TipoErro.Conflito, "Viagem indisponível.");
 
         if (viagem.CondutorId == passageiroId)
@@ -171,7 +171,6 @@ public sealed class ParticipacaoService(
         {
             ViagemId = viagem.Id,
             PassageiroId = passageiroId,
-            Estado = EstadoParticipacao.Pendente,
             Recolha = recolha?.Trim(),
             Destino = destino?.Trim(),
             RecolhaLatitude = pontos.Valor.Recolha?.Latitude,
@@ -219,7 +218,7 @@ public sealed class ParticipacaoService(
             return new Erro(TipoErro.Proibido);
 
         // A simulação antecede a decisão (RF-F004-09), por isso segue a mesma regra da aceitação (RF-F004-10).
-        if (viagem.Estado != nameof(EstadoViagem.Ativa))
+        if (!viagem.EstaAtiva)
             return new Erro(TipoErro.Conflito, "A viagem não está ativa.");
 
         var pedido = await repositorioParticipacoes.ObterPorIdAsync(pedidoId, ct);
@@ -227,7 +226,7 @@ public sealed class ParticipacaoService(
         if (pedido is null || pedido.ViagemId != viagemId)
             return new Erro(TipoErro.NaoEncontrado, "Pedido não encontrado nesta viagem.");
 
-        if (pedido.Estado != EstadoParticipacao.Pendente)
+        if (!pedido.EstaPendente)
             return new Erro(TipoErro.Conflito, "Só é possível simular pedidos pendentes.");
 
         if (string.IsNullOrWhiteSpace(pedido.Recolha) && string.IsNullOrWhiteSpace(pedido.Destino))
@@ -309,11 +308,8 @@ public sealed class ParticipacaoService(
             return Proibido;
 
         // RF-F004-10 / AD-001, regra 3 (F5): só pedidos pendentes de viagens ativas, mesmo depois da hora de partida.
-        if (participacao.Estado != EstadoParticipacao.Pendente
-            || viagem.Estado != nameof(EstadoViagem.Ativa))
-        {
+        if (!participacao.EstaPendente || !viagem.EstaAtiva)
             return EstadoNaoPermite;
-        }
 
         var aceites = await repositorioParticipacoes.ListarPorViagemAsync(
             viagem.Id,
@@ -321,15 +317,10 @@ public sealed class ParticipacaoService(
             ct);
 
         // RF-F002-13: lugares disponíveis = oferecidos - aceites. O valor guardado tem de bater com a contagem.
-        var lugaresCalculados = viagem.LugaresOferecidos - aceites.Count;
-
-        if (lugaresCalculados != viagem.LugaresDisponiveis
-            || lugaresCalculados < 0)
-        {
+        if (!viagem.LugaresConsistentes(aceites.Count))
             return LugaresInconsistentes;
-        }
 
-        if (lugaresCalculados == 0)
+        if (viagem.LugaresDisponiveis == 0)
             return SemCapacidade;
 
         // RF-F008-05 / P-19: a aceitação recalcula a rota; sem o Serviço de Mapas é recusada e nada muda.
@@ -341,10 +332,8 @@ public sealed class ParticipacaoService(
         if (!rotaAtualizada)
             return RotaIndisponivel;
 
-        participacao.Estado = EstadoParticipacao.Aceite;
-        // AceiteEm fica mesmo que a participação seja cancelada depois (histórico, RF-F009-08).
-        participacao.AceiteEm = DateTime.UtcNow;
-        viagem.LugaresDisponiveis--;
+        participacao.Aceitar(DateTime.UtcNow);
+        viagem.OcuparLugar();
 
         var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
@@ -388,10 +377,10 @@ public sealed class ParticipacaoService(
         if (viagem.CondutorId != utilizadorId)
             return Proibido;
 
-        if (participacao.Estado != EstadoParticipacao.Pendente)
+        if (!participacao.EstaPendente)
             return EstadoNaoPermite;
 
-        participacao.Estado = EstadoParticipacao.Rejeitada;
+        participacao.Rejeitar();
 
         var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
@@ -430,36 +419,24 @@ public sealed class ParticipacaoService(
         if (participacao.PassageiroId != utilizadorId)
             return Proibido;
 
-        if (participacao.Estado != EstadoParticipacao.Pendente
-            && participacao.Estado != EstadoParticipacao.Aceite)
-        {
+        var agora = DateTime.UtcNow;
+
+        // Pendente, ou aceite até à hora de partida (P-03).
+        if (!participacao.PodeSerCanceladaPeloPassageiro(viagem, agora))
             return EstadoNaoPermite;
-        }
 
-        var eraAceite = participacao.Estado == EstadoParticipacao.Aceite;
-
-        if (eraAceite)
+        if (participacao.EstaAceite)
         {
-            // P-03: uma participação aceite só pode ser cancelada até à hora de partida.
-            if (viagem.PartidaEm <= DateTime.UtcNow)
-                return EstadoNaoPermite;
-
             var aceites = await repositorioParticipacoes.ListarPorViagemAsync(
                 viagem.Id,
                 EstadoParticipacao.Aceite,
                 ct);
 
-            var lugaresCalculados = viagem.LugaresOferecidos - aceites.Count;
-
-            if (lugaresCalculados != viagem.LugaresDisponiveis
-                || aceites.Count == 0)
-            {
+            if (aceites.Count == 0 || !viagem.LugaresConsistentes(aceites.Count))
                 return LugaresInconsistentes;
-            }
 
-            // RF-F004-17: liberta o lugar (recalculado a partir dos aceites, sem contar este).
-            viagem.LugaresDisponiveis =
-                viagem.LugaresOferecidos - (aceites.Count - 1);
+            // RF-F004-17: liberta o lugar.
+            viagem.LibertarLugar();
 
             // RF-F008-05 / P-19: o cancelamento nunca é recusado; sem o Serviço de Mapas, a rota fica por recalcular.
             var rotaAtualizada = await rotaService.RecalcularAsync(
@@ -468,7 +445,7 @@ public sealed class ParticipacaoService(
                 ct);
 
             if (!rotaAtualizada)
-                viagem.RotaPontos = null;
+                viagem.MarcarRotaPorRecalcular();
 
             // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
             // P-21: cancelar um pedido pendente não gera notificação.
@@ -479,7 +456,7 @@ public sealed class ParticipacaoService(
                 "Um passageiro cancelou a sua participação na viagem.");
         }
 
-        participacao.Estado = EstadoParticipacao.Cancelada;
+        participacao.CancelarPeloPassageiro(viagem, agora);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

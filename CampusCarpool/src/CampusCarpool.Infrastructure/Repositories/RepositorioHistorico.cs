@@ -16,20 +16,24 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
     /// <inheritdoc />
     public async Task<IReadOnlyList<ViagemHistorico>> ListarViagensComoCondutorAsync(Guid utilizadorId, CancellationToken ct)
     {
-        return await db.Viagens
+        var viagens = await db.Viagens
             .AsNoTracking()
             .Where(v => v.CondutorId == utilizadorId)
             .OrderByDescending(v => v.PartidaEm)
+            .Select(v => new { v.Id, v.Origem, v.Destino, v.PartidaEm, v.Estado, v.LugaresOferecidos })
+            .ToListAsync(ct);
+
+        return viagens
             .Select(v => new ViagemHistorico(
                 v.Id,
                 v.Origem,
                 v.Destino,
                 v.PartidaEm,
-                v.Estado,
+                v.Estado.ToString(),
                 v.LugaresOferecidos,
                 null,
                 null))
-            .ToListAsync(ct);
+            .ToList();
     }
 
     /// <inheritdoc />
@@ -59,7 +63,7 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
                 p.Origem,
                 p.Destino,
                 p.PartidaEm,
-                p.EstadoViagem,
+                p.EstadoViagem.ToString(),
                 null,
                 p.Id,
                 p.Estado.ToString()))

@@ -43,7 +43,7 @@ public sealed class ConsultasViagemTests : IDisposable
     private static Utilizador NovoUtilizador(string nome) =>
         new() { Nome = nome, Email = $"{Guid.NewGuid():N}@estg.ipp.pt", EmailConfirmado = true };
 
-    private async Task<Viagem> CriarViagem(string estado = "Ativa", int lugaresDisponiveis = 2)
+    private async Task<Viagem> CriarViagem(EstadoViagem estado = EstadoViagem.Ativa, int lugaresDisponiveis = 2)
     {
         var viagem = new Viagem
         {
@@ -79,11 +79,11 @@ public sealed class ConsultasViagemTests : IDisposable
     };
 
     [Theory]
-    [InlineData("Indisponibilizada", 2)]
-    [InlineData("Concluida", 2)]
-    [InlineData("Ativa", 0)]
+    [InlineData(EstadoViagem.Indisponibilizada, 2)]
+    [InlineData(EstadoViagem.Concluida, 2)]
+    [InlineData(EstadoViagem.Ativa, 0)]
     /// <summary>A7: outro utilizador só consulta uma viagem pesquisável; condutor e quem tem pedido consultam sempre.</summary>
-    public async Task I110_46_ViagemNaoPesquisavel_SoParaOCondutorEQuemTemPedido(string estado, int lugares)
+    public async Task I110_46_ViagemNaoPesquisavel_SoParaOCondutorEQuemTemPedido(EstadoViagem estado, int lugares)
     {
         var viagem = await CriarViagem(estado, lugares);
 
@@ -99,7 +99,7 @@ public sealed class ConsultasViagemTests : IDisposable
     private async Task<Viagem> CriarViagemComRotaEAvaliacoes()
     {
         var viagem = await CriarViagem();
-        var outraViagem = new Viagem { CondutorId = condutor.Id, Origem = "A", Destino = "B", PartidaEm = DateTime.UtcNow.AddDays(-5), Estado = "Concluida" };
+        var outraViagem = new Viagem { CondutorId = condutor.Id, Origem = "A", Destino = "B", PartidaEm = DateTime.UtcNow.AddDays(-5), Estado = EstadoViagem.Concluida };
         db.Viagens.Add(outraViagem);
         db.Avaliacoes.AddRange(
             new Avaliacao { ViagemId = outraViagem.Id, AvaliadorId = passageiro.Id, AvaliadoId = condutor.Id, Classificacao = 5 },
@@ -172,7 +172,7 @@ public sealed class ConsultasViagemTests : IDisposable
     public async Task I110_51_MinhasViagens_SoAsAtivasDoCondutor()
     {
         var ativa = await CriarViagem(lugaresDisponiveis: 1);
-        await CriarViagem("Indisponibilizada");
+        await CriarViagem(EstadoViagem.Indisponibilizada);
 
         var lista = Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarMinhas(default)).Value!;
         var viagem = Assert.Single((System.Collections.IEnumerable)lista);

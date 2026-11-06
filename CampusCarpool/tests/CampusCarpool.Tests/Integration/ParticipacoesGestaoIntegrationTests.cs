@@ -92,7 +92,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
             int lugaresOferecidos = 2,
             int? lugaresDisponiveis = null,
             DateTime? partida = null,
-            string estado = "Ativa")
+            EstadoViagem estado = EstadoViagem.Ativa)
         {
             var viagem = new Viagem
             {

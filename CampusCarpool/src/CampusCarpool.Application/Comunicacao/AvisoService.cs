@@ -3,6 +3,7 @@ using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Rules;
 
 namespace CampusCarpool.Application.Comunicacao;
 
@@ -38,7 +39,7 @@ public sealed class AvisoService(
         if (viagem.CondutorId != condutorId) return Proibido;
 
         // RF-F005-05 (DEF-BE-017): só em viagens Ativas.
-        if (viagem.Estado != nameof(EstadoViagem.Ativa))
+        if (!viagem.EstaAtiva)
             return new Erro(TipoErro.Conflito, "A viagem não está ativa.");
 
         var aviso = new Aviso
@@ -65,9 +66,8 @@ public sealed class AvisoService(
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
         if (viagem is null) return ViagemNaoEncontrada;
 
-        var autorizado = viagem.CondutorId == utilizadorId
-            || await participacoes.ExisteAceiteAsync(viagemId, utilizadorId, ct);
-        if (!autorizado) return Proibido;
+        var aceite = await participacoes.ExisteAceiteAsync(viagemId, utilizadorId, ct);
+        if (!PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceite)) return Proibido;
 
         var lista = await avisos.ListarPorViagemAsync(viagemId, ct);
 

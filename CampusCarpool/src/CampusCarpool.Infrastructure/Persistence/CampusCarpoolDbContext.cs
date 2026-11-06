@@ -84,6 +84,7 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         modelBuilder.Entity<Viagem>().Property(x => x.DestinoLatitude).HasPrecision(9, 6);
         modelBuilder.Entity<Viagem>().Property(x => x.DestinoLongitude).HasPrecision(9, 6);
         // Modelo de dados v06: o estado só aceita os nomes de EstadoViagem, sem acento (DC-32).
+        modelBuilder.Entity<Viagem>().Property(x => x.Estado).HasConversion<string>();
         modelBuilder.Entity<Viagem>().ToTable(t => t.HasCheckConstraint(
             "CK_Viagens_Estado",
             $"[Estado] IN ('{nameof(EstadoViagem.Ativa)}', '{nameof(EstadoViagem.Indisponibilizada)}', '{nameof(EstadoViagem.Concluida)}')"));

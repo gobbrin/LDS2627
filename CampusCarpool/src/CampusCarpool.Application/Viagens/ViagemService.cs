@@ -11,7 +11,7 @@ using CampusCarpool.Domain.Rules;
 namespace CampusCarpool.Application.Viagens;
 
 /// <summary>Implementação de <see cref="IViagemService"/>.</summary>
-/// <remarks>As transições de estado ainda estão aqui e não no Domain (DO-01, DC-31).</remarks>
+/// <remarks>As transições de estado estão nas entidades (AD-001); aqui coordenam-se os dados, a rota e as notificações.</remarks>
 public sealed class ViagemService(
     IRepositorioViagens viagens,
     IRepositorioParticipacoes participacoes,
@@ -75,20 +75,8 @@ public sealed class ViagemService(
         if (calculada.Erro is { } erro)
             return erro;
 
-        var viagem = new Viagem
-        {
-            CondutorId = condutorId,
-            Origem = origem.Trim(),
-            Destino = destino.Trim(),
-            PartidaEm = partidaEm,
-            LugaresOferecidos = lugares,
-            LugaresDisponiveis = lugares,
-            OrigemLatitude = calculada.Valor.Origem.Latitude,
-            OrigemLongitude = calculada.Valor.Origem.Longitude,
-            DestinoLatitude = calculada.Valor.Destino.Latitude,
-            DestinoLongitude = calculada.Valor.Destino.Longitude,
-            DuracaoMinutos = calculada.Valor.DuracaoMinutos
-        };
+        var locais = new LocaisViagem(origem.Trim(), calculada.Valor.Origem, destino.Trim(), calculada.Valor.Destino);
+        var viagem = Viagem.Criar(condutorId, locais, partidaEm, lugares, calculada.Valor.DuracaoMinutos);
 
         RotaGuardada.GuardarDireta(viagem, calculada.Valor);
         viagens.Adicionar(viagem);
@@ -157,7 +145,7 @@ public sealed class ViagemService(
             viagem.Destino,
             viagem.PartidaEm,
             viagem.LugaresDisponiveis,
-            viagem.Estado,
+            viagem.Estado.ToString(),
             rota?.DistanciaTotalKm ?? viagem.DistanciaKm,
             rota?.DuracaoTotalMinutos ?? viagem.DuracaoMinutos,
             viagem.CondutorId,
@@ -179,7 +167,9 @@ public sealed class ViagemService(
 
         var passageiros = await participacoes.ListarPassageirosAceitesAsync(viagemId, ct);
 
-        if (viagem.CondutorId != utilizadorId && passageiros.All(p => p.PassageiroId != utilizadorId))
+        var aceite = passageiros.Any(p => p.PassageiroId == utilizadorId);
+
+        if (!PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceite))
             return Proibido;
 
         return passageiros.ToList();
@@ -211,7 +201,9 @@ public sealed class ViagemService(
         if (viagem is null) return NaoEncontrada;
         if (viagem.CondutorId != utilizadorId) return Proibido;
 
-        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm <= DateTime.UtcNow)
+        var agora = DateTime.UtcNow;
+
+        if (!viagem.PorPartir(agora))
             return new Erro(TipoErro.Conflito, "Viagem não editável.");
 
         var novaOrigem = origem?.Trim() ?? viagem.Origem;
@@ -221,16 +213,15 @@ public sealed class ViagemService(
         if (DadosDaViagemInvalidos(novaOrigem, novoDestino, partidaEm, lugares))
             return DadosInvalidos;
 
-        // Ocupados = aceites (RF-F002-13), deduzidos dos valores guardados em vez de contados.
-        var ocupados = viagem.LugaresOferecidos - viagem.LugaresDisponiveis;
-
-        if (lugares < ocupados)
+        if (lugares < viagem.LugaresOcupados)
             return new Erro(TipoErro.Conflito, "Lugares inferiores às participações aceites.");
 
         if (!mapas.Configurado)
             return ChamadaMapas.NaoConfigurado;
 
         var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
+
+        LocaisViagem? locais = null;
 
         var calculada = await ChamadaMapas.ExecutarAsync<ResultadoRotaComPontos>(
             async () =>
@@ -249,15 +240,14 @@ public sealed class ViagemService(
                 if (MesmasCoordenadas(pontoOrigem, pontoDestino))
                     return MesmoLocal;
 
-                // Nada é gravado até ao fim: uma falha aqui deixa a viagem como estava (RF-F002-17).
-                viagem.Origem = novaOrigem;
-                viagem.Destino = novoDestino;
-                viagem.OrigemLatitude = pontoOrigem.Latitude;
-                viagem.OrigemLongitude = pontoOrigem.Longitude;
-                viagem.DestinoLatitude = pontoDestino.Latitude;
-                viagem.DestinoLongitude = pontoDestino.Longitude;
+                locais = new LocaisViagem(novaOrigem, pontoOrigem, novoDestino, pontoDestino);
 
-                var rota = await rotas.CalcularAsync(viagem, aceites, ct);
+                // A viagem só muda depois de a rota estar calculada: uma falha aqui deixa-a como estava (RF-F002-17).
+                var rota = await rotas.CalcularEntreAsync(
+                    new PontoRota(null, TiposPontoRota.Origem, novaOrigem, pontoOrigem),
+                    new PontoRota(null, TiposPontoRota.DestinoViagem, novoDestino, pontoDestino),
+                    aceites,
+                    ct);
 
                 return rota is null ? RotaNaoCalculada : rota;
             },
@@ -268,11 +258,8 @@ public sealed class ViagemService(
         if (calculada.Erro is { } erro)
             return erro;
 
+        viagem.Alterar(locais!, partidaEm, lugares, calculada.Valor.DuracaoTotalMinutos, agora);
         RotaGuardada.Guardar(viagem, calculada.Valor);
-        viagem.DuracaoMinutos = calculada.Valor.DuracaoTotalMinutos;
-        viagem.PartidaEm = partidaEm;
-        viagem.LugaresOferecidos = lugares;
-        viagem.LugaresDisponiveis = lugares - ocupados;
 
         // Notifica os passageiros com participação aceite na viagem alterada.
         notificacoes.RegistarAlteracaoViagem(
@@ -292,22 +279,19 @@ public sealed class ViagemService(
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
         if (viagem is null) return NaoEncontrada;
         if (viagem.CondutorId != utilizadorId) return Proibido;
-        if (viagem.Estado != nameof(EstadoViagem.Ativa)) return new Erro(TipoErro.Conflito);
+        if (!viagem.EstaAtiva) return new Erro(TipoErro.Conflito);
 
-        viagem.Estado = nameof(EstadoViagem.Indisponibilizada);
+        viagem.Indisponibilizar();
 
         // P-25 / RF-F002-10 (DEF-BE-008): cancela os pedidos pendentes e as participações aceites.
         var afetadas = await participacoes.ListarAtivasParaAlterarAsync(viagemId, ct);
 
         foreach (var participacao in afetadas)
-            participacao.Estado = EstadoParticipacao.Cancelada;
-
-        // Sem participações aceites, todos os lugares ficam livres.
-        viagem.LugaresDisponiveis = viagem.LugaresOferecidos;
+            participacao.CancelarPorIndisponibilidade();
 
         // RF-F008-05 / P-19: como no cancelamento, a rota sem passageiros nunca impede a operação.
         if (!await rotas.RecalcularAsync(viagem, [], ct))
-            viagem.RotaPontos = null;
+            viagem.MarcarRotaPorRecalcular();
 
         // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou
         // participação aceite antes da indisponibilização; o condutor originou a alteração.
@@ -329,13 +313,15 @@ public sealed class ViagemService(
         if (viagem is null) return NaoEncontrada;
         if (viagem.CondutorId != utilizadorId) return Proibido;
 
-        if (viagem.Estado != nameof(EstadoViagem.Ativa) || viagem.PartidaEm > DateTime.UtcNow)
+        var agora = DateTime.UtcNow;
+
+        if (!viagem.PodeConcluir(agora))
             return new Erro(TipoErro.Conflito);
 
-        viagem.Estado = nameof(EstadoViagem.Concluida);
+        viagem.Concluir(agora);
 
         foreach (var pendente in await participacoes.ListarPendentesParaAlterarAsync(viagemId, ct))
-            pendente.Estado = EstadoParticipacao.Cancelada;
+            pendente.CancelarPorConclusao();
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 

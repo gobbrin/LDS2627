@@ -31,7 +31,7 @@ public sealed class EstadoViagemTests : IDisposable
         _ligacao.Dispose();
     }
 
-    private async Task<Viagem> CriarViagemAsync(string estado)
+    private async Task<Viagem> CriarViagemAsync(EstadoViagem estado)
     {
         var condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt", EmailConfirmado = true };
         var viagem = new Viagem
@@ -50,10 +50,10 @@ public sealed class EstadoViagemTests : IDisposable
     }
 
     [Theory]
-    [InlineData(nameof(EstadoViagem.Ativa))]
-    [InlineData(nameof(EstadoViagem.Indisponibilizada))]
-    [InlineData(nameof(EstadoViagem.Concluida))]
-    public async Task I110_05_EstadoDeEstadoViagem_AceiteNaBaseDeDados(string estado)
+    [InlineData(EstadoViagem.Ativa)]
+    [InlineData(EstadoViagem.Indisponibilizada)]
+    [InlineData(EstadoViagem.Concluida)]
+    public async Task I110_05_EstadoDeEstadoViagem_AceiteNaBaseDeDados(EstadoViagem estado)
     {
         var viagem = await CriarViagemAsync(estado);
 
@@ -66,9 +66,13 @@ public sealed class EstadoViagemTests : IDisposable
     [InlineData("")]
     public async Task I110_06_EstadoForaDeEstadoViagem_RecusadoPeloCheck(string estado)
     {
-        var erro = await Assert.ThrowsAsync<DbUpdateException>(() => CriarViagemAsync(estado));
+        await CriarViagemAsync(EstadoViagem.Ativa);
 
-        Assert.Contains("CK_Viagens_Estado", erro.InnerException?.Message ?? string.Empty);
+        // Por SQL direto: pelo modelo já não é possível gravar um estado fora de EstadoViagem.
+        var erro = await Assert.ThrowsAsync<SqliteException>(() =>
+            _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Viagens SET Estado = {estado}"));
+
+        Assert.Contains("CK_Viagens_Estado", erro.Message);
     }
 
     [Fact]

@@ -51,7 +51,7 @@ public sealed class FalhaTransacaoIntegrationTests
             PartidaEm = DateTime.UtcNow.AddDays(2),
             LugaresOferecidos = 1,
             LugaresDisponiveis = 1,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Viagens.Add(viagem);

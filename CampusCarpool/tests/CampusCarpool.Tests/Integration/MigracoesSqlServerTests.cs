@@ -1,4 +1,5 @@
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ public sealed class MigracoesSqlServerTests
         return new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseSqlServer(ligacao).Options;
     }
 
-    private static Viagem NovaViagem(Guid condutorId, string estado = "Ativa") => new()
+    private static Viagem NovaViagem(Guid condutorId) => new()
     {
         CondutorId = condutorId,
         Origem = "Porto",
@@ -32,9 +33,22 @@ public sealed class MigracoesSqlServerTests
         DestinoLatitude = 41.55m,
         PartidaEm = DateTime.UtcNow.AddDays(1),
         LugaresOferecidos = 2,
-        LugaresDisponiveis = 2,
-        Estado = estado
+        LugaresDisponiveis = 2
     };
+
+    /// <summary>
+    /// O modelo EF coincide com o snapshot das migrations: nenhuma alteração às entidades pede uma migration em falta.
+    /// Não liga à base de dados, por isso corre sem SQL Server.
+    /// </summary>
+    [Fact]
+    public void I110_73_ModeloDasEntidades_NaoTemAlteracoesPorMigrar()
+    {
+        using var db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+            .UseSqlServer("Server=(local);Database=SemLigacao;")
+            .Options);
+
+        Assert.False(db.Database.HasPendingModelChanges());
+    }
 
     [SqlServerFact]
     public async Task I110_59_Migrations_AplicamSeAUmaBaseDeDadosVazia()
@@ -73,8 +87,8 @@ public sealed class MigracoesSqlServerTests
             Assert.Equal(41.234567m, (await db.Participacoes.AsNoTracking().SingleAsync()).RecolhaLatitude);
 
             // A restrição CK_Viagens_Estado recusa o estado antigo com acento (DC-32).
-            db.Viagens.Add(NovaViagem(condutor.Id, "Concluída"));
-            await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            await Assert.ThrowsAsync<SqlException>(() =>
+                db.Database.ExecuteSqlRawAsync("UPDATE Viagens SET Estado = N'Concluída'"));
         }
         finally
         {

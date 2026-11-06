@@ -1,7 +1,6 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
-using CampusCarpool.Domain.Enums;
 using CampusCarpool.Domain.Rules;
 
 namespace CampusCarpool.Application.Avaliacoes;
@@ -35,7 +34,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         if (!await repositorio.UtilizadorExisteAsync(avaliadorId, ct) || !await repositorio.UtilizadorExisteAsync(avaliadoId, ct))
             return UtilizadorNaoEncontrado;
 
-        if (viagem.Estado != nameof(EstadoViagem.Concluida))
+        if (!viagem.EstaConcluida)
             return new Erro(TipoErro.Conflito, "Só é possível avaliar viagens concluídas.");
 
         // P-16: o condutor conta como participante; o passageiro precisa de participação aceite.

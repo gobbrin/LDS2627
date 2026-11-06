@@ -79,7 +79,7 @@ public sealed class PerfilPublicoTests : IDisposable
             PartidaEm = DateTime.UtcNow.AddDays(-1),
             LugaresOferecidos = 2,
             LugaresDisponiveis = 0,
-            Estado = nameof(EstadoViagem.Concluida)
+            Estado = EstadoViagem.Concluida
         };
         _db.Viagens.Add(viagem);
         _db.Avaliacoes.AddRange(

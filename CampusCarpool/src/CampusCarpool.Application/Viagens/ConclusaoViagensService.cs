@@ -1,5 +1,4 @@
 using CampusCarpool.Application.Abstractions.Persistence;
-using CampusCarpool.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace CampusCarpool.Application.Viagens;
@@ -44,7 +43,7 @@ public sealed class ConclusaoViagensService(
         {
             try
             {
-                if (await ConcluirAsync(viagemId, ct))
+                if (await ConcluirAsync(viagemId, agora, ct))
                     concluidas++;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -62,20 +61,20 @@ public sealed class ConclusaoViagensService(
     }
 
     // Conclui uma viagem e cancela os seus pendentes; devolve false se já não estava Ativa.
-    private async Task<bool> ConcluirAsync(Guid viagemId, CancellationToken ct)
+    private async Task<bool> ConcluirAsync(Guid viagemId, DateTime agora, CancellationToken ct)
     {
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
 
-        // Pode ter sido concluída ou indisponibilizada pelo condutor entretanto.
-        if (viagem is null || viagem.Estado != nameof(EstadoViagem.Ativa))
+        // Pode ter sido concluída, indisponibilizada ou alterada pelo condutor entretanto.
+        if (viagem is null || !viagem.DeveConcluir(agora))
             return false;
 
-        viagem.Estado = nameof(EstadoViagem.Concluida);
+        viagem.Concluir(agora);
 
         // RF-F004-19: só os pedidos pendentes são cancelados; as participações
         // aceites mantêm-se, para o histórico e a avaliação (P-16).
         foreach (var p in await participacoes.ListarPendentesParaAlterarAsync(viagemId, ct))
-            p.Estado = EstadoParticipacao.Cancelada;
+            p.CancelarPorConclusao();
 
         // O token Versao (SQL Server) impede sobrepor uma alteração concorrente.
         await unidadeDeTrabalho.ConfirmarAsync(ct);

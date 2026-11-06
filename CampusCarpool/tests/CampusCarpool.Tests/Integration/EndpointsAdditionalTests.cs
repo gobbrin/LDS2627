@@ -5,6 +5,7 @@ using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -43,7 +44,7 @@ public sealed class EndpointsAdditionalTests
             var u = new Utilizador { Nome = "Teste", Email = email, EmailConfirmado = confirmed };
             Db.Utilizadores.Add(u); await Db.SaveChangesAsync(); return u;
         }
-        public async Task<Viagem> Trip(Guid owner, string estado = "Ativa", int available = 2,
+        public async Task<Viagem> Trip(Guid owner, EstadoViagem estado = EstadoViagem.Ativa, int available = 2,
             DateTime? partida = null, string origem = "Porto", string destino = "Braga")
         {
             var v = new Viagem
@@ -231,7 +232,7 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task EditarViagemInativa_Devolve409()
     {
-        using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id, "Indisponibilizada");
+        using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id, EstadoViagem.Indisponibilizada);
         var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<ConflictObjectResult>(await c.Editar(v.Id,
             new(DateTime.UtcNow.AddDays(6), 3), default));
@@ -242,7 +243,7 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<NoContentResult>(await c.Indisponibilizar(v.Id, default));
-        Assert.Equal("Indisponibilizada", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
+        Assert.Equal(EstadoViagem.Indisponibilizada, (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
     }
     [Fact]
     public async Task IndisponibilizarViagemDeOutroCondutor_Devolve403()
@@ -264,7 +265,7 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id,
             partida: DateTime.UtcNow.AddDays(-1)); var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<NoContentResult>(await c.Concluir(v.Id, default));
-        Assert.Equal("Concluida", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
+        Assert.Equal(EstadoViagem.Concluida, (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
     }
     [Fact]
     public async Task PesquisaExcluiViagensSemLugaresEPassadas()

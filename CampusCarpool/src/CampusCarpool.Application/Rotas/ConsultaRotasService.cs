@@ -4,6 +4,7 @@ using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Rules;
 
 namespace CampusCarpool.Application.Rotas;
 
@@ -70,8 +71,7 @@ public sealed class ConsultaRotasService(
 
         if (!await consultas.PodeConsultarAsync(viagem, utilizadorId, ct)) return ViagemNaoEncontrada;
 
-        // Apenas o condutor ou um passageiro aceite pode ver os pontos detalhados.
-        var veOsPontos = viagem.CondutorId == utilizadorId || aceites.Any(p => p.PassageiroId == utilizadorId);
+        var veOsPontos = PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceites.Any(p => p.PassageiroId == utilizadorId));
 
         if (viagem.RotaPontos is null && !mapas.Configurado) return ChamadaMapas.NaoConfigurado;
 

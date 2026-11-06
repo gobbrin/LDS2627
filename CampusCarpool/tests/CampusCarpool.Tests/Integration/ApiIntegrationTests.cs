@@ -3,6 +3,7 @@ using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -203,7 +204,7 @@ public sealed class ApiIntegrationTests
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = DateTime.UtcNow.AddDays(2),
-                Estado = "Indisponibilizada",
+                Estado = EstadoViagem.Indisponibilizada,
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2
             });

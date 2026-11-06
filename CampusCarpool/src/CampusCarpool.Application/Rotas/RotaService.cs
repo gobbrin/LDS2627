@@ -25,13 +25,20 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(viagem);
+
+        return CalcularEntreAsync(PontoRota.OrigemDe(viagem), PontoRota.DestinoDe(viagem), participacoes, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<ResultadoRotaComPontos?> CalcularEntreAsync(
+        PontoRota origem,
+        PontoRota destino,
+        IEnumerable<Participacao> participacoes,
+        CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(participacoes);
 
-        return CalcularAsync(
-            PontoRota.OrigemDe(viagem),
-            PontoRota.DestinoDe(viagem),
-            participacoes.SelectMany(PontosDe).ToList(),
-            ct);
+        return CalcularAsync(origem, destino, participacoes.SelectMany(PontosDe).ToList(), ct);
     }
 
     /// <summary>Calcula a rota com os pontos adicionais entre a origem e o destino da viagem.</summary>

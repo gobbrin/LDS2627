@@ -11,7 +11,7 @@ public sealed class RegrasDeConsultaTests
     private static readonly DateTime Agora = new(2026, 11, 5, 12, 0, 0, DateTimeKind.Utc);
     private static readonly Guid Condutor = Guid.NewGuid();
 
-    private static Viagem Viagem(string estado = nameof(EstadoViagem.Ativa), int lugares = 2, int horas = 1) => new()
+    private static Viagem Viagem(EstadoViagem estado = EstadoViagem.Ativa, int lugares = 2, int horas = 1) => new()
     {
         CondutorId = Condutor,
         Estado = estado,
@@ -22,22 +22,22 @@ public sealed class RegrasDeConsultaTests
     [Fact]
     public void ViagemAtivaFuturaComLugares_EPesquisavel()
     {
-        Assert.True(PoliticaDeVisibilidade.Pesquisavel(Viagem(), Agora));
+        Assert.True(Viagem().EstaDisponivelParaPesquisa(Agora));
     }
 
     [Theory]
-    [InlineData(nameof(EstadoViagem.Concluida), 2, 1)]
-    [InlineData(nameof(EstadoViagem.Ativa), 0, 1)]
-    [InlineData(nameof(EstadoViagem.Ativa), 2, -1)]
-    public void ViagemTerminadaCheiaOuJaPartida_NaoEPesquisavel(string estado, int lugares, int horas)
+    [InlineData(EstadoViagem.Concluida, 2, 1)]
+    [InlineData(EstadoViagem.Ativa, 0, 1)]
+    [InlineData(EstadoViagem.Ativa, 2, -1)]
+    public void ViagemTerminadaCheiaOuJaPartida_NaoEPesquisavel(EstadoViagem estado, int lugares, int horas)
     {
-        Assert.False(PoliticaDeVisibilidade.Pesquisavel(Viagem(estado, lugares, horas), Agora));
+        Assert.False(Viagem(estado, lugares, horas).EstaDisponivelParaPesquisa(Agora));
     }
 
     [Fact]
     public void Condutor_VeSempreASuaViagem()
     {
-        var viagem = Viagem(nameof(EstadoViagem.Concluida));
+        var viagem = Viagem(EstadoViagem.Concluida);
 
         Assert.True(PoliticaDeVisibilidade.VisivelSemPedido(viagem, Condutor, Agora));
     }
