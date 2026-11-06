@@ -23,7 +23,7 @@ public sealed class PedidosController(IParticipacaoService participacoes) : Cont
     /// <summary>Submete um pedido de participação, no estado <c>Pendente</c> (RF-F004-01 a RF-F004-07, RF-F004-13).</summary>
     /// <remarks>Ver <see cref="IParticipacaoService.CriarPedidoAsync"/>.</remarks>
     /// <returns>
-    /// 201 pedido criado; 400 sem nenhum ponto (P-20), pontos vazios ou com mais de 250 caracteres, ou pontos no
+    /// 201 pedido criado; 400 sem nenhum ponto (P-20), pontos vazios ou com mais de 200 caracteres, ou pontos no
     /// mesmo local (RF-F004-18, RF-F004-20, RF-F004-21); 401; 403 conta por confirmar; 404 viagem
     /// inexistente; 409 viagem não ativa ou já partida, própria viagem (RF-F004-05), pedido repetido (RF-F004-06) ou
     /// sem lugares; 422 ponto não encontrado; 502/503/504 problema no serviço de mapas.

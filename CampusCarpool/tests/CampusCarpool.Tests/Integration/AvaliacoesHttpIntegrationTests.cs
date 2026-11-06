@@ -148,6 +148,7 @@ public sealed class AvaliacoesHttpIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",

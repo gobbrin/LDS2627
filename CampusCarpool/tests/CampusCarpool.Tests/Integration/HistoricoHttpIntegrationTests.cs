@@ -175,6 +175,7 @@ public sealed class HistoricoHttpIntegrationTests
             db.Viagens.AddRange(
                 new Viagem
                 {
+                    DestinoLatitude = 41.55m,
                     CondutorId = primeiroId,
                     Origem = "Porto",
                     Destino = "Braga",
@@ -185,6 +186,7 @@ public sealed class HistoricoHttpIntegrationTests
                 },
                 new Viagem
                 {
+                    DestinoLatitude = 41.55m,
                     CondutorId = segundoId,
                     Origem = "Lisboa",
                     Destino = "Coimbra",

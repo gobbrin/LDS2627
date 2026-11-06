@@ -6,7 +6,7 @@ namespace CampusCarpool.Application.Identidade;
 /// <summary>Implementação de <see cref="IDispositivoService"/>.</summary>
 public sealed class DispositivoService(IRepositorioDispositivos dispositivos) : IDispositivoService
 {
-    private const int TamanhoMaximoToken = 4096;
+    private const int TamanhoMaximoToken = 500;
 
     /// <inheritdoc />
     public async Task<Resultado> RegistarAsync(Guid utilizadorId, string token, CancellationToken ct)

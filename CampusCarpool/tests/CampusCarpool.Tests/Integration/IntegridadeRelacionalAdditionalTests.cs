@@ -79,7 +79,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
         var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
         var passageiro = new Utilizador { Email = "passageiro@estg.ipp.pt" };
         f.Db.Utilizadores.AddRange(condutor, passageiro);
-        var viagem = new Viagem { CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
         f.Db.Avaliacoes.Add(new Avaliacao { ViagemId = viagem.Id, AvaliadorId = passageiro.Id, AvaliadoId = condutor.Id, Classificacao = 5 });
         await f.Db.SaveChangesAsync();
@@ -101,6 +101,9 @@ public sealed class IntegridadeRelacionalAdditionalTests
 
         f.Db.Viagens.Add(new Viagem
         {
+            DestinoLatitude = 41.55m,
+            LugaresOferecidos = 3,
+            LugaresDisponiveis = 3,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga"
@@ -121,7 +124,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
         using var f = new Fixture();
         var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
         f.Db.Utilizadores.Add(condutor);
-        var viagem = new Viagem { CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
         await f.Db.SaveChangesAsync();
         f.Db.Participacoes.Add(new Participacao { ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() });

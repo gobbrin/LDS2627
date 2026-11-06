@@ -50,6 +50,7 @@ public sealed class AvisosIntegrationTests
         {
             var viagem = new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = condutorId,
                 Origem = "Porto",
                 Destino = "Braga",

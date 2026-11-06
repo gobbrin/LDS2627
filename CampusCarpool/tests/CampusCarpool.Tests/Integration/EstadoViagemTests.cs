@@ -36,6 +36,7 @@ public sealed class EstadoViagemTests : IDisposable
         var condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt", EmailConfirmado = true };
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             Condutor = condutor,
             Origem = "ESTG",
             Destino = "Porto",

@@ -331,8 +331,8 @@ public sealed class ViagemService(
     private static bool DadosDaViagemInvalidos(string origem, string destino, DateTime partidaEm, int lugares) =>
         string.IsNullOrWhiteSpace(origem)
         || string.IsNullOrWhiteSpace(destino)
-        || origem.Length > 250
-        || destino.Length > 250
+        || origem.Length > 200
+        || destino.Length > 200
         || RegraMesmoLocal.MesmoTexto(origem, destino)
         || partidaEm.Kind != DateTimeKind.Utc
         || partidaEm <= DateTime.UtcNow

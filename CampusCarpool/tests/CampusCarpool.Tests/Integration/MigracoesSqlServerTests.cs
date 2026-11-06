@@ -2,6 +2,9 @@ using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -47,6 +50,62 @@ public sealed class MigracoesSqlServerTests
             .Options);
 
         Assert.False(db.Database.HasPendingModelChanges());
+    }
+
+    /// <summary>
+    /// As migrations de 06/11 sobre uma BD com dados: preenchem as colunas de pesquisa das viagens que já existiam e as
+    /// alterações de colunas passam por cima do <c>CHECK</c> do estado e do índice filtrado dos pedidos.
+    /// </summary>
+    [SqlServerFact]
+    public async Task I110_133_MigrationsComDados_PreenchemAsColunasDePesquisa()
+    {
+        await using var db = new CampusCarpoolDbContext(OpcoesBaseDadosNova());
+
+        try
+        {
+            var migrador = db.GetInfrastructure().GetRequiredService<IMigrator>();
+            await migrador.MigrateAsync("20261105212205_I110_PesquisaSemAcentos");
+
+            var condutor = Guid.NewGuid();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO Utilizadores (Id, Nome, Email, PasswordHash, EmailConfirmado, CriadoEm)
+                VALUES ({condutor}, N'Condutor', N'dados@estg.ipp.pt', N'hash', 1, SYSUTCDATETIME());
+
+                INSERT INTO Viagens (Id, CondutorId, Origem, Destino, OrigemLatitude, OrigemLongitude, DestinoLatitude,
+                    DestinoLongitude, PartidaEm, LugaresOferecidos, LugaresDisponiveis, Estado)
+                VALUES (NEWID(), {condutor}, N'Famalicão', N'Açores', 41.4, -8.5, 37.7, -25.6, '2030-07-15T08:30:00', 3, 3, N'Ativa');
+                """);
+
+            await db.Database.MigrateAsync();
+
+            var viagem = await db.Viagens.AsNoTracking().SingleAsync();
+            Assert.Equal("FAMALICAO", viagem.OrigemPesquisa);
+            Assert.Equal("ACORES", viagem.DestinoPesquisa);
+            Assert.Equal(9 * 60 + 30, viagem.PartidaMinutoDoDia);
+            Assert.Equal(DateTimeKind.Utc, viagem.PartidaEm.Kind);
+
+            await Assert.ThrowsAsync<SqlException>(() =>
+                db.Database.ExecuteSqlRawAsync("UPDATE Viagens SET Estado = N'Outro'"));
+        }
+        finally
+        {
+            await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    /// <summary>O índice das avaliações do modelo é o da migration I048 (IN-01): uma avaliação por par, seja qual for a viagem.</summary>
+    [Fact]
+    public void I110_134_IndiceDasAvaliacoes_EODoPar()
+    {
+        using var db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+            .UseSqlServer("Server=(local);Database=SemLigacao;")
+            .Options);
+
+        var unico = Assert.Single(db.Model.FindEntityType(typeof(Avaliacao))!.GetIndexes(), indice => indice.IsUnique);
+
+        Assert.Equal(
+            [nameof(Avaliacao.AvaliadorId), nameof(Avaliacao.AvaliadoId)],
+            unico.Properties.Select(propriedade => propriedade.Name));
     }
 
     [SqlServerFact]

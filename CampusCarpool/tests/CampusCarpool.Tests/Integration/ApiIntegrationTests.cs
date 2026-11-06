@@ -157,6 +157,7 @@ public sealed class ApiIntegrationTests
         fixture.Db.Utilizadores.Add(owner);
         var trip = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = owner.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -191,6 +192,7 @@ public sealed class ApiIntegrationTests
         fixture.Db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = owner.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -200,6 +202,7 @@ public sealed class ApiIntegrationTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = owner.Id,
                 Origem = "Porto",
                 Destino = "Braga",

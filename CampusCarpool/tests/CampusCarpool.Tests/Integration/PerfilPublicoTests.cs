@@ -73,6 +73,7 @@ public sealed class PerfilPublicoTests : IDisposable
         var avaliadorB = CriarUtilizador("B");
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = consultado.Id,
             Origem = "ESTG",
             Destino = "Porto",

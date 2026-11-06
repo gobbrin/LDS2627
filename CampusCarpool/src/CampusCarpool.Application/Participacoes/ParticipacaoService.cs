@@ -99,8 +99,8 @@ public sealed class ParticipacaoService(
         if (recolha is null && destino is null)
             return new Erro(TipoErro.DadosInvalidos, "Indica um ponto de recolha ou de destino.");
 
-        if ((recolha is not null && (string.IsNullOrWhiteSpace(recolha) || recolha.Length > 250))
-            || (destino is not null && (string.IsNullOrWhiteSpace(destino) || destino.Length > 250)))
+        if ((recolha is not null && (string.IsNullOrWhiteSpace(recolha) || recolha.Length > 200))
+            || (destino is not null && (string.IsNullOrWhiteSpace(destino) || destino.Length > 200)))
         {
             return new Erro(TipoErro.DadosInvalidos, "Os pontos de recolha ou destino são inválidos.");
         }

@@ -546,6 +546,7 @@ public sealed class I051ValidacoesControllersTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = utilizador.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -810,6 +811,7 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -820,6 +822,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -830,6 +833,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Lisboa",
                 Destino = "Braga",
@@ -916,6 +920,7 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -926,6 +931,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Lisboa",
                 Destino = "Coimbra",
@@ -936,6 +942,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Aveiro",
                 Destino = "Porto",
@@ -946,6 +953,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Braga",
                 Destino = "Porto",
@@ -1009,6 +1017,7 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -1019,6 +1028,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -1029,6 +1039,7 @@ public sealed class I051ValidacoesControllersTests
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -1093,6 +1104,7 @@ public sealed class I051ValidacoesControllersTests
         {
             db.Viagens.Add(new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = $"Origem {i}",
                 Destino = "Braga",

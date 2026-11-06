@@ -18,7 +18,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
 
     /// <summary>Cria uma viagem <c>Ativa</c> com o utilizador como condutor (RF-F002-01 a RF-F002-06).</summary>
     /// <returns>
-    /// 201 viagem criada; 400 dados inválidos (vazios, mais de 250 caracteres, origem e destino no mesmo local,
+    /// 201 viagem criada; 400 dados inválidos (vazios, mais de 200 caracteres, origem e destino no mesmo local,
     /// data passada ou não UTC, lugares fora de 1 a 8); 401; 403 conta por confirmar; 422 local ou rota não
     /// encontrados; 502 serviço de mapas com erro; 503 serviço de mapas não configurado; 504 tempo esgotado.
     /// </returns>
@@ -73,7 +73,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     /// <summary>Altera a origem, o destino, a data/hora e os lugares de uma viagem ativa ainda por partir (RF-F002-07, RF-F002-08, RF-F002-16).</summary>
     /// <remarks>Ver <see cref="IViagemService.EditarAsync"/>.</remarks>
     /// <returns>
-    /// 204; 400 dados inválidos (locais vazios, com mais de 250 caracteres ou no mesmo local, data passada ou não UTC,
+    /// 204; 400 dados inválidos (locais vazios, com mais de 200 caracteres ou no mesmo local, data passada ou não UTC,
     /// lugares fora de 1 a 8); 401; 403 não é o condutor; 404; 409 viagem não editável, lugares abaixo dos ocupados ou
     /// alteração simultânea; 422 local ou rota não encontrados; 502/503/504 problema no serviço de mapas.
     /// </returns>

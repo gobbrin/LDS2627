@@ -71,6 +71,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = utilizador.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -111,6 +112,7 @@ public sealed class HistoricoIntegrationTests
 
         fixture.Db.Viagens.Add(new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = utilizador.Id,
             Origem = "Felgueiras",
             Destino = "Porto",
@@ -152,6 +154,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Felgueiras",
             Destino = "Porto",
@@ -200,6 +203,7 @@ public sealed class HistoricoIntegrationTests
 
         var antiga = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -211,6 +215,7 @@ public sealed class HistoricoIntegrationTests
 
         var recente = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Felgueiras",
@@ -259,6 +264,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Felgueiras",
             Destino = "Porto",
@@ -384,6 +390,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
@@ -460,6 +467,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Felgueiras",
             Destino = "Porto",
@@ -509,6 +517,7 @@ public sealed class HistoricoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Felgueiras",
             Destino = "Porto",

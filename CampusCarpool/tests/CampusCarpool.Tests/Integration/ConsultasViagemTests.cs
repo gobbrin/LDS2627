@@ -99,7 +99,7 @@ public sealed class ConsultasViagemTests : IDisposable
     private async Task<Viagem> CriarViagemComRotaEAvaliacoes()
     {
         var viagem = await CriarViagem();
-        var outraViagem = new Viagem { CondutorId = condutor.Id, Origem = "A", Destino = "B", PartidaEm = DateTime.UtcNow.AddDays(-5), Estado = EstadoViagem.Concluida };
+        var outraViagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "A", Destino = "B", PartidaEm = DateTime.UtcNow.AddDays(-5), Estado = EstadoViagem.Concluida };
         db.Viagens.Add(outraViagem);
         db.Avaliacoes.AddRange(
             new Avaliacao { ViagemId = outraViagem.Id, AvaliadorId = passageiro.Id, AvaliadoId = condutor.Id, Classificacao = 5 },
@@ -194,6 +194,7 @@ public sealed class ConsultasViagemTests : IDisposable
     {
         db.Viagens.Add(new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Vila Nova de Famalicão",
             Destino = "Ponta Delgada, Açores",

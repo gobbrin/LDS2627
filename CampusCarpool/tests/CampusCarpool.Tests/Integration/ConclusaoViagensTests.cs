@@ -48,6 +48,7 @@ public sealed class ConclusaoViagensTests : IDisposable
     {
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = _condutor.Id,
             Origem = "ESTG",
             Destino = "Porto",

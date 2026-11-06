@@ -31,7 +31,7 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
             var condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt" };
             var passageiro = new Utilizador { Nome = "Passageiro", Email = "passageiro@estg.ipp.pt" };
             Db.Utilizadores.AddRange(condutor, passageiro);
-            var viagem = new Viagem { CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
+            var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
             Db.Viagens.Add(viagem);
             await Db.SaveChangesAsync();
             return (condutor, passageiro, viagem);

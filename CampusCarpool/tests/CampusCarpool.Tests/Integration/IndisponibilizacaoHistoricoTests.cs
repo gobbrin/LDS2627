@@ -48,6 +48,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
     {
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutorId,
             Origem = "ESTG",
             Destino = "Porto",

@@ -22,7 +22,7 @@ public sealed class AvaliacaoServiceTests
 
     private AvaliacaoService CriarServico(EstadoViagem estado = EstadoViagem.Concluida, bool aceitarA = true, bool aceitarB = true)
     {
-        _repo.Viagens[_viagemId] = new Viagem { Id = _viagemId, CondutorId = _condutor, Estado = estado };
+        _repo.Viagens[_viagemId] = new Viagem { DestinoLatitude = 41.55m, Id = _viagemId, CondutorId = _condutor, Estado = estado };
         _repo.Utilizadores.UnionWith(new[] { _condutor, _passageiroA, _passageiroB, _externo });
         if (aceitarA) _repo.Aceites.Add((_viagemId, _passageiroA));
         if (aceitarB) _repo.Aceites.Add((_viagemId, _passageiroB));
@@ -138,7 +138,7 @@ public sealed class AvaliacaoServiceTests
         var servico = CriarServico();
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 3, CancellationToken.None);
         var outra = Guid.NewGuid();
-        _repo.Viagens[outra] = new Viagem { Id = outra, CondutorId = _condutor, Estado = EstadoViagem.Concluida };
+        _repo.Viagens[outra] = new Viagem { DestinoLatitude = 41.55m, Id = outra, CondutorId = _condutor, Estado = EstadoViagem.Concluida };
         _repo.Aceites.Add((outra, _passageiroA));
         Assert.Equal(TipoErro.Conflito, (await servico.CriarAsync(outra, _condutor, _passageiroA, 5, CancellationToken.None)).Erro?.Tipo);
         Assert.Single(_repo.Avaliacoes);

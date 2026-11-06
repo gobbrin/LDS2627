@@ -124,7 +124,7 @@ public sealed class ViagemTests
     [InlineData(-59, 60, false)]
     public void DeveConcluir_SoDepoisDaPartidaMaisADuracao(int minutosAtePartida, int duracao, bool esperado)
     {
-        var viagem = new Viagem { PartidaEm = Agora.AddMinutes(minutosAtePartida), DuracaoMinutos = duracao };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, PartidaEm = Agora.AddMinutes(minutosAtePartida), DuracaoMinutos = duracao };
 
         Assert.Equal(esperado, viagem.DeveConcluir(Agora));
     }
@@ -132,7 +132,7 @@ public sealed class ViagemTests
     [Fact]
     public void DeveConcluir_SemDuracao_ConcluiAHoraDePartida()
     {
-        Assert.True(new Viagem { PartidaEm = Agora, DuracaoMinutos = null }.DeveConcluir(Agora));
+        Assert.True(new Viagem { DestinoLatitude = 41.55m, PartidaEm = Agora, DuracaoMinutos = null }.DeveConcluir(Agora));
     }
 
     [Fact]

@@ -29,7 +29,7 @@ public sealed class I052ParticipacaoServiceTests
     private (Participacao pedido, Viagem viagem, Guid condutor) Preparar()
     {
         var condutor = Guid.NewGuid();
-        var viagem = new Viagem { CondutorId = condutor, PartidaEm = DateTime.UtcNow.AddDays(2), LugaresOferecidos = 2, LugaresDisponiveis = 2, Estado = EstadoViagem.Ativa };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, CondutorId = condutor, PartidaEm = DateTime.UtcNow.AddDays(2), LugaresOferecidos = 2, LugaresDisponiveis = 2, Estado = EstadoViagem.Ativa };
         var pedido = new Participacao { ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() };
         viagens.Item = viagem;
         participacoes.Item = pedido;

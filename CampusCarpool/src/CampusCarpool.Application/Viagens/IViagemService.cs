@@ -17,7 +17,7 @@ public interface IViagemService
     /// criação é recusada (RF-F002-17, P-19). Guarda as coordenadas, a distância, a duração e a rota.
     /// </remarks>
     /// <returns>
-    /// A viagem; erro 400 com dados inválidos (vazios, mais de 250 caracteres, origem e destino no mesmo local, data
+    /// A viagem; erro 400 com dados inválidos (vazios, mais de 200 caracteres, origem e destino no mesmo local, data
     /// passada ou não UTC, lugares fora de 1 a 8); 403 com a conta por confirmar; 422 se um local ou a rota não forem
     /// encontrados; 502/503/504 com problemas no Serviço de Mapas.
     /// </returns>
@@ -61,7 +61,7 @@ public interface IViagemService
     /// que decidem se ficam.
     /// </remarks>
     /// <returns>
-    /// Sucesso; erro 400 com dados inválidos (locais vazios, com mais de 250 caracteres ou no mesmo local, data passada
+    /// Sucesso; erro 400 com dados inválidos (locais vazios, com mais de 200 caracteres ou no mesmo local, data passada
     /// ou não UTC, lugares fora de 1 a 8); 403 se não for o condutor; 404 se a viagem não existir; 409 com a viagem não
     /// editável ou lugares abaixo dos ocupados; 422 se um local ou a rota não forem encontrados; 502/503/504 com
     /// problemas no Serviço de Mapas.

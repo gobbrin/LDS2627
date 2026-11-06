@@ -187,6 +187,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var outra = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = f.Condutor.Id,
             Origem = "A",
             Destino = "B",
