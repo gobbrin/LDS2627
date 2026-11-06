@@ -1,5 +1,6 @@
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
@@ -18,19 +19,6 @@ public class ArquiteturaTests
     private static readonly Assembly Application = typeof(IUnidadeDeTrabalho).Assembly;
     private static readonly Assembly Infrastructure = typeof(CampusCarpoolDbContext).Assembly;
     private static readonly Assembly Api = typeof(ViagensController).Assembly;
-
-    /// <summary>
-    /// Tipos da Api que ainda recebem o <c>DbContext</c>. A lista só pode encolher: cada controller sai daqui
-    /// quando a sua lógica passar para a Application, e no fim fica vazia.
-    /// </summary>
-    /// <remarks>
-    /// A reflexão só vê construtores, parâmetros e campos: não deteta um <c>GetRequiredService</c>, como o que o
-    /// <c>ValidacaoTokensRevogados</c> ainda faz.
-    /// </remarks>
-    private static readonly string[] ApiAindaComDbContext =
-    [
-        "ViagensController",
-    ];
 
     private static string[] Referencias(Assembly assembly) =>
         assembly.GetReferencedAssemblies().Select(a => a.Name!).ToArray();
@@ -70,41 +58,33 @@ public class ArquiteturaTests
         Assert.DoesNotContain("CampusCarpool.Api", Referencias(Infrastructure));
     }
 
+    /// <summary>
+    /// A Api só fala com a Application: não usa o <c>DbContext</c>, os repositórios concretos nem o EF Core.
+    /// </summary>
+    /// <remarks>
+    /// Lê as referências a tipos nos metadados do assembly, que incluem o que a reflexão não vê, como o corpo dos
+    /// métodos ou um <c>GetRequiredService</c>.
+    /// </remarks>
     [Fact]
-    public void Api_NaoUsaODbContextForaDasExcecoesConhecidas()
+    public void Api_NaoUsaOAcessoADados()
     {
-        var comDbContext = TiposDaApiComDbContext();
+        var proibidas = TiposReferenciadosPelaApi()
+            .Where(t => t.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                || t.StartsWith("CampusCarpool.Infrastructure.Persistence", StringComparison.Ordinal)
+                || t.StartsWith("CampusCarpool.Infrastructure.Repositories", StringComparison.Ordinal));
 
-        Assert.Empty(comDbContext.Except(ApiAindaComDbContext));
+        Assert.Empty(proibidas);
     }
 
-    /// <summary>Falha quando um tipo deixa de usar o <c>DbContext</c> e continua na lista, para ela não ficar desatualizada.</summary>
-    [Fact]
-    public void Api_ListaDeExcecoesNaoTemEntradasObsoletas()
+    private static string[] TiposReferenciadosPelaApi()
     {
-        var comDbContext = TiposDaApiComDbContext();
+        using var ficheiro = File.OpenRead(Api.Location);
+        using var pe = new PEReader(ficheiro);
+        var metadados = pe.GetMetadataReader();
 
-        Assert.Empty(ApiAindaComDbContext.Except(comDbContext));
-    }
-
-    // Sem os tipos gerados pelo compilador: em Debug, os métodos assíncronos guardam as variáveis locais em campos
-    // da máquina de estados e em Release não, e o resultado tem de ser o mesmo nas duas configurações.
-    private static string[] TiposDaApiComDbContext() =>
-        Api.GetTypes()
-            .Where(t => !t.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
-            .Where(UsaDbContext)
-            .Select(t => t.Name)
+        return metadados.TypeReferences
+            .Select(metadados.GetTypeReference)
+            .Select(t => $"{metadados.GetString(t.Namespace)}.{metadados.GetString(t.Name)}")
             .ToArray();
-
-    private static bool UsaDbContext(Type tipo)
-    {
-        const BindingFlags Todos = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
-            | BindingFlags.Static | BindingFlags.DeclaredOnly;
-
-        var parametros = tipo.GetConstructors(Todos).SelectMany(c => c.GetParameters())
-            .Concat(tipo.GetMethods(Todos).SelectMany(m => m.GetParameters()));
-
-        return parametros.Any(p => p.ParameterType == typeof(CampusCarpoolDbContext))
-            || tipo.GetFields(Todos).Any(f => f.FieldType == typeof(CampusCarpoolDbContext));
     }
 }

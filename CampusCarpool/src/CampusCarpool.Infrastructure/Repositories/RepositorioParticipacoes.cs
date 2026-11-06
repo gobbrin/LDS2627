@@ -84,6 +84,37 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Participacao>> ListarAtivasParaAlterarAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Participacoes
+            .Where(p => p.ViagemId == viagemId
+                && (p.Estado == EstadoParticipacao.Pendente || p.Estado == EstadoParticipacao.Aceite))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PassageiroAceite>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Participacoes
+            .AsNoTracking()
+            .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Aceite)
+            .OrderBy(p => p.AceiteEm)
+            .Select(p => new PassageiroAceite(p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PedidoPendente>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Participacoes
+            .AsNoTracking()
+            .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Pendente)
+            .OrderBy(p => p.CriadoEm)
+            .Select(p => new PedidoPendente(p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino, p.CriadoEm))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct)
     {
         context.Participacoes.Add(pedido);

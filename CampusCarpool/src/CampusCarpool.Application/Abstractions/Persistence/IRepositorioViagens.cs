@@ -3,10 +3,7 @@ using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Abstractions.Persistence;
 
 /// <summary>Acesso a dados das viagens usado pelos serviços da Application.</summary>
-/// <remarks>
-/// Implementado por <c>Infrastructure/Repositories/RepositorioViagens.cs</c>. A criação e a edição de viagens não
-/// passam por aqui: o <c>ViagensController</c> usa o <c>DbContext</c>.
-/// </remarks>
+/// <remarks>Implementado por <c>Infrastructure/Repositories/RepositorioViagens.cs</c>.</remarks>
 public interface IRepositorioViagens
 {
     /// <summary>
@@ -26,7 +23,22 @@ public interface IRepositorioViagens
     /// <param name="ct">Cancelamento.</param>
     /// <returns>O total de resultados e as viagens da página pedida.</returns>
     Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct);
+
+    /// <summary>Lista as viagens ativas do condutor, por ordem de partida.</summary>
+    Task<IReadOnlyList<ViagemDoCondutor>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct);
+
+    /// <summary>Acrescenta uma viagem; só fica gravada com a unidade de trabalho.</summary>
+    void Adicionar(Viagem viagem);
 }
+
+/// <summary>Viagem ativa na lista do próprio condutor.</summary>
+public sealed record ViagemDoCondutor(
+    Guid Id,
+    string Origem,
+    string Destino,
+    DateTime PartidaEm,
+    int LugaresOferecidos,
+    int LugaresDisponiveis);
 
 /// <summary>Viagem ativa já partida: identificador, partida e duração estimada (P-04), se existir.</summary>
 public sealed record ViagemEmCurso(Guid Id, DateTime PartidaEm, int? DuracaoMinutos);

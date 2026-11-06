@@ -37,6 +37,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IConclusaoViagensService, ConclusaoViagensService>();
         services.AddScoped<IConsultaViagensService, ConsultaViagensService>();
         services.AddScoped<IPesquisaService, PesquisaService>();
+        services.AddScoped<IViagemService, ViagemService>();
 
         // I048 - Avaliações
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();

@@ -143,6 +143,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
+        Authenticate(controller, Guid.NewGuid());
         Assert.IsType<NotFoundResult>(await controller.Consultar(Guid.NewGuid(), default));
     }
 

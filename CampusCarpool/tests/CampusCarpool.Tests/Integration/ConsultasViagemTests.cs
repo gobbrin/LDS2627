@@ -64,9 +64,9 @@ public sealed class ConsultasViagemTests : IDisposable
         return viagem;
     }
 
-    private static readonly IServicoMapasRotas Mapas = new MapasFalsos().CriarServico();
+    private static readonly IServicoMapasRotas Mapas = new MapasFalsos().CriarServico(configurado: false);
 
-    private ViagensController Controller(Guid utilizadorId) => new(db, Mapas, ServicosDeTeste.CriarRotas(db, Mapas), ServicosDeTeste.CriarConsultas(db))
+    private ViagensController Controller(Guid utilizadorId) => new(ServicosDeTeste.CriarViagens(db, Mapas))
     {
         ControllerContext = new ControllerContext
         {

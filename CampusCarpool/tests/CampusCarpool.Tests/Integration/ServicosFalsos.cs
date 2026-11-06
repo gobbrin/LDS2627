@@ -146,12 +146,27 @@ public static class ServicosDeTeste
     public static RotaService CriarRotas(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
         new(mapas, new UnidadeDeTrabalhoEfCore(db));
 
+    public static ViagemService CriarViagens(
+        CampusCarpoolDbContext db,
+        IServicoMapasRotas mapas,
+        EstimativaCustoService? custos = null,
+        INotificacaoService? notificacaoService = null) => new(
+        new RepositorioViagens(db),
+        new RepositorioParticipacoes(db),
+        new RepositorioUtilizadores(db),
+        new UnidadeDeTrabalhoEfCore(db),
+        mapas,
+        CriarRotas(db, mapas),
+        CriarConsultas(db),
+        custos ?? CriarCustos(),
+        notificacaoService ?? CriarNotificacoes(db));
+
     public static ViagensController CriarViagensController(
         CampusCarpoolDbContext db,
         IServicoMapasRotas mapas,
         EstimativaCustoService? custos = null,
         INotificacaoService? notificacaoService = null) =>
-        new(db, mapas, CriarRotas(db, mapas), CriarConsultas(db), custos, notificacaoService);
+        new(CriarViagens(db, mapas, custos, notificacaoService));
 
     public static NotificacaoService CriarNotificacoes(CampusCarpoolDbContext db) =>
         new(new RepositorioNotificacoes(db), new FilaNotificacoesPushFalsa());

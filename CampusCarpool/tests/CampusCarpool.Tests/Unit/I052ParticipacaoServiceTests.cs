@@ -134,6 +134,9 @@ public sealed class I052ParticipacaoServiceTests
         public Task<bool> ExisteAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) => Task.FromResult(false);
         public Task<IReadOnlyList<Participacao>> ListarPendentesParaAlterarAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Participacao>>(Array.Empty<Participacao>());
         public Task<bool> AdicionarPedidoAsync(Participacao pedido, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Participacao>> ListarAtivasParaAlterarAsync(Guid viagemId, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<PassageiroAceite>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<PedidoPendente>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct) => throw new NotSupportedException();
     }
     private sealed class ViagensFake : IRepositorioViagens
     {
@@ -141,6 +144,8 @@ public sealed class I052ParticipacaoServiceTests
         public Task<Viagem?> ObterPorIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Item?.Id == id ? Item : null);
         public Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct) => Task.FromResult<IReadOnlyList<ViagemEmCurso>>(Array.Empty<ViagemEmCurso>());
         public Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<ViagemDoCondutor>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct) => throw new NotSupportedException();
+        public void Adicionar(Viagem viagem) => throw new NotSupportedException();
     }
     private sealed class TrabalhoFake : IUnidadeDeTrabalho
     {
