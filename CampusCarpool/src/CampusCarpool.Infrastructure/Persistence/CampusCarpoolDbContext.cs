@@ -99,12 +99,13 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
             $"[Estado] IN ('{nameof(EstadoViagem.Ativa)}', '{nameof(EstadoViagem.Indisponibilizada)}', '{nameof(EstadoViagem.Concluida)}')"));
 
         // Controlo de concorrência otimista na base de dados SQL Server.
-        // Em SQLite (testes) não há rowversion, por isso a concorrência só é testada pelo IT023 (SQL Server real).
+        // Em SQLite (testes) não há rowversion: a concorrência só é testada em SQL Server (RegrasSqlServerTests, IT023).
         if (Database.IsSqlServer())
         {
             modelBuilder.Entity<Viagem>()
                 .Property(v => v.Versao)
                 .IsRowVersion();
+            modelBuilder.Entity<Participacao>().Property(p => p.Versao).IsRowVersion();
         }
 
         modelBuilder.Entity<Participacao>().HasOne(x => x.Viagem).WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.Restrict);

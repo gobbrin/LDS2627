@@ -11,8 +11,6 @@ namespace CampusCarpool.Domain.Entities;
 /// Apenas participações <see cref="EstadoParticipacao.Aceite"/> ocupam lugares.
 /// O estado é guardado como texto. Só muda por estes métodos: o <c>set</c> é interno ao Domain (e aberto aos testes,
 /// para montar cenários). Uma transição inválida lança <see cref="RegraDeNegocioException"/>.
-/// Ao contrário da <see cref="Viagem"/>, não tem coluna de versão: aceitar e cancelar o mesmo pedido em
-/// simultâneo não gera conflito (DO-03, fica para m4).
 /// Os pontos indicados no pedido ficam com o texto e as coordenadas obtidas na validação (A8); um ponto omitido
 /// fica a <c>null</c> e segue a origem ou o destino da viagem, mesmo que o condutor os altere (P-20).
 /// </remarks>
@@ -60,6 +58,12 @@ public sealed class Participacao
     /// <summary>Momento em que o condutor aceitou o pedido; fica preenchido mesmo depois de a participação ser cancelada.</summary>
     /// <remarks>Mantém no histórico do passageiro as viagens indisponibilizadas depois da aceitação (RF-F009-08).</remarks>
     public DateTime? AceiteEm { get; internal set; }
+
+    /// <summary>
+    /// Versão da linha para concorrência otimista (<c>rowversion</c> no SQL Server; ignorada em SQLite). Aceitar e
+    /// cancelar o mesmo pedido em simultâneo fazem falhar a segunda gravação (DO-03).
+    /// </summary>
+    public byte[] Versao { get; set; } = Array.Empty<byte>();
 
     /// <summary>O pedido aguarda a decisão do condutor.</summary>
     public bool EstaPendente => Estado == EstadoParticipacao.Pendente;

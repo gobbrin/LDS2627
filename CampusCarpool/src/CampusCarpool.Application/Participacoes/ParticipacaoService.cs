@@ -20,8 +20,7 @@ namespace CampusCarpool.Application.Participacoes;
 /// já não dependem do cliente: a operação aconteceu, mesmo que o pedido HTTP seja cancelado entretanto.
 /// As transições estão nas entidades (AD-001). Os lugares são verificados contra a contagem real de aceites;
 /// se não baterem, a operação é recusada, para não agravar o erro.
-/// A coluna <c>Versao</c> da viagem protege a aceitação e o cancelamento de uma aceite (que mudam a viagem);
-/// a rejeição e o cancelamento de um pendente só mudam a participação, que não tem versão (DO-03).
+/// As colunas <c>Versao</c> da viagem e da participação recusam a segunda de duas decisões simultâneas (DO-03).
 /// </remarks>
 public sealed class ParticipacaoService(
     IRepositorioParticipacoes repositorioParticipacoes,
@@ -347,7 +346,7 @@ public sealed class ParticipacaoService(
             utilizadorId,
             "Um novo passageiro foi aceite na viagem em que participas.");
 
-        // Conflitos no token Versao são tratados pela unidade de trabalho.
+        // Um conflito nas colunas Versao chega ao cliente como 409, pela unidade de trabalho.
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         await notificadorPedidosTempoReal.PedidoAceiteAsync(participacao.PassageiroId, participacao.Id, CancellationToken.None);
@@ -387,8 +386,6 @@ public sealed class ParticipacaoService(
             TipoNotificacao.PedidoRejeitado,
             "O teu pedido de participação na viagem foi rejeitado.");
 
-        // A rejeição não mexe na viagem, por isso o token Versao não protege contra uma aceitação ou um cancelamento
-        // simultâneos do mesmo pedido (DO-03).
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         await notificadorPedidosTempoReal.PedidoRejeitadoAsync(participacao.PassageiroId, participacao.Id, CancellationToken.None);

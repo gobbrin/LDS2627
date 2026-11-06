@@ -18,8 +18,8 @@ namespace CampusCarpool.Tests.Integration;
 /// </remarks>
 public sealed class RegrasSqlServerTests
 {
-    /// <summary>Altera a viagem noutra ligação mesmo antes de gravar, como outro pedido em simultâneo.</summary>
-    private sealed class AlteracaoConcorrente(string ligacao, Guid viagemId) : SaveChangesInterceptor
+    /// <summary>Altera a linha noutra ligação mesmo antes de gravar, como outro pedido em simultâneo.</summary>
+    private sealed class AlteracaoConcorrente(string ligacao, string tabela, string coluna, Guid id) : SaveChangesInterceptor
     {
         public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
             DbContextEventData eventData,
@@ -29,8 +29,8 @@ public sealed class RegrasSqlServerTests
             await using var outraLigacao = new SqlConnection(ligacao);
             await outraLigacao.OpenAsync(cancellationToken);
             await using var comando = outraLigacao.CreateCommand();
-            comando.CommandText = "UPDATE Viagens SET LugaresDisponiveis = LugaresDisponiveis WHERE Id = @id";
-            comando.Parameters.AddWithValue("@id", viagemId);
+            comando.CommandText = $"UPDATE {tabela} SET {coluna} = {coluna} WHERE Id = @id";
+            comando.Parameters.AddWithValue("@id", id);
             await comando.ExecuteNonQueryAsync(cancellationToken);
 
             return result;
@@ -83,7 +83,7 @@ public sealed class RegrasSqlServerTests
             await using var db = new CampusCarpoolDbContext(
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
                     .UseSqlServer(ligacao)
-                    .AddInterceptors(new AlteracaoConcorrente(ligacao, viagem.Id))
+                    .AddInterceptors(new AlteracaoConcorrente(ligacao, "Viagens", "LugaresDisponiveis", viagem.Id))
                     .Options);
             var mapas = new MapasFalsos();
             var servico = ServicosDeTeste.CriarViagens(db, mapas.CriarServico());
@@ -93,6 +93,45 @@ public sealed class RegrasSqlServerTests
 
             await using var verificacao = new CampusCarpoolDbContext(Opcoes(ligacao));
             Assert.Equal(EstadoViagem.Ativa, (await verificacao.Viagens.AsNoTracking().SingleAsync()).Estado);
+        }
+        finally
+        {
+            await preparacao.Database.EnsureDeletedAsync();
+        }
+    }
+
+    /// <summary>DO-03: a rejeição só muda a participação, por isso é a <c>Versao</c> dela que recusa a decisão simultânea.</summary>
+    [SqlServerFact]
+    public async Task I110_128_DecisaoSimultaneaNoMesmoPedido_ASegundaRecebeConflito()
+    {
+        var ligacao = CadeiaBaseDadosNova();
+        await using var preparacao = new CampusCarpoolDbContext(Opcoes(ligacao));
+
+        try
+        {
+            await preparacao.Database.MigrateAsync();
+
+            var condutor = NovoUtilizador("Condutor");
+            var passageiro = NovoUtilizador("Passageiro");
+            var viagem = NovaViagem(condutor.Id);
+            var pedido = NovoPedido(viagem.Id, passageiro.Id);
+            preparacao.Utilizadores.AddRange(condutor, passageiro);
+            preparacao.Viagens.Add(viagem);
+            preparacao.Participacoes.Add(pedido);
+            await preparacao.SaveChangesAsync();
+
+            await using var db = new CampusCarpoolDbContext(
+                new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+                    .UseSqlServer(ligacao)
+                    .AddInterceptors(new AlteracaoConcorrente(ligacao, "Participacoes", "Estado", pedido.Id))
+                    .Options);
+            var servico = ServicosDeTeste.CriarParticipacoes(db, new MapasFalsos().CriarServico());
+
+            await Assert.ThrowsAsync<RegraDeNegocioException>(() =>
+                servico.RejeitarAsync(pedido.Id, condutor.Id, CancellationToken.None));
+
+            await using var verificacao = new CampusCarpoolDbContext(Opcoes(ligacao));
+            Assert.Equal(EstadoParticipacao.Pendente, (await verificacao.Participacoes.AsNoTracking().SingleAsync()).Estado);
         }
         finally
         {

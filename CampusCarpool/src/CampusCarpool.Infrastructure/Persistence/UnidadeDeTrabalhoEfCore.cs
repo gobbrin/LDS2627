@@ -15,7 +15,7 @@ public sealed class UnidadeDeTrabalhoEfCore(CampusCarpoolDbContext context) : IU
 {
     /// <summary>Persiste as alterações pendentes e traduz os conflitos de concorrência em conflitos de regra de negócio.</summary>
     /// <remarks>
-    /// Só há conflitos de concorrência na <c>Viagem</c> (coluna <c>Versao</c>) e só em SQL Server. A
+    /// Só há conflitos de concorrência na <c>Viagem</c> e na <c>Participacao</c> (coluna <c>Versao</c>), e só em SQL Server. A
     /// <see cref="RegraDeNegocioException"/> chega ao cliente como 409 pelo <c>GlobalExceptionHandler</c>.
     /// </remarks>
     public async Task ConfirmarAsync(CancellationToken ct)
