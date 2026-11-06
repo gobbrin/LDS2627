@@ -118,4 +118,51 @@ public sealed class ServicoMapasRotasTests
         var service = Criar("chave", _ => Json("{}", HttpStatusCode.ServiceUnavailable));
         await Assert.ThrowsAsync<HttpRequestException>(() => service.CalcularAsync(new(41m, -8m), new(42m, -9m), CancellationToken.None));
     }
+
+    [Theory]
+    [InlineData("<html>Bad gateway</html>")]
+    [InlineData("{}")]
+    [InlineData("[]")]
+    [InlineData("{\"features\":[{}]}")]
+    public async Task CalcularComRespostaMalformada_ContaComoFalhaDoServico(string corpo)
+    {
+        var service = Criar("chave", _ => Json(corpo));
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.CalcularAsync(new(41m, -8m), new(42m, -9m), CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData("<html>Bad gateway</html>")]
+    [InlineData("{}")]
+    [InlineData("{\"features\":[{\"geometry\":{\"coordinates\":[1]}}]}")]
+    public async Task GeocodificarComRespostaMalformada_ContaComoFalhaDoServico(string corpo)
+    {
+        var service = Criar("chave", _ => Json(corpo));
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.GeocodificarAsync("Porto", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task MatrizComRespostaMalformada_ContaComoFalhaDoServico()
+    {
+        var service = Criar("chave", _ => Json("{}"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.CalcularMatrizAsync([new(41m, -8m), new(42m, -9m)], CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(2009)]
+    [InlineData(2010)]
+    public async Task CalcularSemCaminhoEntreOsPontos_RetornaNull(int codigo)
+    {
+        var service = Criar("chave", _ => Json($"{{\"error\":{{\"code\":{codigo},\"message\":\"x\"}}}}", HttpStatusCode.NotFound));
+        Assert.Null(await service.CalcularAsync(new(41m, -8m), new(42m, -9m), CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData("<html>Not found</html>")]
+    [InlineData("{\"error\":\"Not found\"}")]
+    [InlineData("{\"error\":{\"code\":2099}}")]
+    public async Task CalcularCom404SemCodigoDeRota_ContaComoFalhaDoServico(string corpo)
+    {
+        var service = Criar("chave", _ => Json(corpo, HttpStatusCode.NotFound));
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.CalcularAsync(new(41m, -8m), new(42m, -9m), CancellationToken.None));
+    }
 }

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
@@ -109,11 +108,6 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            return false;
-        }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException)
-        {
-            // Resposta sem o formato esperado: conta como serviço indisponível, para não falhar um cancelamento.
             return false;
         }
     }

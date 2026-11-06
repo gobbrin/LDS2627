@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CampusCarpool.Application.Abstractions.Integrations;
@@ -16,7 +17,7 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// Application devolvem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> registado em
 /// <c>AddInfrastructureServices</c>).
 /// Os URLs são absolutos e fixos, por isso <c>Maps:BaseUrl</c> e <c>Maps:Provider</c> não têm efeito (IN-04).
-/// Erros HTTP saem como <see cref="HttpRequestException"/> (<c>EnsureSuccessStatusCode</c>) e o tempo esgotado
+/// Erros HTTP e respostas sem o formato esperado saem como <see cref="HttpRequestException"/> e o tempo esgotado
 /// como <see cref="TaskCanceledException"/>; <c>ChamadaMapas</c>, na Application, converte-os em 502 e 504.
 /// </remarks>
 public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : IServicoMapasRotas
@@ -40,16 +41,17 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
         using var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
-        using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        return await LerRespostaAsync<Coordenadas?>(response, raiz =>
+        {
+            var features = raiz.GetProperty("features");
 
-        var features = json.RootElement.GetProperty("features");
+            if (features.ValueKind != JsonValueKind.Array || features.GetArrayLength() == 0) return null;
 
-        if (features.ValueKind != JsonValueKind.Array || features.GetArrayLength() == 0) return null;
+            // GeoJSON escreve [longitude, latitude], pela ordem inversa da habitual.
+            var coordinates = features[0].GetProperty("geometry").GetProperty("coordinates");
 
-        // GeoJSON escreve [longitude, latitude], pela ordem inversa da habitual.
-        var coordinates = features[0].GetProperty("geometry").GetProperty("coordinates");
-
-        return new Coordenadas(coordinates[1].GetDecimal(), coordinates[0].GetDecimal());
+            return new Coordenadas(coordinates[1].GetDecimal(), coordinates[0].GetDecimal());
+        }, ct);
     }
 
     /// <summary>Calcular uma rota entre origem e destino (Directions API); <c>null</c> se o serviço não devolver rota.</summary>
@@ -82,30 +84,33 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
             config["Maps:ApiKey"]!.Trim());
 
         using var response = await http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
 
-        using var json = await JsonDocument.ParseAsync(
-            await response.Content.ReadAsStreamAsync(ct),
-            cancellationToken: ct);
-
-        var features = json.RootElement.GetProperty("features");
-
-        if (features.ValueKind != JsonValueKind.Array ||
-            features.GetArrayLength() == 0)
+        if (await SemRotaAsync(response, ct))
             return null;
 
-        var summary = features[0]
-            .GetProperty("properties")
-            .GetProperty("summary");
+        response.EnsureSuccessStatusCode();
 
-        return new ResultadoRota(
-            Math.Round(
-                summary.GetProperty("distance").GetDecimal() / 1000m,
-                2),
-            (int)Math.Ceiling(
-                summary.GetProperty("duration").GetDecimal() / 60m),
-            origem,
-            destino);
+        return await LerRespostaAsync<ResultadoRota?>(response, raiz =>
+        {
+            var features = raiz.GetProperty("features");
+
+            if (features.ValueKind != JsonValueKind.Array ||
+                features.GetArrayLength() == 0)
+                return null;
+
+            var summary = features[0]
+                .GetProperty("properties")
+                .GetProperty("summary");
+
+            return new ResultadoRota(
+                Math.Round(
+                    summary.GetProperty("distance").GetDecimal() / 1000m,
+                    2),
+                (int)Math.Ceiling(
+                    summary.GetProperty("duration").GetDecimal() / 60m),
+                origem,
+                destino);
+        }, ct);
     }
 
     /// <summary>Calcular matriz de distâncias e durações entre todos os pares de pontos (Matrix API), num só pedido.</summary>
@@ -148,25 +153,70 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
         using var response = await http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        using var json = await JsonDocument.ParseAsync(
-            await response.Content.ReadAsStreamAsync(ct),
-            cancellationToken: ct);
+        return await LerRespostaAsync<MatrizRotas?>(response, raiz =>
+        {
+            double?[][] Ler(string propriedade) =>
+                raiz.GetProperty(propriedade)
+                    .EnumerateArray()
+                    .Select(row => row.EnumerateArray()
+                        .Select(v => v.ValueKind == JsonValueKind.Null
+                            ? (double?)null
+                            : v.GetDouble())
+                        .ToArray())
+                    .ToArray();
 
-        var root = json.RootElement;
-
-        double?[][] Ler(string propriedade) =>
-            root.GetProperty(propriedade)
-                .EnumerateArray()
-                .Select(row => row.EnumerateArray()
-                    .Select(v => v.ValueKind == JsonValueKind.Null
-                        ? (double?)null
-                        : v.GetDouble())
-                    .ToArray())
-                .ToArray();
-
-        return new MatrizRotas(
-            Ler("durations"),
-            Ler("distances"));
+            return new MatrizRotas(
+                Ler("durations"),
+                Ler("distances"));
+        }, ct);
     }
 
+    /// <summary>Lê o JSON da resposta; se não tiver o formato esperado, conta como falha do serviço (RF-F008-12).</summary>
+    private static async Task<T> LerRespostaAsync<T>(
+        HttpResponseMessage response,
+        Func<JsonElement, T> ler,
+        CancellationToken ct)
+    {
+        try
+        {
+            using var json = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(ct),
+                cancellationToken: ct);
+
+            return ler(json.RootElement);
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException
+            or FormatException or IndexOutOfRangeException)
+        {
+            throw new HttpRequestException("Resposta do Serviço de Mapas sem o formato esperado.", ex);
+        }
+    }
+
+    /// <summary>Indica se o serviço respondeu que não há rota entre os pontos.</summary>
+    /// <remarks>
+    /// O OpenRouteService usa 404 também para um endpoint indisponível, por isso só os códigos internos 2009 (sem rota)
+    /// e 2010 (ponto sem estrada próxima) contam; qualquer outro 404 é uma falha do serviço.
+    /// </remarks>
+    private static async Task<bool> SemRotaAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.StatusCode != HttpStatusCode.NotFound)
+            return false;
+
+        try
+        {
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("error", out var erro)
+                && erro.ValueKind == JsonValueKind.Object
+                && erro.TryGetProperty("code", out var codigo)
+                && codigo.ValueKind == JsonValueKind.Number
+                && codigo.TryGetInt32(out var numero)
+                && numero is 2009 or 2010;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 }

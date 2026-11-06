@@ -332,7 +332,7 @@ A rota da viagem fica guardada em `Viagem.RotaPontos`, em JSON (formato em `Appl
 - **Ordem dos pontos:** `RotaService` pede uma matriz de distâncias à Matrix API, uma só chamada, e `OrdenadorDePontos` escolhe a sequência exata de P-07, com a recolha de cada passageiro antes do seu destino.
 - **Distância e duração:** `DistanciaKm` acompanha a rota atual. `DuracaoMinutos` fica com o valor da criação ou da última alteração (P-04), porque é a base da conclusão automática.
 - **Custo:** `EstimativaCustoService` usa `CalculadoraDeCusto` e `Custos:PrecoPorKm`.
-- **Falhas:** `Application/Rotas/ChamadaMapas.cs` traduz as exceções de rede em erros 502 e 504; sem `Maps:ApiKey`, 503.
+- **Falhas:** `Application/Rotas/ChamadaMapas.cs` traduz as exceções de rede em erros 502 e 504; sem `Maps:ApiKey`, 503. Uma resposta sem o formato esperado conta como erro do serviço (502), e um 404 do ORS com o código 2009 ou 2010 significa que não há rota (422).
 - **Privacidade:** só o condutor e os passageiros aceites veem os pontos (`PoliticaDeVisibilidade`, P-13). Quem pode consultar a viagem está em `ConsultaViagensService`.
 - **Mesmo local:** `RegraMesmoLocal` compara o texto normalizado ou as coordenadas (glossário da especificação).
 
