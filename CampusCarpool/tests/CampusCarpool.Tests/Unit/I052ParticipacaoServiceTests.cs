@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
@@ -38,7 +39,7 @@ public sealed class I052ParticipacaoServiceTests
     public async Task Aceitar_PedidoInexistente_NaoEncontrada()
     {
         var resultado = await CriarServico().AceitarAsync(Guid.NewGuid(), Guid.NewGuid(), default);
-        Assert.Equal(ResultadoGestaoParticipacao.NaoEncontrada, resultado);
+        Assert.Equal(TipoErro.NaoEncontrado, resultado.Erro?.Tipo);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
@@ -47,7 +48,7 @@ public sealed class I052ParticipacaoServiceTests
     {
         var (pedido, _, _) = Preparar();
         var resultado = await CriarServico().AceitarAsync(pedido.Id, Guid.NewGuid(), default);
-        Assert.Equal(ResultadoGestaoParticipacao.NaoAutorizado, resultado);
+        Assert.Equal(TipoErro.Proibido, resultado.Erro?.Tipo);
         Assert.Empty(notificacoes.Enviadas);
     }
 
@@ -58,7 +59,7 @@ public sealed class I052ParticipacaoServiceTests
         viagem.LugaresOferecidos = 0;
         viagem.LugaresDisponiveis = 0;
         var resultado = await CriarServico().AceitarAsync(pedido.Id, condutor, default);
-        Assert.Equal(ResultadoGestaoParticipacao.SemCapacidade, resultado);
+        Assert.Equal("Sem lugares disponíveis.", resultado.Erro?.Mensagem);
         Assert.Equal(EstadoParticipacao.Pendente, pedido.Estado);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
@@ -68,7 +69,7 @@ public sealed class I052ParticipacaoServiceTests
     {
         var (pedido, viagem, condutor) = Preparar();
         viagem.LugaresDisponiveis = 1;
-        Assert.Equal(ResultadoGestaoParticipacao.DadosInconsistentes, await CriarServico().AceitarAsync(pedido.Id, condutor, default));
+        Assert.Equal("A capacidade da viagem está inconsistente.", (await CriarServico().AceitarAsync(pedido.Id, condutor, default)).Erro?.Mensagem);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
@@ -77,7 +78,7 @@ public sealed class I052ParticipacaoServiceTests
     {
         var (pedido, viagem, condutor) = Preparar();
         var resultado = await CriarServico().AceitarAsync(pedido.Id, condutor, default);
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, resultado);
+        Assert.Null(resultado.Erro);
         Assert.NotNull(pedido.AceiteEm); // I110: guardado para o histórico depois de cancelamentos (RF-F009-08)
         Assert.Equal(EstadoParticipacao.Aceite, pedido.Estado);
         Assert.Equal(1, viagem.LugaresDisponiveis);
@@ -89,7 +90,7 @@ public sealed class I052ParticipacaoServiceTests
     public async Task Rejeitar_PedidoValido_NotificaSemOcuparLugar()
     {
         var (pedido, viagem, condutor) = Preparar();
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, await CriarServico().RejeitarAsync(pedido.Id, condutor, default));
+        Assert.Null((await CriarServico().RejeitarAsync(pedido.Id, condutor, default)).Erro);
         Assert.Equal(EstadoParticipacao.Rejeitada, pedido.Estado);
         Assert.Equal(2, viagem.LugaresDisponiveis);
         Assert.Equal(1, trabalho.Confirmacoes);
@@ -101,7 +102,7 @@ public sealed class I052ParticipacaoServiceTests
     {
         var (pedido, _, condutor) = Preparar();
         pedido.Estado = EstadoParticipacao.Aceite;
-        Assert.Equal(ResultadoGestaoParticipacao.Conflito, await CriarServico().RejeitarAsync(pedido.Id, condutor, default));
+        Assert.Equal(TipoErro.Conflito, (await CriarServico().RejeitarAsync(pedido.Id, condutor, default)).Erro?.Tipo);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 
@@ -109,7 +110,7 @@ public sealed class I052ParticipacaoServiceTests
     public async Task Cancelar_PendentePeloPassageiro_NaoAlteraCapacidade()
     {
         var (pedido, viagem, _) = Preparar();
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, await CriarServico().CancelarAsync(pedido.Id, pedido.PassageiroId, default));
+        Assert.Null((await CriarServico().CancelarAsync(pedido.Id, pedido.PassageiroId, default)).Erro);
         Assert.Equal(EstadoParticipacao.Cancelada, pedido.Estado);
         Assert.Equal(2, viagem.LugaresDisponiveis);
         Assert.Equal(1, trabalho.Confirmacoes);
@@ -119,7 +120,7 @@ public sealed class I052ParticipacaoServiceTests
     public async Task Cancelar_PorTerceiro_NaoAutorizado()
     {
         var (pedido, _, _) = Preparar();
-        Assert.Equal(ResultadoGestaoParticipacao.NaoAutorizado, await CriarServico().CancelarAsync(pedido.Id, Guid.NewGuid(), default));
+        Assert.Equal(TipoErro.Proibido, (await CriarServico().CancelarAsync(pedido.Id, Guid.NewGuid(), default)).Erro?.Tipo);
         Assert.Equal(0, trabalho.Confirmacoes);
     }
 

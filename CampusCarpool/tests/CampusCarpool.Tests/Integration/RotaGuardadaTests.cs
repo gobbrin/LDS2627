@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
@@ -123,7 +124,7 @@ public sealed class RotaGuardadaTests : IDisposable
     {
         var resultado = await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
 
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, resultado);
+        Assert.Null(resultado.Erro);
         var gravada = await ViagemGravada();
         Assert.Equal(["Porto", "Maia", "Trofa", "Braga"], Locais(gravada));
         Assert.Equal(3m, gravada.DistanciaKm);
@@ -138,7 +139,7 @@ public sealed class RotaGuardadaTests : IDisposable
 
         var resultado = await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
 
-        Assert.Equal(ResultadoGestaoParticipacao.RotaIndisponivel, resultado);
+        Assert.Equal(TipoErro.ServicoIndisponivel, resultado.Erro?.Tipo);
         var gravada = await ViagemGravada();
         Assert.Equal(2, gravada.LugaresDisponiveis);
         Assert.Equal(["Porto", "Braga"], Locais(gravada));
@@ -152,7 +153,7 @@ public sealed class RotaGuardadaTests : IDisposable
 
         var resultado = await Servico().CancelarAsync(pedido.Id, passageiro.Id, default);
 
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, resultado);
+        Assert.Null(resultado.Erro);
         Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
     }
 
@@ -164,7 +165,7 @@ public sealed class RotaGuardadaTests : IDisposable
 
         var resultado = await Servico().CancelarAsync(pedido.Id, passageiro.Id, default);
 
-        Assert.Equal(ResultadoGestaoParticipacao.Sucesso, resultado);
+        Assert.Null(resultado.Erro);
         var gravada = await ViagemGravada();
         Assert.Null(gravada.RotaPontos);
         Assert.Equal(2, gravada.LugaresDisponiveis);
