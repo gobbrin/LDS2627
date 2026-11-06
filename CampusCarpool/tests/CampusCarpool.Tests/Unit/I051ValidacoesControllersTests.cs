@@ -33,7 +33,7 @@ public sealed class I051ValidacoesControllersTests
     [InlineData("Aluno", "", "password123456")]
     public async Task F001_RegistoInvalido_Devolve400(string nome, string email, string password)
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.Registar(new AutenticacaoController.Registo(nome, email, password), default);
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -43,7 +43,7 @@ public sealed class I051ValidacoesControllersTests
     [InlineData("aluno@estg.ipp.pt", "")]
     public async Task F001_LoginSemCredenciais_Devolve401(string email, string password)
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.IniciarSessao(new AutenticacaoController.Login(email, password), default);
         Assert.IsType<UnauthorizedResult>(result);
     }
@@ -84,7 +84,7 @@ public sealed class I051ValidacoesControllersTests
             .Build();
 
         var emailFake = new EmailFake();
-        var controller = new AutenticacaoController(db, configuracao, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, configuracao, emailFake);
 
         var resultado = await controller.IniciarSessao(
             new AutenticacaoController.Login(
@@ -122,7 +122,7 @@ public sealed class I051ValidacoesControllersTests
     [Fact]
     public async Task F001_ConfirmacaoSemToken_Devolve400()
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         Assert.IsType<BadRequestResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
     }
 
@@ -256,7 +256,7 @@ public sealed class I051ValidacoesControllersTests
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var input = new AutenticacaoController.Registo(
             "Aluno Teste",
@@ -293,7 +293,7 @@ public sealed class I051ValidacoesControllersTests
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var inicio = DateTime.UtcNow;
 
@@ -354,7 +354,7 @@ public sealed class I051ValidacoesControllersTests
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         // Criar uma conta pendente e obter o token enviado por email.
         var registo = new AutenticacaoController.Registo(
@@ -418,7 +418,7 @@ public sealed class I051ValidacoesControllersTests
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(
@@ -454,7 +454,7 @@ public sealed class I051ValidacoesControllersTests
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(
@@ -492,7 +492,7 @@ public sealed class I051ValidacoesControllersTests
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(

@@ -55,7 +55,7 @@ public sealed class AutenticacaoFluxoIntegrationTests
 
         var email = new EmailFalso();
 
-        var controller = new AutenticacaoController(
+        var controller = ServicosDeTeste.CriarAutenticacaoController(
             db, configuracao, email);
 
         const string endereco = "aluno@estg.ipp.pt";

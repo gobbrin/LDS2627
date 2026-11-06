@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
-using CampusCarpool.Infrastructure.Persistence;
+using CampusCarpool.Application.Abstractions.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Api.Configuration;
 
@@ -18,7 +17,6 @@ public static class ValidacaoTokensRevogados
     /// Chamado depois de a assinatura e a validade do token estarem verificadas; marca o pedido como não
     /// autenticado (401) se o token não tiver <c>jti</c> ou se esse <c>jti</c> tiver sido revogado.
     /// </summary>
-    /// <remarks>Uma consulta à BD por pedido autenticado (índice único em <c>TokensRevogados.Jti</c>).</remarks>
     /// <param name="context">Contexto do evento do JwtBearer.</param>
     public static async Task ValidarAsync(TokenValidatedContext context)
     {
@@ -30,9 +28,9 @@ public static class ValidacaoTokensRevogados
             return;
         }
 
-        var db = context.HttpContext.RequestServices.GetRequiredService<CampusCarpoolDbContext>();
+        var tokens = context.HttpContext.RequestServices.GetRequiredService<IRepositorioTokensRevogados>();
 
-        if (await db.TokensRevogados.AsNoTracking().AnyAsync(t => t.Jti == jti, context.HttpContext.RequestAborted))
+        if (await tokens.EstaRevogadoAsync(jti, context.HttpContext.RequestAborted))
             context.Fail("Token revogado.");
     }
 }

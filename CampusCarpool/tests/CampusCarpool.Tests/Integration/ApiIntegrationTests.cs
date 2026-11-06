@@ -54,7 +54,7 @@ public sealed class ApiIntegrationTests
     public async Task CT008_RegistoEmailNaoAcademico_Devolve400()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new AutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "teste@gmail.com", "PasswordSegura123!"), default);
         Assert.IsType<BadRequestObjectResult>(result);
         Assert.Empty(fixture.Db.Utilizadores);
@@ -64,7 +64,7 @@ public sealed class ApiIntegrationTests
     public async Task CT009_RegistoPasswordCurta_Devolve400()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new AutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "teste@estg.ipp.pt", "curta"), default);
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -75,7 +75,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         fixture.Db.Utilizadores.Add(new Utilizador { Email = "teste@estg.ipp.pt", Nome = "Teste" });
         await fixture.Db.SaveChangesAsync();
-        var controller = new AutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "TESTE@ESTG.IPP.PT", "PasswordSegura123!"), default);
         Assert.IsType<ConflictObjectResult>(result);
     }
@@ -84,7 +84,7 @@ public sealed class ApiIntegrationTests
     public async Task CT013_TokenConfirmacaoInvalido_Devolve400()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new AutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.ConfirmarConta(new("token-invalido"), default);
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -93,7 +93,7 @@ public sealed class ApiIntegrationTests
     public async Task CT016_LoginPasswordErrada_Devolve401()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new AutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.IniciarSessao(new("naoexiste@estg.ipp.pt", "errada"), default);
         Assert.IsType<UnauthorizedObjectResult>(result);
     }

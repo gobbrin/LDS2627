@@ -75,7 +75,7 @@ public sealed class EndpointsAdditionalTests
     }
 
     private static AutenticacaoController AuthController(Fixture f) =>
-        new(f.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        ServicosDeTeste.CriarAutenticacaoController(f.Db, new ConfigurationBuilder().Build(), new EmailFake());
     private static int Total(IActionResult result)
     {
         var ok = Assert.IsType<OkObjectResult>(result);

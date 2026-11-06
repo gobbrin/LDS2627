@@ -3,6 +3,7 @@ using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
+using CampusCarpool.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +41,12 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
         services.AddScoped<IRepositorioUtilizadores, RepositorioUtilizadores>();
         services.AddScoped<IRepositorioLigacoesExternas, RepositorioLigacoesExternas>();
+        services.AddScoped<IRepositorioConfirmacoesConta, RepositorioConfirmacoesConta>();
+        services.AddScoped<IRepositorioTokensRevogados, RepositorioTokensRevogados>();
+
+        // Palavras-passe e tokens de acesso.
+        services.AddSingleton<IHashPalavraPasse, HashPalavraPasse>();
+        services.AddSingleton<IGeradorTokens, GeradorTokensJwt>();
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();

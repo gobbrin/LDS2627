@@ -12,6 +12,7 @@ using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
+using CampusCarpool.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -177,6 +178,20 @@ public static class ServicosDeTeste
         new RepositorioLigacoesExternas(db),
         new AvaliacaoService(new RepositorioAvaliacoes(db)),
         new UnidadeDeTrabalhoEfCore(db));
+
+    public static AutenticacaoController CriarAutenticacaoController(
+        CampusCarpoolDbContext db,
+        IConfiguration configuracao,
+        IServicoEmail email) =>
+        new(new AutenticacaoService(
+            new RepositorioUtilizadores(db),
+            new RepositorioConfirmacoesConta(db),
+            new RepositorioTokensRevogados(db),
+            new RepositorioDispositivo(db),
+            new UnidadeDeTrabalhoEfCore(db),
+            email,
+            new HashPalavraPasse(),
+            new GeradorTokensJwt(configuracao)));
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,

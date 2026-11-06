@@ -26,6 +26,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IAvisoService, AvisoService>();
         services.AddScoped<IHistoricoService, HistoricoService>();
         services.AddScoped<IPerfilService, PerfilService>();
+        services.AddScoped<IAutenticacaoService, AutenticacaoService>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();

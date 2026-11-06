@@ -41,4 +41,19 @@ public sealed class RepositorioUtilizadores(CampusCarpoolDbContext context) : IR
     {
         return await context.Utilizadores.FirstOrDefaultAsync(u => u.Id == utilizadorId, ct);
     }
+
+    /// <inheritdoc />
+    public async Task<bool> ExisteEmailAsync(string email, CancellationToken ct)
+    {
+        return await context.Utilizadores.AnyAsync(u => u.Email == email, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<Utilizador?> ObterPorEmailAsync(string email, CancellationToken ct)
+    {
+        return await context.Utilizadores.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, ct);
+    }
+
+    /// <inheritdoc />
+    public void Adicionar(Utilizador utilizador) => context.Utilizadores.Add(utilizador);
 }
