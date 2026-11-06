@@ -17,8 +17,8 @@ public sealed record MatrizRotas(
 /// <summary>Contrato do Serviço de Mapas e Rotas (F008), sem acoplar as outras camadas a um fornecedor.</summary>
 /// <remarks>
 /// A implementação (OpenRouteService) está em <c>Infrastructure/Integrations/ServicoMapasRotas.cs</c>. Quem chama
-/// decide o que fazer quando o serviço falha (P-19, RF-F008-12): nos controllers, 502 para um erro do serviço e 504
-/// para o tempo esgotado.
+/// decide o que fazer quando o serviço falha (P-19, RF-F008-12): por regra, um erro 502 se o serviço responder com
+/// erro e um 504 se o tempo esgotar.
 /// </remarks>
 public interface IServicoMapasRotas
 {

@@ -28,6 +28,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();
         services.AddScoped<IRotaService, RotaService>();
+        services.AddScoped<IConsultaRotasService, ConsultaRotasService>();
         services.AddScoped<EstimativaCustoService>();
         services.AddScoped<IConclusaoViagensService, ConclusaoViagensService>();
         services.AddScoped<IConsultaViagensService, ConsultaViagensService>();

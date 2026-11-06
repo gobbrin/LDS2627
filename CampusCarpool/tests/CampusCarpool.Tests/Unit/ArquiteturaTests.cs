@@ -31,7 +31,6 @@ public class ArquiteturaTests
     [
         "AutenticacaoController",
         "PedidosController",
-        "RotasController",
         "SimulacoesController",
         "UtilizadoresController",
         "ViagensController",

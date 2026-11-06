@@ -156,7 +156,13 @@ public static class ServicosDeTeste
         IServicoMapasRotas mapas,
         EstimativaCustoService custos,
         CampusCarpoolDbContext? db = null) =>
-        new(mapas, custos, db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas), db is null ? null! : CriarConsultas(db), db);
+        new(new ConsultaRotasService(
+            mapas,
+            db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas),
+            custos,
+            db is null ? null! : CriarConsultas(db),
+            new RepositorioViagens(db!),
+            new RepositorioParticipacoes(db!)));
 }
 
 /// <summary>
