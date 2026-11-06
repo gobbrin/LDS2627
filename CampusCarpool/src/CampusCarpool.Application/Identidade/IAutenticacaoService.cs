@@ -16,15 +16,15 @@ public interface IAutenticacaoService
     /// <summary>Envia uma nova ligação de confirmação a uma conta por confirmar (RF-F001-21).</summary>
     /// <remarks>
     /// Não revela se o endereço existe na plataforma: dá sucesso exista ou não a conta, e uma falha no envio também
-    /// fica escondida. No máximo um reenvio por minuto. As ligações anteriores continuam válidas até expirarem (API-12).
+    /// fica escondida. No máximo um reenvio por minuto. Cada reenvio invalida as ligações anteriores por usar.
     /// </remarks>
     /// <returns>Sucesso, ou erro 400 com email vazio ou longo.</returns>
     Task<Resultado> ReenviarConfirmacaoAsync(string email, CancellationToken ct);
 
     /// <summary>Confirma a conta com o token da ligação do email (RF-F001-07, RF-F001-08).</summary>
     /// <remarks>
-    /// O token é procurado pelo hash e só serve se não foi usado nem expirou (24 h, P-02). Expirado e já usado dão a
-    /// mesma resposta; RF-F001-08 pede que o utilizador saiba o motivo (DEF-BE-003, fica para m4).
+    /// O token é procurado pelo hash e só serve se não foi usado nem expirou (24 h, P-02). Inválido, já usado e
+    /// expirado têm mensagens diferentes, para o utilizador saber o motivo (RF-F001-08).
     /// </remarks>
     /// <returns>Sucesso; erro 400 com token inválido, expirado ou já usado; 404 se o utilizador não existir.</returns>
     Task<Resultado> ConfirmarContaAsync(string token, CancellationToken ct);

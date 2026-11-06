@@ -41,7 +41,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// <summary>Envia uma nova ligação de confirmação a uma conta por confirmar (RF-F001-21).</summary>
     /// <remarks>
     /// Resposta neutra para não revelar se o endereço existe na plataforma.
-    /// No máximo um reenvio por minuto. As ligações anteriores continuam válidas até expirarem (API-12).
+    /// No máximo um reenvio por minuto. Cada reenvio invalida as ligações anteriores por usar.
     /// </remarks>
     /// <returns>202 sempre que o email tem formato aceitável (exista ou não a conta); 400 email vazio ou longo.</returns>
     [HttpPost("reenviar-confirmacao"), EnableRateLimiting(LimitesPedidos.Autenticacao)]

@@ -111,6 +111,9 @@ public sealed class AutenticacaoService(
         if (ultimo.HasValue && ultimo.Value > agora.AddHours(HorasDeValidadeConfirmacao).AddMinutes(-1))
             return Resultado.Sucesso;
 
+        // Só a ligação mais recente serve: uma ligação antiga deixa de confirmar a conta.
+        await confirmacoes.RemoverPorUsarAsync(utilizador.Id, ct);
+
         var token = NovoToken();
 
         confirmacoes.Adicionar(new ConfirmacaoConta
@@ -139,10 +142,17 @@ public sealed class AutenticacaoService(
     public async Task<Resultado> ConfirmarContaAsync(string token, CancellationToken ct)
     {
         var agora = DateTime.UtcNow;
-        var confirmacao = await confirmacoes.ObterValidaAsync(Sha256(token), agora, ct);
+        var confirmacao = await confirmacoes.ObterPorHashAsync(Sha256(token), ct);
 
+        // RF-F001-08: o utilizador fica a saber o motivo, para saber se deve iniciar sessão ou pedir nova ligação.
         if (confirmacao is null)
-            return new Erro(TipoErro.DadosInvalidos, "Token inválido ou expirado.");
+            return new Erro(TipoErro.DadosInvalidos, "Ligação de confirmação inválida. Pede uma nova ligação.");
+
+        if (confirmacao.ConsumidoEm is not null)
+            return new Erro(TipoErro.DadosInvalidos, "Esta ligação já foi usada. Se a conta está confirmada, inicia sessão.");
+
+        if (!confirmacao.EstaValida(agora))
+            return new Erro(TipoErro.DadosInvalidos, "Esta ligação expirou. Pede uma nova ligação de confirmação.");
 
         var utilizador = await utilizadores.ObterParaAlterarAsync(confirmacao.UtilizadorId, ct);
 
