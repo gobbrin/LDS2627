@@ -1,16 +1,108 @@
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Rules;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Infrastructure.Repositories;
 
+/// <summary>Implementação EF Core de <see cref="IRepositorioViagens"/>.</summary>
 public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IRepositorioViagens
 {
-    // Obtém uma viagem pelo seu identificador.
-    // A entidade fica rastreada para permitir alterações posteriores.
+    /// <inheritdoc />
+    /// <remarks>
+    /// Obtém uma viagem pelo seu identificador.
+    /// A entidade fica rastreada para permitir alterações posteriores; a <c>Versao</c> lida aqui é a que o
+    /// SQL Server compara ao gravar.
+    /// </remarks>
     public async Task<Viagem?> ObterPorIdAsync(Guid viagemId, CancellationToken ct)
     {
         return await context.Viagens.FirstOrDefaultAsync(v => v.Id == viagemId, ct);
     }
+
+    /// <inheritdoc />
+    public async Task<EstadoViagem?> ObterEstadoAsync(Guid viagemId, CancellationToken ct)
+    {
+        return await context.Viagens.AsNoTracking()
+            .Where(v => v.Id == viagemId)
+            .Select(v => (EstadoViagem?)v.Estado)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct)
+    {
+        return await context.Viagens
+            .AsNoTracking()
+            .Where(v => v.Estado == EstadoViagem.Ativa && v.PartidaEm <= agora)
+            .Select(v => new ViagemEmCurso(v.Id, v.PartidaEm, v.DuracaoMinutos))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// O dia e a hora do filtro são os de Portugal (P-12, <see cref="HoraDePortugal"/>), não os de UTC.
+    /// </remarks>
+    public async Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(filtro);
+
+        var q = context.Viagens.AsNoTracking()
+            .Where(v => v.Estado == EstadoViagem.Ativa && v.LugaresDisponiveis > 0 && v.PartidaEm > agora);
+
+        if (!string.IsNullOrWhiteSpace(filtro.Origem))
+        {
+            var termo = TextoPesquisa.Normalizar(filtro.Origem);
+            q = q.Where(v => v.OrigemPesquisa.Contains(termo));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Destino))
+        {
+            var termo = TextoPesquisa.Normalizar(filtro.Destino);
+            q = q.Where(v => v.DestinoPesquisa.Contains(termo));
+        }
+
+        if (filtro.Data is DateOnly data)
+        {
+            var inicio = HoraDePortugal.InicioDoDiaEmUtc(data);
+            var fim = data < DateOnly.MaxValue ? HoraDePortugal.InicioDoDiaEmUtc(data.AddDays(1)) : DateTime.MaxValue;
+            q = q.Where(v => v.PartidaEm >= inicio && v.PartidaEm < fim);
+        }
+
+        if (filtro.Hora is TimeOnly hora)
+        {
+            var minutos = hora.Hour * 60 + hora.Minute;
+            q = q.Where(v => v.PartidaMinutoDoDia >= minutos);
+        }
+
+        var total = await q.CountAsync(ct);
+
+        var viagens = await q
+            .OrderBy(v => v.PartidaEm)
+            .ThenBy(v => v.Id)
+            .Skip((filtro.Pagina - 1) * filtro.Tamanho)
+            .Take(filtro.Tamanho)
+            .Select(v => new ViagemPesquisada(
+                v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresDisponiveis,
+                v.DistanciaKm, v.DuracaoMinutos, v.CondutorId, v.RotaPontos))
+            .ToListAsync(ct);
+
+        return new PaginaViagens(total, viagens);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ViagemDoCondutor>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct)
+    {
+        return await context.Viagens
+            .AsNoTracking()
+            .Where(v => v.CondutorId == condutorId && v.Estado == EstadoViagem.Ativa)
+            .OrderBy(v => v.PartidaEm)
+            .Select(v => new ViagemDoCondutor(v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresOferecidos, v.LugaresDisponiveis))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public void Adicionar(Viagem viagem) => context.Viagens.Add(viagem);
 }

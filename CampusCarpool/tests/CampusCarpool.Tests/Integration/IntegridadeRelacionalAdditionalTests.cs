@@ -6,6 +6,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Restrições da BD: índices únicos (email, token de dispositivo, <c>jti</c>, hash de confirmação, avaliação) e chaves estrangeiras.</summary>
+/// <remarks>
+/// SQLite em memória com <c>EnsureCreated</c>, por isso testa o modelo do <c>DbContext</c>, não as migrations: o teste da avaliação duplicada usa o índice triplo (viagem, avaliador, avaliado), que as BD migradas já não têm (IN-01).
+/// </remarks>
 public sealed class IntegridadeRelacionalAdditionalTests
 {
     private sealed class Fixture : IDisposable
@@ -17,8 +21,8 @@ public sealed class IntegridadeRelacionalAdditionalTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public void Dispose() { Db.Dispose(); connection.Dispose(); }
@@ -75,7 +79,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
         var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
         var passageiro = new Utilizador { Email = "passageiro@estg.ipp.pt" };
         f.Db.Utilizadores.AddRange(condutor, passageiro);
-        var viagem = new Viagem { CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
         f.Db.Avaliacoes.Add(new Avaliacao { ViagemId = viagem.Id, AvaliadorId = passageiro.Id, AvaliadoId = condutor.Id, Classificacao = 5 });
         await f.Db.SaveChangesAsync();
@@ -97,6 +101,9 @@ public sealed class IntegridadeRelacionalAdditionalTests
 
         f.Db.Viagens.Add(new Viagem
         {
+            DestinoLatitude = 41.55m,
+            LugaresOferecidos = 3,
+            LugaresDisponiveis = 3,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga"
@@ -117,7 +124,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
         using var f = new Fixture();
         var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
         f.Db.Utilizadores.Add(condutor);
-        var viagem = new Viagem { CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
+        var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
         await f.Db.SaveChangesAsync();
         f.Db.Participacoes.Add(new Participacao { ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() });

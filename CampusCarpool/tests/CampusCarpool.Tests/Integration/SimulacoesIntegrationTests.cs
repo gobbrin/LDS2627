@@ -3,9 +3,10 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -37,20 +38,35 @@ public sealed class SimulacoesIntegrationTests
         {
             _connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(_connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(_connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
             Db.Utilizadores.AddRange(Condutor, Passageiro, Terceiro);
             Viagem = new Viagem
             {
-                CondutorId = Condutor.Id, Origem = "Porto", Destino = "Felgueiras",
-                PartidaEm = DateTime.UtcNow.AddDays(3), LugaresOferecidos = 3,
-                LugaresDisponiveis = 3, Estado = "Ativa"
+                CondutorId = Condutor.Id,
+                Origem = "Porto",
+                Destino = "Felgueiras",
+                OrigemLatitude = 41m,
+                OrigemLongitude = 1m,
+                DestinoLatitude = 41m,
+                DestinoLongitude = 2m,
+                PartidaEm = DateTime.UtcNow.AddDays(3),
+                LugaresOferecidos = 3,
+                LugaresDisponiveis = 3,
+                Estado = EstadoViagem.Ativa
             };
             Db.Viagens.Add(Viagem);
             Pedido = new Participacao
             {
-                ViagemId = Viagem.Id, PassageiroId = Passageiro.Id,
-                Estado = EstadoParticipacao.Pendente, Recolha = "Lousada", Destino = "Penafiel"
+                ViagemId = Viagem.Id,
+                PassageiroId = Passageiro.Id,
+                Estado = EstadoParticipacao.Pendente,
+                Recolha = "Lousada",
+                RecolhaLatitude = 41m,
+                RecolhaLongitude = 3m,
+                Destino = "Penafiel",
+                DestinoLatitude = 41m,
+                DestinoLongitude = 4m
             };
             Db.Participacoes.Add(Pedido);
             Db.SaveChanges();
@@ -66,7 +82,7 @@ public sealed class SimulacoesIntegrationTests
             {
                 BaseAddress = new Uri("https://api.heigit.org/openrouteservice/")
             };
-            var controller = new SimulacoesController(Db, new MapasService(http, config));
+            var controller = ServicosDeTeste.CriarSimulacoesController(Db, new ServicoMapasRotas(http, config));
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext
@@ -102,8 +118,13 @@ public sealed class SimulacoesIntegrationTests
                 var nome = index >= 0 ? query[(index + 5)..].Split('&')[0] : "";
                 var pos = nome switch
                 {
-                    "Porto" => 1, "Felgueiras" => 2, "Lousada" => 3,
-                    "Penafiel" => 4, "Amarante" => 5, "Trofa" => 6, _ => 7
+                    "Porto" => 1,
+                    "Felgueiras" => 2,
+                    "Lousada" => 3,
+                    "Penafiel" => 4,
+                    "Amarante" => 5,
+                    "Trofa" => 6,
+                    _ => 7
                 };
                 return Json(new { features = new[] { new { geometry = new { coordinates = new[] { (double)pos, 41.0 } } } } });
             }
@@ -138,9 +159,9 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_02_ApenasCondutorPodeSimular()
     {
         using var f = new Fixture();
-        Assert.IsType<ForbidResult>(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
+        RespostaEsperada.Proibido(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.IsType<ForbidResult>(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
+        RespostaEsperada.Proibido(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
     }
 
@@ -164,8 +185,16 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_05_PedidoDeOutraViagem_Devolve404()
     {
         using var f = new Fixture();
-        var outra = new Viagem { CondutorId = f.Condutor.Id, Origem = "A", Destino = "B",
-            PartidaEm = DateTime.UtcNow.AddDays(2), LugaresOferecidos = 2, LugaresDisponiveis = 2 };
+        var outra = new Viagem
+        {
+            DestinoLatitude = 41.55m,
+            CondutorId = f.Condutor.Id,
+            Origem = "A",
+            Destino = "B",
+            PartidaEm = DateTime.UtcNow.AddDays(2),
+            LugaresOferecidos = 2,
+            LugaresDisponiveis = 2
+        };
         f.Db.Viagens.Add(outra);
         await f.Db.SaveChangesAsync();
         Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(outra.Id,
@@ -189,9 +218,20 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_07_ViagemInativa_Devolve409()
     {
         using var f = new Fixture();
-        f.Viagem.Estado = "Indisponibilizada";
+        f.Viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
         Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+    }
+
+    [Fact]
+    /// <summary>F5: a simulação antecede a aceitação, que é permitida depois da partida enquanto a viagem estiver Ativa.</summary>
+    public async Task I110_30_ViagemAtivaJaPartida_PodeSerSimulada()
+    {
+        using var f = new Fixture();
+        f.Viagem.PartidaEm = DateTime.UtcNow.AddMinutes(-1);
+        await f.Db.SaveChangesAsync();
+        Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
     }
 
@@ -232,13 +272,13 @@ public sealed class SimulacoesIntegrationTests
         var antesEstado = f.Pedido.Estado;
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Equal(f.Viagem.Id, resposta.ViagemId);
         Assert.Equal(f.Pedido.Id, resposta.PedidoId);
         Assert.Equal("Porto", resposta.OrdemSimulada[0]);
         Assert.Equal("Felgueiras", resposta.OrdemSimulada[^1]);
         f.Db.ChangeTracker.Clear();
-        Assert.Equal(antesLugares, (await f.Db.Viagens.SingleAsync()) .LugaresDisponiveis);
+        Assert.Equal(antesLugares, (await f.Db.Viagens.SingleAsync()).LugaresDisponiveis);
         Assert.Equal(antesEstado, (await f.Db.Participacoes.SingleAsync()).Estado);
     }
 
@@ -253,7 +293,7 @@ public sealed class SimulacoesIntegrationTests
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Equal(soRecolha ? "Lousada" : "Porto", resposta.RecolhaPassageiro);
         Assert.Equal(soRecolha ? "Felgueiras" : "Penafiel", resposta.DestinoPassageiro);
     }
@@ -264,13 +304,20 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Db.Participacoes.Add(new Participacao
         {
-            ViagemId = f.Viagem.Id, PassageiroId = f.Terceiro.Id,
-            Estado = EstadoParticipacao.Aceite, Recolha = "Amarante", Destino = "Trofa"
+            ViagemId = f.Viagem.Id,
+            PassageiroId = f.Terceiro.Id,
+            Estado = EstadoParticipacao.Aceite,
+            Recolha = "Amarante",
+            RecolhaLatitude = 41m,
+            RecolhaLongitude = 5m,
+            Destino = "Trofa",
+            DestinoLatitude = 41m,
+            DestinoLongitude = 6m
         });
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        var resposta = Assert.IsType<SimulacoesController.RespostaSimulacao>(result.Value);
+        var resposta = Assert.IsType<SimulacaoPedido>(result.Value);
         Assert.Contains("Amarante", resposta.OrdemOriginal);
         Assert.Contains("Trofa", resposta.OrdemOriginal);
         Assert.True(Array.IndexOf(resposta.OrdemOriginal.ToArray(), "Amarante") < Array.IndexOf(resposta.OrdemOriginal.ToArray(), "Trofa"));

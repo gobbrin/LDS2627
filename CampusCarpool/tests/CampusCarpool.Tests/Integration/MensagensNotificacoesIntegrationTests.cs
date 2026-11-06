@@ -1,4 +1,5 @@
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Comunicacao;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -10,28 +11,36 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 //Testes de integração das notificações geradas por mensagens individuais.
-public sealed class MensagensNotificacoesIntegrationTests {
+/// <summary>Enviar uma mensagem cria a notificação <c>NovaMensagem</c> para o destinatário (RF-F006-06).</summary>
+/// <remarks>
+/// SQLite em memória; <c>MensagemService</c>, <c>NotificacaoService</c> e repositórios reais, com uma fila de push falsa.
+/// </remarks>
+public sealed class MensagensNotificacoesIntegrationTests
+{
     [Fact]
-    public async Task EnviarMensagem_CriaNotificacaoNovaMensagemParaDestinatario() {
+    public async Task EnviarMensagem_CriaNotificacaoNovaMensagemParaDestinatario()
+    {
         //Prepara uma base de dados SQLite isolada para o teste.
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         //Cria os utilizadores que vão participar na conversa.
-        var remetente = new Utilizador {
+        var remetente = new Utilizador
+        {
             Nome = "Remetente de teste",
             Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
             EmailConfirmado = true
         };
 
-        var destinatario = new Utilizador {
+        var destinatario = new Utilizador
+        {
             Nome = "Destinatário de teste",
             Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
             EmailConfirmado = true
@@ -46,14 +55,14 @@ public sealed class MensagensNotificacoesIntegrationTests {
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
 
-        var mensagemService = new MensagemService(repositorioMensagens, repositorioUtilizadores, notificacaoService);
+        var mensagemService = new MensagemService(repositorioMensagens, repositorioUtilizadores, notificacaoService, new UnidadeDeTrabalhoEfCore(db));
 
         //Envia uma mensagem individual.
         const string conteudo = "Olá! Esta é uma mensagem de teste.";
 
-        var mensagem = await mensagemService.EnviarAsync(remetente.Id, destinatario.Id, conteudo, CancellationToken.None);
+        var mensagem = (await mensagemService.EnviarAsync(remetente.Id, destinatario.Id, conteudo, CancellationToken.None)).Valor;
 
         //Confirma que a mensagem foi guardada corretamente.
         Assert.Equal(remetente.Id, mensagem.RemetenteId);
@@ -78,5 +87,5 @@ public sealed class MensagensNotificacoesIntegrationTests {
         //O remetente não deve receber a notificação da própria mensagem.
         Assert.DoesNotContain(await db.Notificacoes.ToListAsync(), n => n.UtilizadorId == remetente.Id);
     }
-    
+
 }

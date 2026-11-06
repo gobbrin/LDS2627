@@ -1,19 +1,19 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Notificacoes;
+using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
-using CampusCarpool.Infrastructure.Services;
+using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Xunit;
-using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Application.Services;
 
 namespace CampusCarpool.Tests.Integration;
 /// <summary>
@@ -38,7 +38,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
     {
         private readonly SqliteConnection connection = new("Data Source=:memory:");
         public CampusCarpoolDbContext Db { get; }
+#pragma warning disable CA1852 // O DispatchProxy recusa tipos selados.
         public class ServicoPushFalso : System.Reflection.DispatchProxy
+#pragma warning restore CA1852
         {
             protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
             {
@@ -64,9 +66,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection)
+                .UseBaseDeTeste(connection)
                 .Options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         /// <summary>Cria um utilizador confirmado para os cenários de participação.</summary>
@@ -90,10 +92,11 @@ public sealed class ParticipacoesGestaoIntegrationTests
             int lugaresOferecidos = 2,
             int? lugaresDisponiveis = null,
             DateTime? partida = null,
-            string estado = "Ativa")
+            EstadoViagem estado = EstadoViagem.Ativa)
         {
             var viagem = new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = condutorId,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -133,55 +136,59 @@ public sealed class ParticipacoesGestaoIntegrationTests
     }
 
     /// <summary>Cria o controller com o utilizador autenticado simulado no claim JWT.</summary>
- 
-private static GestaoParticipacoesController CriarController(
-    CampusCarpoolDbContext db,
-    Guid? utilizadorId,
-    IFilaNotificacoesPush? filaPush = null)
-{
-    var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-    var fila = filaPush ?? new FilaNotificacoesPushFalsa();
+    private static GestaoParticipacoesController CriarController(
+        CampusCarpoolDbContext db,
+        Guid? utilizadorId,
+        IFilaNotificacoesPush? filaPush = null)
+    {
+        var repositorioNotificacoes = new RepositorioNotificacoes(db);
 
-    var notificacaoService = new NotificacaoService(
-        repositorioNotificacoes,
-        fila);
+        var fila = filaPush ?? new FilaNotificacoesPushFalsa();
 
-    var repositorioParticipacoes = new RepositorioParticipacoes(db);
-    var repositorioViagens = new RepositorioViagens(db);
-    var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
+        var notificacaoService = new NotificacaoService(
+            repositorioNotificacoes,
+            fila,
+            new UnidadeDeTrabalhoEfCore(db));
 
-    var participacaoService = new ParticipacaoService(
-        repositorioParticipacoes,
-        repositorioViagens,
-        unidadeDeTrabalho,
-        notificacaoService,
-        new NotificadorPedidosTempoRealFalso());
+        var repositorioParticipacoes = new RepositorioParticipacoes(db);
+        var repositorioViagens = new RepositorioViagens(db);
+        var unidadeDeTrabalho = new UnidadeDeTrabalhoEfCore(db);
 
-    var controller = new GestaoParticipacoesController(participacaoService);
+        var participacaoService = new ParticipacaoService(
+            repositorioParticipacoes,
+            repositorioViagens,
+            unidadeDeTrabalho,
+            notificacaoService,
+            new NotificadorPedidosTempoRealFalso(),
+            new RotaViagemFalsa(),
+            null!,
+            new RepositorioUtilizadores(db));
 
-    var claims = utilizadorId.HasValue
-        ? new[]
-        {
+        var controller = new GestaoParticipacoesController(participacaoService);
+
+        var claims = utilizadorId.HasValue
+            ? new[]
+            {
             new Claim(
                 ClaimTypes.NameIdentifier,
                 utilizadorId.Value.ToString())
-        }
-        : Array.Empty<Claim>();
+            }
+            : Array.Empty<Claim>();
 
-    controller.ControllerContext = new ControllerContext
-    {
-        HttpContext = new DefaultHttpContext
+        controller.ControllerContext = new ControllerContext
         {
-            User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    claims,
-                    utilizadorId.HasValue ? "Test" : null))
-        }
-    };
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        claims,
+                        utilizadorId.HasValue ? "Test" : null))
+            }
+        };
 
-    return controller;
-}
+        return controller;
+    }
 
     [Fact]
     /// <summary>Verifica que o condutor aceita um pedido e perde um lugar disponível.</summary>
@@ -276,9 +283,45 @@ private static GestaoParticipacoesController CriarController(
 
         var resultado = await CriarController(f.Db, passageiro.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ConflictResult>(resultado);
+        Assert.IsType<ConflictObjectResult>(resultado);
         Assert.Equal(EstadoParticipacao.Aceite, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
         Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
+    }
+
+    [Fact]
+    /// <summary>RF-F004-10 (F5): enquanto a viagem estiver Ativa, o pedido pode ser aceite depois da hora de partida.</summary>
+    public async Task I110_24_AceitarDepoisDaPartida_EPermitidoEnquantoViagemAtiva()
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id, partida: DateTime.UtcNow.AddMinutes(-1));
+        var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
+
+        var resultado = await CriarController(f.Db, condutor.Id).Aceitar(participacao.Id, default);
+
+        Assert.IsType<NoContentResult>(resultado);
+        Assert.Equal(EstadoParticipacao.Aceite, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
+        Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
+    }
+
+    [Theory]
+    [InlineData(EstadoParticipacao.Aceite)]
+    [InlineData(EstadoParticipacao.Pendente)]
+    /// <summary>AD-001 (F1, DC-35): o condutor não cancela participações; rejeita pendentes ou indisponibiliza a viagem.</summary>
+    public async Task I110_23_CondutorNaoCancelaParticipacao(EstadoParticipacao estado)
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id, lugaresOferecidos: 2,
+            lugaresDisponiveis: estado == EstadoParticipacao.Aceite ? 1 : 2);
+        var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id, estado);
+
+        var resultado = await CriarController(f.Db, condutor.Id).Cancelar(participacao.Id, default);
+
+        RespostaEsperada.Proibido(resultado);
+        Assert.Equal(estado, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
     [Fact]
@@ -332,9 +375,9 @@ private static GestaoParticipacoesController CriarController(
         var rejeitar = await CriarController(f.Db, outroUtilizador.Id).Rejeitar(participacao.Id, default);
         var cancelar = await CriarController(f.Db, outroUtilizador.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ForbidResult>(aceitar);
-        Assert.IsType<ForbidResult>(rejeitar);
-        Assert.IsType<ForbidResult>(cancelar);
+        RespostaEsperada.Proibido(aceitar);
+        RespostaEsperada.Proibido(rejeitar);
+        RespostaEsperada.Proibido(cancelar);
         Assert.Equal(EstadoParticipacao.Pendente, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
@@ -349,8 +392,8 @@ private static GestaoParticipacoesController CriarController(
         var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
         var controller = CriarController(f.Db, passageiro.Id);
 
-        Assert.IsType<ForbidResult>(await controller.Aceitar(participacao.Id, default));
-        Assert.IsType<ForbidResult>(await controller.Rejeitar(participacao.Id, default));
+        RespostaEsperada.Proibido(await controller.Aceitar(participacao.Id, default));
+        RespostaEsperada.Proibido(await controller.Rejeitar(participacao.Id, default));
     }
 
     [Fact]
@@ -368,11 +411,11 @@ private static GestaoParticipacoesController CriarController(
         var cancelada = await f.CriarParticipacao(viagem.Id, passageiroCancelado.Id, EstadoParticipacao.Cancelada);
         var controller = CriarController(f.Db, condutor.Id);
 
-        Assert.IsType<ConflictResult>(await controller.Aceitar(aceite.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Rejeitar(aceite.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Aceitar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Cancelar(rejeitada.Id, default));
-        Assert.IsType<ConflictResult>(await controller.Cancelar(cancelada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(aceite.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Rejeitar(aceite.Id, default));
+        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(rejeitada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default));
+        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default));
     }
 
     [Fact]
@@ -384,7 +427,7 @@ private static GestaoParticipacoesController CriarController(
         var passageiro = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id, partida: DateTime.UtcNow.AddMinutes(-1));
         var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
-        var controller = new ViagensController(f.Db, new MapasService(new HttpClient(), new ConfigurationBuilder().Build()));
+        var controller = ServicosDeTeste.CriarViagensController(f.Db, new ServicoMapasRotas(new HttpClient(), new ConfigurationBuilder().Build()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -401,7 +444,8 @@ private static GestaoParticipacoesController CriarController(
     }
 
     [Fact]
-    public async Task CancelamentoAceite_NotificaRestantesPassageirosAceites() {
+    public async Task CancelamentoAceite_NotificaRestantesPassageirosAceites()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
@@ -434,16 +478,19 @@ private static GestaoParticipacoesController CriarController(
 
         Assert.Equal(2, viagemAtualizada.LugaresDisponiveis);
 
-        //Apenas o passageiro aceite que permanece deve ser notificado.
+        //P-23: são notificados o condutor e o passageiro aceite que permanece.
         var notificacoes = await f.Db.Notificacoes
             .AsNoTracking()
             .ToListAsync();
 
-        var notificacao = Assert.Single(notificacoes);
-
-        Assert.Equal(passageiroQueFica.Id, notificacao.UtilizadorId);
-        Assert.Equal(TipoNotificacao.AlteracaoViagem, notificacao.Tipo);
-        Assert.Contains("cancelou", notificacao.Conteudo);
+        Assert.Equal(2, notificacoes.Count);
+        Assert.Contains(notificacoes, n => n.UtilizadorId == condutor.Id);
+        Assert.Contains(notificacoes, n => n.UtilizadorId == passageiroQueFica.Id);
+        Assert.All(notificacoes, n =>
+        {
+            Assert.Equal(TipoNotificacao.AlteracaoViagem, n.Tipo);
+            Assert.Contains("cancelou", n.Conteudo);
+        });
 
         Assert.DoesNotContain(notificacoes, n => n.UtilizadorId == passageiroQueSai.Id);
 
@@ -451,7 +498,8 @@ private static GestaoParticipacoesController CriarController(
     }
 
     [Fact]
-    public async Task AceitarPedido_NotificaRestantesPassageirosAceites() {
+    public async Task AceitarPedido_NotificaRestantesPassageirosAceites()
+    {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
@@ -484,14 +532,14 @@ private static GestaoParticipacoesController CriarController(
         var notificacoes = await f.Db.Notificacoes
             .AsNoTracking()
             .ToListAsync();
-        
+
         Assert.Equal(2, notificacoes.Count);
 
-        var notificacaoPedidoAceite = Assert.Single(notificacoes.Where(n => n.Tipo == TipoNotificacao.PedidoAceite));
+        var notificacaoPedidoAceite = Assert.Single(notificacoes, n => n.Tipo == TipoNotificacao.PedidoAceite);
 
         Assert.Equal(novoPassageiro.Id, notificacaoPedidoAceite.UtilizadorId);
 
-        var notificacaoAlteracaoViagem = Assert.Single(notificacoes.Where(n => n.Tipo == TipoNotificacao.AlteracaoViagem));
+        var notificacaoAlteracaoViagem = Assert.Single(notificacoes, n => n.Tipo == TipoNotificacao.AlteracaoViagem);
 
         Assert.Equal(passageiroJaAceite.Id, notificacaoAlteracaoViagem.UtilizadorId);
 

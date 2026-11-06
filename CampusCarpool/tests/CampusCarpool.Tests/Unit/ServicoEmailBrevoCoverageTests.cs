@@ -6,6 +6,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>ServicoEmail</c> (Brevo) com respostas HTTP simuladas: configuração em falta, pedido enviado e erro do fornecedor.</summary>
 public sealed class ServicoEmailBrevoCoverageTests
 {
     private sealed class RespostaFalsa(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

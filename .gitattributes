@@ -1,0 +1,12 @@
+# Fins de linha: o .editorconfig impõe LF; sem isto, core.autocrlf=true faz
+# checkout em CRLF no Windows e o `dotnet format --verify-no-changes` reprova
+# todos os ficheiros localmente.
+* text=auto eol=lf
+
+# Binários (não normalizar)
+*.docx binary
+*.xlsx binary
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.zip  binary

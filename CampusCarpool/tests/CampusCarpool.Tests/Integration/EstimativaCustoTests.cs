@@ -1,27 +1,14 @@
 
-using CampusCarpool.Api.Services;
-using Microsoft.Extensions.Configuration;
+using CampusCarpool.Application.Rotas;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Regra da estimativa de custo (P-06, RF-F008-10) através do <c>EstimativaCustoService</c>, com o preço por km nas opções. Sem base de dados.</summary>
 public sealed class EstimativaCustoTests
 {
     private static EstimativaCustoService CriarServico(
-        decimal precoPorKm = 0.10m)
-    {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Custos:PrecoPorKm"] =
-                        precoPorKm.ToString(
-                            System.Globalization.CultureInfo.InvariantCulture)
-                })
-            .Build();
-
-        return new EstimativaCustoService(config);
-    }
+        decimal precoPorKm = 0.10m) => ServicosDeTeste.CriarCustos(precoPorKm);
 
     [Fact]
     public void ExemploOficial_30Km_DoisPassageiros()
@@ -89,9 +76,7 @@ public sealed class EstimativaCustoTests
     [Fact]
     public void PrecoNaoConfigurado_DevolveErro()
     {
-        var config = new ConfigurationBuilder().Build();
-
-        var servico = new EstimativaCustoService(config);
+        var servico = ServicosDeTeste.CriarCustos(null);
 
         Assert.Throws<InvalidOperationException>(() =>
             servico.Calcular(30m, 2));

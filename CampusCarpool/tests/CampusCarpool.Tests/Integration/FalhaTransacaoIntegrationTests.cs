@@ -8,6 +8,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-040: se a gravação falhar (chave estrangeira inválida), nenhuma alteração parcial fica gravada.</summary>
+/// <remarks>
+/// SQLite em memória com chaves estrangeiras ativas.
+/// </remarks>
 public sealed class FalhaTransacaoIntegrationTests
 {
     [Fact]
@@ -17,11 +21,11 @@ public sealed class FalhaTransacaoIntegrationTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var condutor = new Utilizador
         {
@@ -41,13 +45,14 @@ public sealed class FalhaTransacaoIntegrationTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = condutor.Id,
             Origem = "Porto",
             Destino = "Braga",
             PartidaEm = DateTime.UtcNow.AddDays(2),
             LugaresOferecidos = 1,
             LugaresDisponiveis = 1,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Viagens.Add(viagem);

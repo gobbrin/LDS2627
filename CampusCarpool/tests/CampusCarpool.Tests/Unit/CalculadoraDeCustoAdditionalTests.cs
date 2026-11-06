@@ -1,8 +1,9 @@
-using CampusCarpool.Domain.Services;
+using CampusCarpool.Domain.Rules;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Casos adicionais da <c>CalculadoraDeCusto</c> (Domain): divisão, arredondamento e argumentos negativos.</summary>
 public sealed class CalculadoraDeCustoAdditionalTests
 {
     [Theory]

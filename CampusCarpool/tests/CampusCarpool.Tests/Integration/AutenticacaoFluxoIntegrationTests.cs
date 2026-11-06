@@ -1,7 +1,6 @@
 
 using System.IdentityModel.Tokens.Jwt;
-using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -11,6 +10,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Fluxo completo registo → confirmação → login (IT-001, IT-003, IT-004 do plano I053).</summary>
+/// <remarks>
+/// SQLite em memória e <c>AutenticacaoController</c> instanciado diretamente, com um serviço de email falso que captura o token.
+/// </remarks>
 public sealed class AutenticacaoFluxoIntegrationTests
 {
     private sealed class EmailFalso : IServicoEmail
@@ -34,11 +37,11 @@ public sealed class AutenticacaoFluxoIntegrationTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -51,11 +54,11 @@ public sealed class AutenticacaoFluxoIntegrationTests
 
         var email = new EmailFalso();
 
-        var controller = new AutenticacaoController(
+        var controller = ServicosDeTeste.CriarAutenticacaoController(
             db, configuracao, email);
 
         const string endereco = "aluno@estg.ipp.pt";
-        const string password = "PasswordSegura123!";
+        const string password = "abcdefg1"; // P-08: o mínimo aceite (8 caracteres, letra e dígito).
 
         // IT-001: registo válido.
         var registo = await controller.Registar(
@@ -91,15 +94,7 @@ public sealed class AutenticacaoFluxoIntegrationTests
 
         var resposta = Assert.IsType<OkObjectResult>(login);
 
-        var json = System.Text.Json.JsonSerializer.Serialize(
-            resposta.Value);
-
-        using var documento =
-            System.Text.Json.JsonDocument.Parse(json);
-
-        var tokenJwt = documento.RootElement
-            .GetProperty("accessToken")
-            .GetString();
+        var tokenJwt = Assert.IsType<TokenAcesso>(resposta.Value).AccessToken;
 
         Assert.False(string.IsNullOrWhiteSpace(tokenJwt));
 

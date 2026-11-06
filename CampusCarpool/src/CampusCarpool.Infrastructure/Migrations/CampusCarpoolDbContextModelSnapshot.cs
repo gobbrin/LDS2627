@@ -47,12 +47,17 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("AvaliadoId");
 
-                    b.HasIndex("AvaliadorId");
+                    b.HasIndex("ViagemId");
 
-                    b.HasIndex("ViagemId", "AvaliadorId", "AvaliadoId")
+                    b.HasIndex("AvaliadorId", "AvaliadoId")
                         .IsUnique();
 
-                    b.ToTable("Avaliacoes");
+                    b.ToTable("Avaliacoes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Avaliacoes_Classificacao", "[Classificacao] BETWEEN 1 AND 5");
+
+                            t.HasCheckConstraint("CK_Avaliacoes_Distintos", "[AvaliadorId] <> [AvaliadoId]");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Aviso", b =>
@@ -98,7 +103,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -124,7 +130,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -146,14 +153,16 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Descricao")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("Ordem")
                         .HasColumnType("int");
 
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -173,7 +182,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Conteudo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("DestinatarioId")
                         .HasColumnType("uniqueidentifier");
@@ -195,7 +205,12 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("ViagemId");
 
-                    b.ToTable("Mensagens");
+                    b.ToTable("Mensagens", t =>
+                        {
+                            t.HasCheckConstraint("CK_Mensagens_Conteudo", "[Conteudo] <> ''");
+
+                            t.HasCheckConstraint("CK_Mensagens_Distintos", "[RemetenteId] <> [DestinatarioId]");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Notificacao", b =>
@@ -206,7 +221,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Conteudo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("CriadaEm")
                         .HasColumnType("datetime2");
@@ -216,11 +232,13 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -234,7 +252,10 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("ViagemId");
 
-                    b.ToTable("Notificacoes");
+                    b.ToTable("Notificacoes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Notificacoes_Tipo", "[Tipo] IN ('PedidoRecebido', 'PedidoAceite', 'PedidoRejeitado', 'AlteracaoViagem', 'Aviso', 'NovaMensagem')");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Participacao", b =>
@@ -243,21 +264,49 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AceiteEm")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Destino")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal?>("DestinoLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("DestinoLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<Guid>("PassageiroId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Recolha")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal?>("RecolhaLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("RecolhaLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<byte[]>("Versao")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<Guid>("ViagemId")
                         .HasColumnType("uniqueidentifier");
@@ -270,7 +319,12 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[Estado] IN ('Pendente', 'Aceite')");
 
-                    b.ToTable("Participacoes");
+                    b.ToTable("Participacoes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Participacoes_Estado", "[Estado] IN ('Pendente', 'Aceite', 'Rejeitada', 'Cancelada')");
+
+                            t.HasCheckConstraint("CK_Participacoes_Locais", "NOT ([RecolhaLatitude] = [DestinoLatitude] AND [RecolhaLongitude] = [DestinoLongitude])");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.TokenRevogado", b =>
@@ -304,7 +358,8 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Curso")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -315,7 +370,8 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Instituicao")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -324,7 +380,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 
@@ -345,15 +402,21 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Destino")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal?>("DestinoLatitude")
+                    b.Property<decimal>("DestinoLatitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
-                    b.Property<decimal?>("DestinoLongitude")
+                    b.Property<decimal>("DestinoLongitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("DestinoPesquisa")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
 
                     b.Property<decimal?>("DistanciaKm")
                         .HasPrecision(10, 2)
@@ -364,7 +427,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<int>("LugaresDisponiveis")
                         .HasColumnType("int");
@@ -374,18 +438,30 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Origem")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal?>("OrigemLatitude")
+                    b.Property<decimal>("OrigemLatitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
 
-                    b.Property<decimal?>("OrigemLongitude")
+                    b.Property<decimal>("OrigemLongitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("OrigemPesquisa")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
 
                     b.Property<DateTime>("PartidaEm")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("PartidaMinutoDoDia")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RotaPontos")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<byte[]>("Versao")
                         .IsConcurrencyToken()
@@ -397,7 +473,18 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("CondutorId");
 
-                    b.ToTable("Viagens");
+                    b.HasIndex("Estado", "PartidaEm");
+
+                    b.ToTable("Viagens", t =>
+                        {
+                            t.HasCheckConstraint("CK_Viagens_Estado", "[Estado] IN ('Ativa', 'Indisponibilizada', 'Concluida')");
+
+                            t.HasCheckConstraint("CK_Viagens_Locais", "NOT ([OrigemLatitude] = [DestinoLatitude] AND [OrigemLongitude] = [DestinoLongitude])");
+
+                            t.HasCheckConstraint("CK_Viagens_Lugares", "[LugaresOferecidos] BETWEEN 1 AND 8 AND [LugaresDisponiveis] BETWEEN 0 AND [LugaresOferecidos]");
+
+                            t.HasCheckConstraint("CK_Viagens_Rota", "[RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Avaliacao", b =>

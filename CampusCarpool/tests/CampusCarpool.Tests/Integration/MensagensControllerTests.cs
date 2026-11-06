@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Domain.Entities;
+using CampusCarpool.Application.Comum;
+using CampusCarpool.Application.Comunicacao;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -20,31 +20,30 @@ public sealed class MensagensControllerTests
         public string? UltimoConteudo { get; private set; }
         public Guid? UltimoConsultante { get; private set; }
         public Guid? UltimoInterlocutor { get; private set; }
-        public Exception? ErroEnvio { get; set; }
-        public Exception? ErroConsulta { get; set; }
-        public IReadOnlyList<Mensagem> Historico { get; set; } = Array.Empty<Mensagem>();
+        public Erro? ErroEnvio { get; set; }
+        public Erro? ErroConsulta { get; set; }
+        public List<MensagemIndividual> Historico { get; set; } = [];
 
-        public Task<Mensagem> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
+        public Task<Resultado<MensagemIndividual>> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
         {
             UltimoRemetente = remetenteId;
             UltimoDestinatario = destinatarioId;
             UltimoConteudo = conteudo;
-            if (ErroEnvio is not null) throw ErroEnvio;
-            return Task.FromResult(new Mensagem
-            {
-                RemetenteId = remetenteId,
-                DestinatarioId = destinatarioId,
-                Conteudo = conteudo
-            });
+            if (ErroEnvio is not null) return Task.FromResult<Resultado<MensagemIndividual>>(ErroEnvio);
+            return Task.FromResult<Resultado<MensagemIndividual>>(
+                new MensagemIndividual(Guid.NewGuid(), null, remetenteId, destinatarioId, conteudo, DateTime.UtcNow));
         }
 
-        public Task<IReadOnlyList<Mensagem>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
+        public Task<Resultado<List<MensagemIndividual>>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
         {
             UltimoConsultante = utilizadorId;
             UltimoInterlocutor = outroUtilizadorId;
-            if (ErroConsulta is not null) throw ErroConsulta;
-            return Task.FromResult(Historico);
+            if (ErroConsulta is not null) return Task.FromResult<Resultado<List<MensagemIndividual>>>(ErroConsulta);
+            return Task.FromResult<Resultado<List<MensagemIndividual>>>(Historico);
         }
+
+        public Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ResumoConversa>>([]);
     }
 
     private static MensagensController CriarController(ServicoMensagensFalso servico, Guid? utilizadorId)
@@ -70,13 +69,13 @@ public sealed class MensagensControllerTests
         var a = Guid.NewGuid(); var b = Guid.NewGuid();
         var servico = new ServicoMensagensFalso();
         var controller = CriarController(servico, a);
-        var resultado = await controller.Enviar(new EnviarMensagemRequest(b, "Olá B"), default);
+        var resultado = await controller.Enviar(new MensagensController.EnviarMensagem(b, "Olá B"), default);
         var criado = Assert.IsType<CreatedAtActionResult>(resultado);
         Assert.Equal(StatusCodes.Status201Created, criado.StatusCode);
         Assert.Equal(a, servico.UltimoRemetente);
         Assert.Equal(b, servico.UltimoDestinatario);
         Assert.Equal("Olá B", servico.UltimoConteudo);
-        var mensagem = Assert.IsType<Mensagem>(criado.Value);
+        var mensagem = Assert.IsType<MensagemIndividual>(criado.Value);
         Assert.Equal(a, mensagem.RemetenteId);
         Assert.Equal(b, mensagem.DestinatarioId);
     }
@@ -86,7 +85,7 @@ public sealed class MensagensControllerTests
     {
         var servico = new ServicoMensagensFalso();
         var resultado = await CriarController(servico, null).Enviar(
-            new EnviarMensagemRequest(Guid.NewGuid(), "Olá"), default);
+            new MensagensController.EnviarMensagem(Guid.NewGuid(), "Olá"), default);
         Assert.IsType<UnauthorizedResult>(resultado);
         Assert.Null(servico.UltimoRemetente);
     }
@@ -105,18 +104,18 @@ public sealed class MensagensControllerTests
     [InlineData("   ")]
     public async Task I043_04_ConteudoInvalido_RejeitadoPeloServico_Retorna400(string conteudo)
     {
-        var servico = new ServicoMensagensFalso { ErroEnvio = new ArgumentException("Conteúdo inválido") };
+        var servico = new ServicoMensagensFalso { ErroEnvio = new Erro(TipoErro.DadosInvalidos, "Conteúdo inválido") };
         var resultado = await CriarController(servico, Guid.NewGuid()).Enviar(
-            new EnviarMensagemRequest(Guid.NewGuid(), conteudo), default);
+            new MensagensController.EnviarMensagem(Guid.NewGuid(), conteudo), default);
         Assert.IsType<BadRequestObjectResult>(resultado);
     }
 
     [Fact]
     public async Task I043_05_DestinatarioInexistente_RejeitadoPeloServico_Retorna400()
     {
-        var servico = new ServicoMensagensFalso { ErroEnvio = new InvalidOperationException("Destinatário inexistente") };
+        var servico = new ServicoMensagensFalso { ErroEnvio = new Erro(TipoErro.DadosInvalidos, "Destinatário inexistente") };
         var resultado = await CriarController(servico, Guid.NewGuid()).Enviar(
-            new EnviarMensagemRequest(Guid.NewGuid(), "Olá"), default);
+            new MensagensController.EnviarMensagem(Guid.NewGuid(), "Olá"), default);
         Assert.IsType<BadRequestObjectResult>(resultado);
     }
 
@@ -124,10 +123,10 @@ public sealed class MensagensControllerTests
     public async Task I043_06_Consulta_UsaIdentidadeAutenticadaERetornaHistorico()
     {
         var a = Guid.NewGuid(); var b = Guid.NewGuid();
-        var historico = new[]
+        var historico = new List<MensagemIndividual>
         {
-            new Mensagem { RemetenteId = a, DestinatarioId = b, Conteudo = "Primeira" },
-            new Mensagem { RemetenteId = b, DestinatarioId = a, Conteudo = "Resposta" }
+            new(Guid.NewGuid(), null, a, b, "Primeira", DateTime.UtcNow),
+            new(Guid.NewGuid(), null, b, a, "Resposta", DateTime.UtcNow)
         };
         var servico = new ServicoMensagensFalso { Historico = historico };
         var resultado = await CriarController(servico, a).ObterConversa(b, default);
@@ -140,7 +139,7 @@ public sealed class MensagensControllerTests
     [Fact]
     public async Task I043_07_ConsultaInvalida_RejeitadaPeloServico_Retorna400()
     {
-        var servico = new ServicoMensagensFalso { ErroConsulta = new ArgumentException("Conversa inválida") };
+        var servico = new ServicoMensagensFalso { ErroConsulta = new Erro(TipoErro.DadosInvalidos, "Conversa inválida") };
         var resultado = await CriarController(servico, Guid.NewGuid()).ObterConversa(Guid.NewGuid(), default);
         Assert.IsType<BadRequestObjectResult>(resultado);
     }

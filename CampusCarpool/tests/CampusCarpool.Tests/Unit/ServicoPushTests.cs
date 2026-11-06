@@ -2,7 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +11,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary><c>ServicoPush</c> (FCM) com respostas HTTP simuladas e uma chave RSA gerada no teste: sem dispositivos, envio, tokens inválidos desativados e Firebase por configurar.</summary>
 public sealed class ServicoPushTests
 {
     [Fact]
@@ -114,7 +115,7 @@ public sealed class ServicoPushTests
                     return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste"}""");
                 }
 
-                return Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND"}}""");
+                return Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND","details":[{"errorCode":"UNREGISTERED"}]}}""");
             }
         ));
 
@@ -124,6 +125,38 @@ public sealed class ServicoPushTests
 
         Assert.Equal(1, repositorio.Desativacoes);
         Assert.Equal(tokenDispositivo, repositorio.UltimoTokenDesativado);
+    }
+
+    [Fact]
+    public async Task EnviarAsync_Com404SemTokenInvalido_MantemODispositivo()
+    {
+        var utilizadorId = Guid.NewGuid();
+
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos =
+            [
+                new Dispositivo
+                {
+                    UtilizadorId = utilizadorId,
+                    Token = "token-valido",
+                    Ativo = true
+                }
+            ]
+        };
+
+        // Por exemplo, Firebase:ProjectId errado.
+        using var http = new HttpClient(new HandlerHttpFalso(
+            (pedido, _) => pedido.RequestUri!.Host == "oauth2.googleapis.com"
+                ? Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste"}""")
+                : Resposta(HttpStatusCode.NotFound, """{"error":{"status":"NOT_FOUND"}}""")
+        ));
+
+        var servico = CriarServico(http, repositorio);
+
+        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoAceite", CancellationToken.None);
+
+        Assert.Equal(0, repositorio.Desativacoes);
     }
 
     [Fact]
@@ -147,14 +180,14 @@ public sealed class ServicoPushTests
         using var http = new HttpClient(new HandlerHttpFalso(
             (_, _) => throw new InvalidOperationException("Não deveria ser efetuado qualquer pedido HTTP.")));
 
-        var servico = new ServicoPush(http, new ConfigurationBuilder().Build(), repositorio, NullLogger<ServicoPush>.Instance);
+        var servico = new ServicoPush(http, new ConfigurationBuilder().Build(), repositorio, NullLogger<ServicoPush>.Instance, new CacheTokenFcm());
 
         await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
 
         Assert.Equal(0, repositorio.Desativacoes);
     }
 
-    
+
     [Fact]
     public async Task EnviarAsync_ComErroUnregistered_DesativaToken()
     {
@@ -296,7 +329,68 @@ public sealed class ServicoPushTests
         Assert.Equal(0, repositorio.Desativacoes);
     }
 
-    private static ServicoPush CriarServico(HttpClient http, RepositorioDispositivosFalso repositorio)
+    /// <summary>Dois envios com a mesma cache, como dois <c>ServicoPush</c> em notificações seguidas.</summary>
+    public static async Task<(string? Primeiro, string? Segundo, int PedidosOAuth)> EnviarDuasVezesAsync()
+    {
+        var utilizadorId = Guid.NewGuid();
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos = [new Dispositivo { UtilizadorId = utilizadorId, Token = "token-teste", Ativo = true }]
+        };
+
+        var pedidosOAuth = 0;
+        var autorizacoes = new List<string?>();
+
+        using var http = new HttpClient(new HandlerHttpFalso((pedido, _) =>
+        {
+            if (pedido.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                pedidosOAuth++;
+                return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste","expires_in":3600}""");
+            }
+
+            autorizacoes.Add(pedido.Headers.Authorization?.Parameter);
+            return Resposta(HttpStatusCode.OK, "{}");
+        }));
+
+        var cache = new CacheTokenFcm();
+
+        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+
+        return (autorizacoes[0], autorizacoes[1], pedidosOAuth);
+    }
+
+    /// <summary>O primeiro envio ao FCM responde 401 e o segundo aceita.</summary>
+    public static async Task<(int PedidosOAuth, int PedidosFcm)> EnviarComTokenRecusadoAsync()
+    {
+        var utilizadorId = Guid.NewGuid();
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos = [new Dispositivo { UtilizadorId = utilizadorId, Token = "token-teste", Ativo = true }]
+        };
+
+        var pedidosOAuth = 0;
+        var pedidosFcm = 0;
+
+        using var http = new HttpClient(new HandlerHttpFalso((pedido, _) =>
+        {
+            if (pedido.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                pedidosOAuth++;
+                return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste","expires_in":3600}""");
+            }
+
+            pedidosFcm++;
+            return Resposta(pedidosFcm == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK, "{}");
+        }));
+
+        await CriarServico(http, repositorio).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+
+        return (pedidosOAuth, pedidosFcm);
+    }
+
+    private static ServicoPush CriarServico(HttpClient http, RepositorioDispositivosFalso repositorio, CacheTokenFcm? cache = null)
     {
         using var rsa = RSA.Create(2048);
 
@@ -309,7 +403,7 @@ public sealed class ServicoPushTests
             })
             .Build();
 
-        return new ServicoPush(http, configuracao, repositorio, NullLogger<ServicoPush>.Instance);
+        return new ServicoPush(http, configuracao, repositorio, NullLogger<ServicoPush>.Instance, cache ?? new CacheTokenFcm());
     }
 
     private static HttpResponseMessage Resposta(HttpStatusCode status, string conteudo)

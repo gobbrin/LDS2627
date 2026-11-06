@@ -4,4 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <!-- Os set internos protegem o estado das entidades; os testes usam-nos para montar cenários. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="CampusCarpool.Tests" />
+  </ItemGroup>
 </Project>

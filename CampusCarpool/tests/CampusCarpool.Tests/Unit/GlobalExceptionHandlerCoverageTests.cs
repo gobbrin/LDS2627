@@ -1,13 +1,12 @@
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>O <c>GlobalExceptionHandler</c> escreve um <c>ProblemDetails</c> com o código e os textos esperados.</summary>
 public sealed class GlobalExceptionHandlerCoverageTests
 {
     private sealed class ProblemDetailsRecorder(bool escrever) : IProblemDetailsService

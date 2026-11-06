@@ -1,11 +1,10 @@
 
-using System.Net;
 using System.Security.Claims;
-using System.Text;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
+using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +15,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Rota da viagem com os pontos das participações aceites (RF-F008-03 a RF-F008-05, RF-F008-09): pendentes fora, aceites dentro, ordem e permissões.</summary>
+/// <remarks>
+/// SQLite em memória; OpenRouteService simulado por <c>HttpMessageHandler</c>.
+/// </remarks>
 public sealed class RotasParticipacoesIntegrationTests
 {
     private sealed class Fixture : IDisposable
@@ -31,11 +34,11 @@ public sealed class RotasParticipacoesIntegrationTests
 
             var options =
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                    .UseSqlite(connection)
+                    .UseBaseDeTeste(connection)
                     .Options;
 
             Db = new CampusCarpoolDbContext(options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<Utilizador> CriarUtilizador()
@@ -67,7 +70,7 @@ public sealed class RotasParticipacoesIntegrationTests
                 PartidaEm = DateTime.UtcNow.AddDays(3),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
 
             Db.Viagens.Add(viagem);
@@ -83,90 +86,15 @@ public sealed class RotasParticipacoesIntegrationTests
         }
     }
 
-    private sealed class MapasSimulados : HttpMessageHandler
-    {
-        public int ChamadasRotas { get; private set; }
-        public int ChamadasGeocodificacao { get; private set; }
-
-        public bool SimularFalha { get; set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            var caminho = request.RequestUri!.AbsolutePath;
-
-            string resposta;
-
-            if (SimularFalha)
-            {
-                return Task.FromResult(
-                    new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
-            }
-
-
-            if (caminho.Contains(
-    "/pelias/v1/search", StringComparison.OrdinalIgnoreCase))
-            {
-                ChamadasGeocodificacao++;
-
-                resposta = """
-                {
-                  "features": [
-                    {
-                      "geometry": {
-                        "coordinates": [-8.60, 41.20]
-                      }
-                    }
-                  ]
-                }
-                """;
-            }
-            else if (caminho.Contains("directions/driving-car"))
-            {
-                ChamadasRotas++;
-
-                resposta = """
-                {
-                  "features": [
-                    {
-                      "properties": {
-                        "summary": {
-                          "distance": 1000,
-                          "duration": 120
-                        }
-                      }
-                    }
-                  ]
-                }
-                """;
-            }
-            else
-            {
-                return Task.FromResult(
-                    new HttpResponseMessage(HttpStatusCode.NotFound));
-            }
-
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    resposta,
-                    Encoding.UTF8,
-                    "application/json")
-            });
-        }
-    }
-
     private static RotasController CriarController(
         CampusCarpoolDbContext db,
         Guid? utilizadorId,
-        MapasSimulados handler)
+        MapasFalsos handler)
     {
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes",
-                ["Custos:PrecoPorKm"] = "0.10"
+                ["Maps:ApiKey"] = "chave-ficticia-apenas-para-testes"
             })
             .Build();
 
@@ -176,9 +104,9 @@ public sealed class RotasParticipacoesIntegrationTests
                 new Uri("https://api.openrouteservice.org/")
         };
 
-        var mapas = new MapasService(cliente, configuracao);
-        var custos = new EstimativaCustoService(configuracao);
-        var controller = new RotasController(mapas, custos, db);
+        var mapas = new ServicoMapasRotas(cliente, configuracao);
+        var custos = ServicosDeTeste.CriarCustos();
+        var controller = ServicosDeTeste.CriarRotasController(mapas, custos, db);
 
         var claims = utilizadorId.HasValue
             ? new[]
@@ -211,7 +139,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var condutor = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, condutor.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -242,12 +170,16 @@ public sealed class RotasParticipacoesIntegrationTests
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Pendente,
             Recolha = "Maia",
-            Destino = "Trofa"
+            RecolhaLatitude = 41.23m,
+            RecolhaLongitude = -8.62m,
+            Destino = "Trofa",
+            DestinoLatitude = 41.33m,
+            DestinoLongitude = -8.56m
         });
 
         await f.Db.SaveChangesAsync();
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, condutor.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -276,12 +208,16 @@ public sealed class RotasParticipacoesIntegrationTests
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite,
             Recolha = "Maia",
-            Destino = "Trofa"
+            RecolhaLatitude = 41.23m,
+            RecolhaLongitude = -8.62m,
+            Destino = "Trofa",
+            DestinoLatitude = 41.33m,
+            DestinoLongitude = -8.56m
         });
 
         await f.Db.SaveChangesAsync();
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, condutor.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -305,29 +241,60 @@ public sealed class RotasParticipacoesIntegrationTests
         Assert.Equal("DestinoPassageiro", pontos[2].Tipo);
         Assert.Equal("DestinoViagem", pontos[3].Tipo);
 
-        Assert.Equal(2, handler.ChamadasGeocodificacao);
+        // As coordenadas vêm da participação (A8): nada é geocodificado.
+        Assert.Equal(0, handler.ChamadasGeocodificacao);
     }
 
     [Fact]
-    public async Task UtilizadorSemPermissao_Devolve403()
+    /// <summary>RF-F003-08 / DEF-BE-013, P-13: quem pode consultar a viagem vê a rota sem os pontos (este teste fixava 403).</summary>
+    public async Task OutroUtilizador_VeARotaSemOsPontosDasParticipacoes()
     {
         using var f = new Fixture();
 
         var condutor = await f.CriarUtilizador();
-        var terceiro = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var outro = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasSimulados();
-        var controller = CriarController(f.Db, terceiro.Id, handler);
+        f.Db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = EstadoParticipacao.Aceite,
+            Recolha = "Maia",
+            RecolhaLatitude = 41.23m,
+            RecolhaLongitude = -8.62m
+        });
+        await f.Db.SaveChangesAsync();
 
-        var resultado = await controller.ConsultarRotaViagem(
-            viagem.Id,
-            default);
+        var resposta = Assert.IsType<OkObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())
+            .ConsultarRotaViagem(viagem.Id, default));
 
-        Assert.IsType<ForbidResult>(resultado);
-        Assert.Equal(0, handler.ChamadasRotas);
+        var dados = resposta.Value!;
+        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoRota>>(
+            dados.GetType().GetProperty("PontosOrdenados")!.GetValue(dados));
+        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<SegmentoRota>>(
+            dados.GetType().GetProperty("Segmentos")!.GetValue(dados));
+
+        Assert.Equal(["Porto", "Braga"], pontos.Select(p => p.Local));
+        Assert.Single(segmentos);
     }
 
+    [Fact]
+    /// <summary>A7: uma viagem que não é pesquisável não existe para quem não tem nada a ver com ela.</summary>
+    public async Task ViagemNaoConsultavel_Devolve404()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var outro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        viagem.Estado = EstadoViagem.Indisponibilizada;
+        await f.Db.SaveChangesAsync();
+
+        Assert.IsType<NotFoundObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())
+            .ConsultarRotaViagem(viagem.Id, default));
+    }
 
     [Fact]
     public async Task ParticipacaoAceiteSemPontos_UsaRotaDireta()
@@ -349,7 +316,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         await f.Db.SaveChangesAsync();
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, passageiro.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -381,7 +348,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var condutor = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, condutor.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -413,7 +380,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var condutor = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, null, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -429,7 +396,7 @@ public sealed class RotasParticipacoesIntegrationTests
         using var f = new Fixture();
 
         var utilizador = await f.CriarUtilizador();
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, utilizador.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -446,7 +413,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var condutor = await f.CriarUtilizador();
         var viagem = await f.CriarViagem(condutor.Id);
 
-        var handler = new MapasSimulados
+        var handler = new MapasFalsos
         {
             SimularFalha = true
         };
@@ -479,7 +446,11 @@ public sealed class RotasParticipacoesIntegrationTests
                 PassageiroId = passageiro1.Id,
                 Estado = EstadoParticipacao.Aceite,
                 Recolha = "Maia",
-                Destino = "Trofa"
+                RecolhaLatitude = 41.23m,
+                RecolhaLongitude = -8.62m,
+                Destino = "Trofa",
+                DestinoLatitude = 41.33m,
+                DestinoLongitude = -8.56m
             },
             new Participacao
             {
@@ -487,12 +458,16 @@ public sealed class RotasParticipacoesIntegrationTests
                 PassageiroId = passageiro2.Id,
                 Estado = EstadoParticipacao.Aceite,
                 Recolha = "Famalicão",
-                Destino = "Vila Nova de Famalicão"
+                RecolhaLatitude = 41.40m,
+                RecolhaLongitude = -8.51m,
+                Destino = "Vila Nova de Famalicão",
+                DestinoLatitude = 41.41m,
+                DestinoLongitude = -8.52m
             });
 
         await f.Db.SaveChangesAsync();
 
-        var handler = new MapasSimulados();
+        var handler = new MapasFalsos();
         var controller = CriarController(f.Db, condutor.Id, handler);
 
         var resultado = await controller.ConsultarRotaViagem(
@@ -538,18 +513,16 @@ public sealed class RotasParticipacoesIntegrationTests
             Assert.True(indiceDestino > indiceRecolha);
         }
 
-        Assert.Equal(4, handler.ChamadasGeocodificacao);
+        // Uma única chamada à Matrix API, sem geocodificar (A8, DEF-BE-022).
+        Assert.Equal(0, handler.ChamadasGeocodificacao);
+        Assert.Equal(1, handler.ChamadasRotas);
 
-        // O simulador devolve as mesmas coordenadas para
-        // todos os pontos adicionais. Por isso, existem
-        // segmentos com distância zero, sem chamadas HTTP.
-        Assert.Equal(2, handler.ChamadasRotas);
-
-        Assert.Equal(2m, (decimal)dados.GetType()
+        // Cinco segmentos de 1 km e 2 minutos.
+        Assert.Equal(5m, (decimal)dados.GetType()
             .GetProperty("DistanciaTotalKm")!
             .GetValue(dados)!);
 
-        Assert.Equal(4, (int)dados.GetType()
+        Assert.Equal(10, (int)dados.GetType()
             .GetProperty("DuracaoTotalMinutos")!
             .GetValue(dados)!);
     }

@@ -1,10 +1,11 @@
 
 using System.Net;
-using System.Text;
 using System.Security.Claims;
+using System.Text;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,10 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-008: criar uma viagem válida devolve 201 e grava as coordenadas, a distância e a duração da rota.</summary>
+/// <remarks>
+/// SQLite em memória; o OpenRouteService é simulado por um <c>HttpMessageHandler</c> falso.
+/// </remarks>
 public sealed class CriacaoViagemIntegrationTests
 {
     private sealed class MapasHandlerFalso : HttpMessageHandler
@@ -31,8 +36,9 @@ public sealed class CriacaoViagemIntegrationTests
                 var url = Uri.UnescapeDataString(
                     request.RequestUri.ToString());
 
-                resposta = url.Contains(
-                    "Porto", StringComparison.OrdinalIgnoreCase)
+                // "Porto" e "Invicta" são o mesmo sítio: servem para testar a regra pelas coordenadas.
+                resposta = url.Contains("Porto", StringComparison.OrdinalIgnoreCase)
+                    || url.Contains("Invicta", StringComparison.OrdinalIgnoreCase)
                     ? """
                       {"features":[{"geometry":{"coordinates":[-8.61,41.15]}}]}
                       """
@@ -66,11 +72,11 @@ public sealed class CriacaoViagemIntegrationTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var condutor = new Utilizador
         {
@@ -90,13 +96,13 @@ public sealed class CriacaoViagemIntegrationTests
             .Build();
 
         using var http = new HttpClient(new MapasHandlerFalso())
-{
-    BaseAddress = new Uri("https://api.heigit.org/")
-};
+        {
+            BaseAddress = new Uri("https://api.heigit.org/")
+        };
 
-        var mapas = new MapasService(http, configuracao);
+        var mapas = new ServicoMapasRotas(http, configuracao);
 
-        var controller = new ViagensController(db, mapas);
+        var controller = ServicosDeTeste.CriarViagensController(db, mapas);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -138,7 +144,15 @@ public sealed class CriacaoViagemIntegrationTests
         Assert.Equal(55m, viagem.DistanciaKm);
         Assert.Equal(60, viagem.DuracaoMinutos);
 
-        Assert.Equal("Ativa", viagem.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagem.Estado);
         Assert.True(viagem.PartidaEm > DateTime.UtcNow);
+
+        // DEF-BE-030 / D-008: textos diferentes com as mesmas coordenadas são o mesmo local.
+        var mesmoLocal = await controller.Criar(
+            new ViagensController.CriarViagem("Porto", "Invicta", partida, 3),
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(mesmoLocal);
+        Assert.Equal(1, await db.Viagens.CountAsync());
     }
 }

@@ -1,7 +1,12 @@
+using System.Security.Claims;
+using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -9,27 +14,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
-using System.Text.Json;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>Testes adicionais de cobertura dos endpoints: autenticação, perfil, viagens (criar, editar, indisponibilizar, concluir), pesquisa e mapas.</summary>
+/// <remarks>
+/// SQLite em memória; controllers instanciados diretamente, utilizador simulado por claims; serviços externos falsos.
+/// </remarks>
 public sealed class EndpointsAdditionalTests
 {
 
-    private static EstimativaCustoService Custos()
-    {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Custos:PrecoPorKm"] = "0.10"
-            })
-            .Build();
-
-        return new EstimativaCustoService(config);
-    }
+    private static EstimativaCustoService Custos() => ServicosDeTeste.CriarCustos();
 
     private sealed class Fixture : IDisposable
     {
@@ -39,8 +35,8 @@ public sealed class EndpointsAdditionalTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
         public void Dispose() { Db.Dispose(); connection.Dispose(); }
         public async Task<Utilizador> User(string email = "user@estg.ipp.pt", bool confirmed = true)
@@ -48,7 +44,7 @@ public sealed class EndpointsAdditionalTests
             var u = new Utilizador { Nome = "Teste", Email = email, EmailConfirmado = confirmed };
             Db.Utilizadores.Add(u); await Db.SaveChangesAsync(); return u;
         }
-        public async Task<Viagem> Trip(Guid owner, string estado = "Ativa", int available = 2,
+        public async Task<Viagem> Trip(Guid owner, EstadoViagem estado = EstadoViagem.Ativa, int available = 2,
             DateTime? partida = null, string origem = "Porto", string destino = "Braga")
         {
             var v = new Viagem
@@ -56,6 +52,7 @@ public sealed class EndpointsAdditionalTests
                 CondutorId = owner,
                 Origem = origem,
                 Destino = destino,
+                DestinoLatitude = 41.55m,
                 Estado = estado,
                 PartidaEm = partida ?? DateTime.UtcNow.AddDays(5),
                 LugaresOferecidos = 3,
@@ -72,26 +69,26 @@ public sealed class EndpointsAdditionalTests
             new[] { new Claim(ClaimTypes.NameIdentifier, id.ToString()) }, "Test"))
         }
     };
-    private static MapasService Maps() => new(new HttpClient(), new ConfigurationBuilder().Build());
-    private static ViagensController Trips(Fixture f) => new(f.Db, Maps());
+    private static ServicoMapasRotas Maps() => new(new HttpClient(), new ConfigurationBuilder().Build());
+    private static ViagensController Trips(Fixture f) => ServicosDeTeste.CriarViagensController(f.Db, Maps());
     private sealed class EmailFake : IServicoEmail
     {
         public Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static AutenticacaoController AuthController(Fixture f) =>
-        new(f.Db, new ConfigurationBuilder().Build(), new EmailFake());
+        ServicosDeTeste.CriarAutenticacaoController(f.Db, new ConfigurationBuilder().Build(), new EmailFake());
     private static int Total(IActionResult result)
     {
         var ok = Assert.IsType<OkObjectResult>(result);
-        return (int)ok.Value!.GetType().GetProperty("total")!.GetValue(ok.Value)!;
+        return Assert.IsType<ResultadoPesquisa>(ok.Value).Total;
     }
 
     [Fact]
     public async Task LoginSemCredenciais_Devolve401()
     {
         using var f = new Fixture();
-        Assert.IsType<UnauthorizedResult>(await AuthController(f).IniciarSessao(new("", ""), default));
+        Assert.IsType<UnauthorizedObjectResult>(await AuthController(f).IniciarSessao(new("", ""), default));
     }
     [Fact]
     public async Task LoginContaNaoConfirmada_Devolve403()
@@ -106,7 +103,7 @@ public sealed class EndpointsAdditionalTests
     public async Task ConfirmarTokenVazio_Devolve400()
     {
         using var f = new Fixture();
-        Assert.IsType<BadRequestResult>(await AuthController(f).ConfirmarConta(new(" "), default));
+        Assert.IsType<BadRequestObjectResult>(await AuthController(f).ConfirmarConta(new(" "), default));
     }
     [Fact]
     public async Task ReenviarConfirmacaoEmailVazio_Devolve400()
@@ -132,26 +129,26 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task PerfilSemIdentidade_Devolve401()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db);
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db));
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         Assert.IsType<UnauthorizedResult>(await c.ConsultarPerfil(default));
     }
     [Fact]
     public async Task PerfilUtilizadorInexistente_Devolve404()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<NotFoundObjectResult>(await c.ConsultarPerfil(default));
     }
     [Fact]
     public async Task AtualizarPerfilInexistente_Devolve404()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<NotFoundObjectResult>(await c.Atualizar(new("Novo", null, null), default));
     }
     [Fact]
     public async Task AtualizarPerfilNomeMuitoLongo_Devolve400()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<BadRequestObjectResult>(await c.Atualizar(new(new string('A', 101), null, null), default));
     }
     [Fact]
@@ -165,7 +162,7 @@ public sealed class EndpointsAdditionalTests
     public async Task CriarViagemContaNaoConfirmada_Devolve403()
     {
         using var f = new Fixture(); var u = await f.User(confirmed: false); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ForbidResult>(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
+        RespostaEsperada.Proibido(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
     }
     [Theory]
     [InlineData("Porto", "Porto", 2)]
@@ -188,13 +185,14 @@ public sealed class EndpointsAdditionalTests
     public async Task ConsultarViagemExistente_Devolve200()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
-        Assert.IsType<OkObjectResult>(await Trips(f).Consultar(v.Id, default));
+        var c = Trips(f); Auth(c, u.Id);
+        Assert.IsType<OkObjectResult>(await c.Consultar(v.Id, default));
     }
     [Fact]
     public async Task EditarViagemInexistente_Devolve404()
     {
         using var f = new Fixture(); var u = await f.User(); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<NotFoundResult>(await c.Editar(Guid.NewGuid(),
+        Assert.IsType<NotFoundObjectResult>(await c.Editar(Guid.NewGuid(),
             new(DateTime.UtcNow.AddDays(3), 3), default));
     }
     [Fact]
@@ -208,7 +206,7 @@ public sealed class EndpointsAdditionalTests
         var ocupadosAntes =
             v.LugaresOferecidos - v.LugaresDisponiveis;
 
-        var c = Trips(f);
+        var c = ServicosDeTeste.CriarViagensController(f.Db, new MapasFalsos().CriarServico());
         Auth(c, u.Id);
 
         Assert.IsType<NoContentResult>(
@@ -234,7 +232,7 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task EditarViagemInativa_Devolve409()
     {
-        using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id, "Indisponibilizada");
+        using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id, EstadoViagem.Indisponibilizada);
         var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<ConflictObjectResult>(await c.Editar(v.Id,
             new(DateTime.UtcNow.AddDays(6), 3), default));
@@ -245,21 +243,21 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<NoContentResult>(await c.Indisponibilizar(v.Id, default));
-        Assert.Equal("Indisponibilizada", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
+        Assert.Equal(EstadoViagem.Indisponibilizada, (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
     }
     [Fact]
     public async Task IndisponibilizarViagemDeOutroCondutor_Devolve403()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, Guid.NewGuid());
-        Assert.IsType<ForbidResult>(await c.Indisponibilizar(v.Id, default));
+        RespostaEsperada.Proibido(await c.Indisponibilizar(v.Id, default));
     }
     [Fact]
     public async Task ConcluirViagemFutura_Devolve409()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ConflictResult>(await c.Concluir(v.Id, default));
+        Assert.IsType<ConflictObjectResult>(await c.Concluir(v.Id, default));
     }
     [Fact]
     public async Task ConcluirViagemPassada_AlteraEstado()
@@ -267,7 +265,7 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id,
             partida: DateTime.UtcNow.AddDays(-1)); var c = Trips(f); Auth(c, u.Id);
         Assert.IsType<NoContentResult>(await c.Concluir(v.Id, default));
-        Assert.Equal("Concluída", (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
+        Assert.Equal(EstadoViagem.Concluida, (await f.Db.Viagens.FindAsync(v.Id))!.Estado);
     }
     [Fact]
     public async Task PesquisaExcluiViagensSemLugaresEPassadas()
@@ -275,14 +273,14 @@ public sealed class EndpointsAdditionalTests
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id, available: 0); await f.Trip(u.Id, partida: DateTime.UtcNow.AddDays(-1));
         await f.Trip(u.Id);
-        Assert.Equal(1, Total(await new PesquisaController(f.Db).Pesquisar(null, null, null, null, 1, 20, default)));
+        Assert.Equal(1, Total(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(null, null, null, null, 1, 20, default)));
     }
     [Fact]
     public async Task PesquisaFiltraOrigemDestino()
     {
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id); await f.Trip(u.Id, origem: "Lisboa", destino: "Coimbra");
-        Assert.Equal(1, Total(await new PesquisaController(f.Db).Pesquisar(
+        Assert.Equal(1, Total(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(
             "Porto", "Braga", null, null, 1, 20, default)));
     }
     [Fact]
@@ -290,21 +288,21 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User();
         await f.Trip(u.Id); await f.Trip(u.Id);
-        var result = Assert.IsType<OkObjectResult>(await new PesquisaController(f.Db).Pesquisar(
+        var result = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(
             null, null, null, null, 2, 1, default));
         Assert.Equal(2, Total(result));
-        var items = (System.Collections.IEnumerable)result.Value!.GetType().GetProperty("viagens")!.GetValue(result.Value)!;
+        var items = Assert.IsType<ResultadoPesquisa>(result.Value).Viagens;
         Assert.Single(items.Cast<object>());
     }
     [Fact]
     public async Task GeocodificarSemChave_Devolve503()
     {
-        var r = await new RotasController(Maps(), Custos()).Geocodificar("Porto", default);
+        var r = await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Geocodificar("Porto", default);
         Assert.Equal(503, Assert.IsType<ObjectResult>(r).StatusCode);
     }
     [Fact]
     public async Task CalcularOrigemVazia_Devolve400()
     {
-        Assert.IsType<BadRequestResult>(await new RotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
+        Assert.IsType<BadRequestObjectResult>(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
     }
 }

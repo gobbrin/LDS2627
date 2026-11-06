@@ -1,148 +1,56 @@
-﻿using CampusCarpool.Api.Services;
-using CampusCarpool.Domain.Enums;
-using CampusCarpool.Infrastructure.Persistence;
+using CampusCarpool.Application.Comum;
+using CampusCarpool.Application.Rotas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace CampusCarpool.Api.Controllers;
 
+/// <summary>Serviço de Mapas e Rotas exposto ao frontend (F008). Rotas em <c>/api/v1/rotas</c>.</summary>
+/// <remarks>Todos os métodos respondem 503 se o serviço não estiver configurado, 502 se falhar e 504 se exceder o tempo (RF-F008-12).</remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/rotas")]
-public sealed class RotasController(
-    MapasService maps,
-    EstimativaCustoService custos,
-    CampusCarpoolDbContext? db = null,
-    ConsultaRotaViagemService? consultaRotas = null) : ControllerBase
+public sealed class RotasController(IConsultaRotasService rotas) : ControllerBase
 {
+    /// <summary>Corpo de <c>POST calcular</c>: dois locais em texto.</summary>
     public sealed record Pedido(string Origem, string Destino);
 
+    /// <summary>Converte um texto num par de coordenadas (autocompletar e validação no frontend).</summary>
+    /// <returns>200 coordenadas; 400 texto vazio; 404 local não encontrado; 502/503/504.</returns>
     [HttpGet("geocodificar")]
     public async Task<IActionResult> Geocodificar([FromQuery] string texto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(texto)) return BadRequest();
-        if (!maps.Configurado)
-            return StatusCode(503, new { erro = "Serviço de mapas não configurado." });
+        if (string.IsNullOrWhiteSpace(texto))
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica o local a procurar."));
 
-        try
-        {
-            var resultado = await maps.GeocodificarAsync(texto, ct);
-            return resultado is null ? NotFound() : Ok(resultado);
-        }
-        catch (HttpRequestException)
-        {
-            return StatusCode(502, new { erro = "Falha no serviço externo de mapas." });
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return StatusCode(504, new { erro = "Tempo de resposta dos mapas excedido." });
-        }
+        return this.Responder(await rotas.GeocodificarAsync(texto, ct), coordenadas => Ok(coordenadas));
     }
 
+    /// <summary>Calcula a rota direta entre dois locais, sem gravar nada (pré-visualização ao criar a viagem).</summary>
+    /// <returns>200 rota (distância, duração, geometria); 400; 422 local ou rota não encontrados; 502/503/504.</returns>
     [HttpPost("calcular")]
     public async Task<IActionResult> Calcular(Pedido input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Origem) || string.IsNullOrWhiteSpace(input.Destino))
-            return BadRequest();
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica a origem e o destino."));
 
-        if (!maps.Configurado)
-            return StatusCode(503, new { erro = "Serviço de mapas não configurado." });
-
-        try
-        {
-            var origem = await maps.GeocodificarAsync(input.Origem, ct);
-            var destino = await maps.GeocodificarAsync(input.Destino, ct);
-
-            if (origem is null || destino is null)
-                return UnprocessableEntity(new { erro = "Localização não encontrada." });
-
-            var rota = await maps.CalcularAsync(origem, destino, ct);
-            return rota is null
-                ? UnprocessableEntity(new { erro = "Rota indisponível." })
-                : Ok(rota);
-        }
-        catch (HttpRequestException)
-        {
-            return StatusCode(502, new { erro = "Falha no serviço externo de mapas." });
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return StatusCode(504, new { erro = "Tempo de resposta dos mapas excedido." });
-        }
+        return this.Responder(await rotas.CalcularAsync(input.Origem, input.Destino, ct), rota => Ok(rota));
     }
 
+    /// <summary>
+    /// Rota de uma viagem com os pontos das participações aceites, na ordem calculada, e a estimativa de custo
+    /// (RF-F008-03 a RF-F008-05, RF-F008-10).
+    /// </summary>
+    /// <remarks>Ver <see cref="IConsultaRotasService.ConsultarDaViagemAsync"/>.</remarks>
+    /// <returns>200; 401; 404 viagem inexistente ou que o utilizador não pode consultar; 422 rota não calculável; 502/503/504.</returns>
     [HttpGet("viagens/{viagemId:guid}")]
     public async Task<IActionResult> ConsultarRotaViagem(Guid viagemId, CancellationToken ct)
     {
-        if (db is null)
-            return StatusCode(503, new { erro = "Base de dados indisponível." });
-
-        var idTexto = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub");
-
-        if (!Guid.TryParse(idTexto, out var utilizadorId))
+        if (User.IdUtilizador() is not Guid utilizadorId)
             return Unauthorized();
 
-        var viagem = await db.Viagens
-            .AsNoTracking()
-            .FirstOrDefaultAsync(v => v.Id == viagemId, ct);
-
-        if (viagem is null)
-            return NotFound(new { erro = "Viagem não encontrada." });
-
-        var participacoes = await db.Participacoes
-            .AsNoTracking()
-            .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Aceite)
-            .ToListAsync(ct);
-
-        // Apenas o condutor ou um passageiro aceite pode ver os pontos detalhados.
-        var autorizado = viagem.CondutorId == utilizadorId ||
-            participacoes.Any(p => p.PassageiroId == utilizadorId);
-
-        if (!autorizado)
-            return Forbid();
-
-        if (!maps.Configurado)
-            return StatusCode(503, new { erro = "Serviço de mapas não configurado." });
-
-        try
-        {
-            // Usar o mesmo cálculo de rota que será reutilizado na consulta da viagem.
-            // Fallback para preservar os testes que instanciam este controlador diretamente.
-            var servicoRotas = consultaRotas ?? new ConsultaRotaViagemService(maps);
-            var resultado = await servicoRotas.CalcularAsync(viagem, participacoes, ct);
-
-            if (resultado is null)
-                return UnprocessableEntity(new { erro = "Não foi possível calcular a rota." });
-
-            if (resultado.DistanciaTotalKm <= 0)
-                return UnprocessableEntity(new
-                {
-                    erro = "Não existem dados suficientes para estimar o custo."
-                });
-
-            var estimativa = custos.Calcular(resultado.DistanciaTotalKm, participacoes.Count);
-
-            return Ok(new
-            {
-                viagemId = viagem.Id,
-                participacoesAceites = participacoes.Count,
-                resultado.PontosOrdenados,
-                resultado.Segmentos,
-                resultado.DistanciaTotalKm,
-                resultado.DuracaoTotalMinutos,
-                EstimativaCusto = estimativa
-            });
-        }
-        catch (HttpRequestException)
-        {
-            return StatusCode(502, new { erro = "Serviço de mapas indisponível." });
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return StatusCode(504, new { erro = "Tempo de resposta do serviço de mapas excedido." });
-        }
+        return this.Responder(
+            await rotas.ConsultarDaViagemAsync(viagemId, utilizadorId, ct),
+            rota => Ok(rota));
     }
 }

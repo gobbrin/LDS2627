@@ -1,11 +1,11 @@
 using CampusCarpool.Api.Hubs;
-using CampusCarpool.Api.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>O <c>NotificadorPedidosSignalR</c> envia cada evento ao utilizador certo e não propaga falhas. O <c>IHubContext</c> é um falso feito à mão.</summary>
 public class NotificadorPedidosSignalRTests
 {
     [Fact]

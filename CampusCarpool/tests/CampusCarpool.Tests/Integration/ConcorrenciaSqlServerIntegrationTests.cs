@@ -1,25 +1,31 @@
 
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
-using CampusCarpool.Domain.Exceptions;
 using CampusCarpool.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-023: duas aceitações em simultâneo para o último lugar; só uma pode ficar gravada (coluna <c>Versao</c>).</summary>
+/// <remarks>
+/// Usa SQL Server real, porque o <c>rowversion</c> não existe em SQLite. Corre só com a variável <c>CAMPUSCARPOOL_TESTES_SQLSERVER</c> (ver <see cref="SqlServerFactAttribute"/>): a CI arranca um contentor; sem a variável, fica "saltado".
+/// </remarks>
 public sealed class ConcorrenciaSqlServerIntegrationTests
 {
-    [Fact]
+    [SqlServerFact]
     public async Task IT023_DuasAceitacoes_UltimoLugar_ApenasUmaPersiste()
     {
         var nomeBaseDados = $"CampusCarpool_IT023_{Guid.NewGuid():N}";
 
-        var connectionString =
-            $@"Server=(localdb)\MSSQLLocalDB;" +
-            $"Database={nomeBaseDados};" +
-            "Trusted_Connection=True;" +
-            "TrustServerCertificate=True;";
+        // O servidor vem da variável de ambiente (ver SqlServerFactAttribute);
+        // a base de dados tem um nome único por execução.
+        var connectionString = new SqlConnectionStringBuilder(
+            SqlServerFactAttribute.ObterConnectionString())
+        {
+            InitialCatalog = nomeBaseDados
+        }.ConnectionString;
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
             .UseSqlServer(connectionString)
@@ -27,11 +33,11 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
         await using var preparacao = new CampusCarpoolDbContext(options);
 
-        // Esta base de dados tem um nome único para o teste.
-        await preparacao.Database.EnsureCreatedAsync();
-
         try
         {
+            // Esta base de dados tem um nome único para o teste; o esquema é o das migrations (TE-05).
+            await preparacao.Database.MigrateAsync();
+
             var condutor = new Utilizador
             {
                 Nome = "Condutor IT023",
@@ -58,13 +64,14 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
             var viagem = new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = condutor.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = DateTime.UtcNow.AddDays(2),
                 LugaresOferecidos = 1,
                 LugaresDisponiveis = 1,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
 
             preparacao.Viagens.Add(viagem);

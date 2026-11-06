@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
+/// <summary>Validações do <c>DispositivosController</c> com um repositório falso e o utilizador simulado por claims.</summary>
 public sealed class DispositivosControllerTests
 {
     private sealed class RepositorioDispositivosFalso : IRepositorioDispositivos
@@ -66,7 +68,7 @@ public sealed class DispositivosControllerTests
             }
             : Array.Empty<Claim>();
 
-        var controller = new DispositivosController(repositorio)
+        var controller = new DispositivosController(new DispositivoService(repositorio))
         {
             ControllerContext = new ControllerContext
             {
@@ -183,7 +185,7 @@ public sealed class DispositivosControllerTests
             new DispositivosController.TokenDispositivo("   "),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestResult>(resposta);
+        Assert.IsType<BadRequestObjectResult>(resposta);
         Assert.Equal(0, repositorio.Remocoes);
     }
 

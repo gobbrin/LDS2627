@@ -1,12 +1,10 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Interfaces;
-using CampusCarpool.Application.Services;
+using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -16,6 +14,9 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 /// <summary>Testes da comunicação do condutor e das notificações persistidas da I044.</summary>
+/// <remarks>
+/// SQLite em memória; <c>AvisosController</c> e <c>AvisoService</c> reais, utilizador simulado por claims. Cobre RF-F005-05 a RF-F005-07, RF-F005-10 e RF-F006-05.
+/// </remarks>
 public sealed class AvisosIntegrationTests
 {
     private sealed class Fixture : IDisposable
@@ -27,9 +28,9 @@ public sealed class AvisosIntegrationTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection)
+                .UseBaseDeTeste(connection)
                 .Options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<Utilizador> CriarUtilizador()
@@ -49,13 +50,14 @@ public sealed class AvisosIntegrationTests
         {
             var viagem = new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = condutorId,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = DateTime.UtcNow.AddDays(2),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             };
             Db.Viagens.Add(viagem);
             await Db.SaveChangesAsync();
@@ -89,7 +91,7 @@ public sealed class AvisosIntegrationTests
         CampusCarpoolDbContext db,
         Guid? utilizadorId)
     {
-        var controller = new AvisosController(new AvisoService(db));
+        var controller = new AvisosController(ServicosDeTeste.CriarAvisos(db));
         AplicarIdentidade(controller, utilizadorId);
         return controller;
     }
@@ -101,8 +103,8 @@ public sealed class AvisosIntegrationTests
         var repositorioNotificacoes = new RepositorioNotificacoes(db);
         var filaPushFalsa = new FilaNotificacoesPushFalsa();
 
-        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa);
-    
+        var notificacaoService = new NotificacaoService(repositorioNotificacoes, filaPushFalsa, new UnidadeDeTrabalhoEfCore(db));
+
 
         var controller = new NotificacoesController(notificacaoService);
         AplicarIdentidade(controller, utilizadorId);
@@ -124,6 +126,27 @@ public sealed class AvisosIntegrationTests
                     utilizadorId.HasValue ? "Test" : null))
             }
         };
+    }
+
+    [Theory]
+    [InlineData(EstadoViagem.Indisponibilizada)]
+    [InlineData(EstadoViagem.Concluida)]
+    public async Task I110_ViagemNaoAtiva_RecusaOAvisoSemGravarNada(EstadoViagem estado)
+    {
+        using var f = new Fixture();
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+        await f.CriarParticipacao(viagem.Id, passageiro.Id, EstadoParticipacao.Aceite);
+        viagem.Estado = estado;
+        await f.Db.SaveChangesAsync();
+
+        var resultado = await CriarAvisosController(f.Db, condutor.Id)
+            .Criar(viagem.Id, new AvisosController.CriarAviso("Atraso de 5 minutos."), default);
+
+        Assert.IsType<ConflictObjectResult>(resultado);
+        Assert.Empty(f.Db.Avisos);
+        Assert.Empty(f.Db.Notificacoes);
     }
 
     [Fact]
@@ -162,7 +185,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Criar(
             viagem.Id, new("Mensagem não autorizada"), default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -176,7 +199,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id).Criar(
             Guid.NewGuid(), new("Mensagem"), default);
 
-        Assert.IsType<NotFoundResult>(resultado);
+        Assert.IsType<NotFoundObjectResult>(resultado);
         Assert.Empty(f.Db.Avisos);
     }
 
@@ -255,7 +278,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, passageiro.Id).Listar(viagem.Id, default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
     }
 
     [Fact]
@@ -268,7 +291,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Listar(viagem.Id, default);
 
-        Assert.IsType<ForbidResult>(resultado);
+        RespostaEsperada.Proibido(resultado);
     }
 
     [Fact]
@@ -377,29 +400,33 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarNotificacoesController(f.Db, utilizador.Id)
             .MarcarComoLida(notificacao.Id, default);
 
-        Assert.IsType<NotFoundResult>(resultado);
+        Assert.IsType<NotFoundObjectResult>(resultado);
         Assert.Null((await f.Db.Notificacoes.FindAsync(notificacao.Id))!.LidaEm);
     }
 
-    
+
     [Fact]
-    public async Task UtilizadorPodeMarcarTodasAsNotificacoesComoLidas() {
+    public async Task UtilizadorPodeMarcarTodasAsNotificacoesComoLidas()
+    {
         using var f = new Fixture();
         var utilizador = await f.CriarUtilizador();
         var outroUtilizador = await f.CriarUtilizador();
 
         f.Db.Notificacoes.AddRange(
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = utilizador.Id,
                 Tipo = TipoNotificacao.Aviso,
                 Conteudo = "Primeiro aviso"
             },
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = utilizador.Id,
                 Tipo = TipoNotificacao.NovaMensagem,
                 Conteudo = "Nova mensagem"
             },
-            new Notificacao {
+            new Notificacao
+            {
                 UtilizadorId = outroUtilizador.Id,
                 Tipo = TipoNotificacao.Aviso,
                 Conteudo = "Aviso de outro utilizador"
@@ -421,14 +448,15 @@ public sealed class AvisosIntegrationTests
             notificacoes.Where(n => n.UtilizadorId == utilizador.Id),
             notificacao => Assert.NotNull(notificacao.LidaEm));
 
-        var notificacaoDoOutro = Assert.Single(notificacoes.Where(n => n.UtilizadorId == outroUtilizador.Id));
+        var notificacaoDoOutro = Assert.Single(notificacoes, n => n.UtilizadorId == outroUtilizador.Id);
 
         Assert.Null(notificacaoDoOutro.LidaEm);
     }
 
-        
+
     [Fact]
-    public async Task MarcarTodasComoLidasSemIdentidade_Devolve401() {
+    public async Task MarcarTodasComoLidasSemIdentidade_Devolve401()
+    {
         using var f = new Fixture();
 
         var resultado = await CriarNotificacoesController(f.Db, null)

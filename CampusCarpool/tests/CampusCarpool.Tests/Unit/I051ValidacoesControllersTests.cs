@@ -1,7 +1,12 @@
+using System.Net;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Api.Services;
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -9,25 +14,30 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
 /// <summary>Testes unitários das validações executadas antes de aceder às dependências externas.</summary>
+/// <remarks>
+/// Plano I050/I051 (<c>F00n_</c>, <c>UTnnn_</c>). Cada teste cria a sua BD SQLite em memória e instancia os controllers diretamente, com email e mapas falsos.
+/// </remarks>
 public sealed class I051ValidacoesControllersTests
 {
+    // O mesmo formato da API: nomes em camelCase.
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
+
     [Theory]
     [InlineData("", "aluno@estg.ipp.pt", "password123456")]
     [InlineData("Aluno", "aluno@gmail.com", "password123456")]
     [InlineData("Aluno", "aluno@estg.ipp.pt", "curta")]
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abc1234")]       // P-08: 7 caracteres.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abcdefghij")]    // P-08: sem dígito.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "1234567890")]    // P-08: sem letra.
     [InlineData("Aluno", "", "password123456")]
     public async Task F001_RegistoInvalido_Devolve400(string nome, string email, string password)
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.Registar(new AutenticacaoController.Registo(nome, email, password), default);
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -37,9 +47,9 @@ public sealed class I051ValidacoesControllersTests
     [InlineData("aluno@estg.ipp.pt", "")]
     public async Task F001_LoginSemCredenciais_Devolve401(string email, string password)
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.IniciarSessao(new AutenticacaoController.Login(email, password), default);
-        Assert.IsType<UnauthorizedResult>(result);
+        Assert.IsType<UnauthorizedObjectResult>(result);
     }
 
     [Fact]
@@ -49,11 +59,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -78,7 +88,7 @@ public sealed class I051ValidacoesControllersTests
             .Build();
 
         var emailFake = new EmailFake();
-        var controller = new AutenticacaoController(db, configuracao, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, configuracao, emailFake);
 
         var resultado = await controller.IniciarSessao(
             new AutenticacaoController.Login(
@@ -93,11 +103,11 @@ public sealed class I051ValidacoesControllersTests
         var tipoResposta = resposta.Value.GetType();
 
         var token = tipoResposta
-            .GetProperty("accessToken")?
+            .GetProperty("AccessToken")?
             .GetValue(resposta.Value) as string;
 
         var expiracao = tipoResposta
-            .GetProperty("expiresIn")?
+            .GetProperty("ExpiresIn")?
             .GetValue(resposta.Value);
 
         Assert.False(string.IsNullOrWhiteSpace(token));
@@ -116,14 +126,14 @@ public sealed class I051ValidacoesControllersTests
     [Fact]
     public async Task F001_ConfirmacaoSemToken_Devolve400()
     {
-        var controller = new AutenticacaoController(null!, null!, null!);
-        Assert.IsType<BadRequestResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
+        var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
+        Assert.IsType<BadRequestObjectResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
     }
 
     [Fact]
     public async Task F002_CriarViagemSemIdentidade_Devolve401()
     {
-        var controller = new ViagensController(null!, null!)
+        var controller = new ViagensController(null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
@@ -164,7 +174,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.IsType<UnauthorizedResult>(result);
     }
 
-    
+
     [Fact]
     public async Task F001_AtualizacaoPerfilValida_AtualizaDadosDoUtilizador()
     {
@@ -172,11 +182,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -202,7 +212,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new UtilizadoresController(db)
+        var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -241,16 +251,16 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var input = new AutenticacaoController.Registo(
             "Aluno Teste",
@@ -278,16 +288,16 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var inicio = DateTime.UtcNow;
 
@@ -331,7 +341,7 @@ public sealed class I051ValidacoesControllersTests
             fim.AddHours(24).AddSeconds(2));
     }
 
-    
+
     [Fact]
     public async Task UT007_TokenValidoConfirmaContaEImpedeReutilizacao()
     {
@@ -339,16 +349,16 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
 
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         // Criar uma conta pendente e obter o token enviado por email.
         var registo = new AutenticacaoController.Registo(
@@ -404,15 +414,15 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(
@@ -428,7 +438,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resultado = await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), CancellationToken.None);
 
-        Assert.IsType<BadRequestResult>(resultado);
+        Assert.IsType<BadRequestObjectResult>(resultado);
         Assert.False(utilizador.EmailConfirmado);
         Assert.Null(confirmacao.ConsumidoEm);
     }
@@ -440,15 +450,15 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(
@@ -478,15 +488,15 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
-        var controller = new AutenticacaoController(db, config, emailFake);
+        var controller = ServicosDeTeste.CriarAutenticacaoController(db, config, emailFake);
 
         var registo = await controller.Registar(
             new AutenticacaoController.Registo(
@@ -512,7 +522,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Null(confirmacao.ConsumidoEm);
     }
 
-    
+
     [Fact]
     public async Task F002_IndisponibilizarViagemValida_AlteraEstado()
     {
@@ -520,11 +530,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -536,13 +546,14 @@ public sealed class I051ValidacoesControllersTests
 
         var viagem = new Viagem
         {
+            DestinoLatitude = 41.55m,
             CondutorId = utilizador.Id,
             Origem = "Porto",
             Destino = "Braga",
             PartidaEm = DateTime.UtcNow.AddDays(2),
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Utilizadores.Add(utilizador);
@@ -560,7 +571,8 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, null!)
+        var mapas = new MapasFalsos().CriarServico(configurado: false);
+        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
@@ -576,10 +588,10 @@ public sealed class I051ValidacoesControllersTests
             .AsNoTracking()
             .SingleAsync(v => v.Id == viagem.Id);
 
-        Assert.Equal("Indisponibilizada", viagemAtualizada.Estado);
+        Assert.Equal(EstadoViagem.Indisponibilizada, viagemAtualizada.Estado);
     }
 
-    
+
     [Fact]
     public async Task F002_EditarViagemValida_AtualizaDataELugares()
     {
@@ -587,11 +599,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -608,10 +620,11 @@ public sealed class I051ValidacoesControllersTests
             CondutorId = utilizador.Id,
             Origem = "Porto",
             Destino = "Braga",
+            DestinoLatitude = 41.55m,
             PartidaEm = partidaOriginal,
             LugaresOferecidos = 3,
             LugaresDisponiveis = 3,
-            Estado = "Ativa"
+            Estado = EstadoViagem.Ativa
         };
 
         db.Utilizadores.Add(utilizador);
@@ -629,7 +642,8 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, null!)
+        var mapas = new MapasFalsos().CriarServico();
+        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
@@ -653,7 +667,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(novaPartida, viagemAtualizada.PartidaEm);
         Assert.Equal(4, viagemAtualizada.LugaresOferecidos);
         Assert.Equal(4, viagemAtualizada.LugaresDisponiveis);
-        Assert.Equal("Ativa", viagemAtualizada.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagemAtualizada.Estado);
     }
 
     [Fact]
@@ -663,11 +677,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -687,16 +701,18 @@ public sealed class I051ValidacoesControllersTests
             })
             .Build();
 
+        // A origem e o destino têm coordenadas diferentes (RF-F002-04, «mesmo local»).
+        var chamadas = 0;
         var handler = new FakeMapasHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(
-                    """
+                    $$"""
                     {
                     "features": [
                         {
                         "geometry": {
-                            "coordinates": [-8.61, 41.15]
+                            "coordinates": {{(chamadas++ % 2 == 0 ? "[-8.61, 41.15]" : "[-8.43, 41.55]")}}
                         },
                         "properties": {
                             "summary": {
@@ -718,7 +734,7 @@ public sealed class I051ValidacoesControllersTests
             BaseAddress = new Uri("https://example.test/")
         };
 
-        var mapas = new MapasService(httpClient, configuracao);
+        var mapas = new ServicoMapasRotas(httpClient, configuracao);
 
         var httpContext = new DefaultHttpContext();
         httpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -731,7 +747,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(db, mapas)
+        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
         {
             ControllerContext = new ControllerContext
             {
@@ -762,9 +778,9 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(3, viagem.LugaresDisponiveis);
         Assert.Equal(12m, viagem.DistanciaKm);
         Assert.Equal(30, viagem.DuracaoMinutos);
-        Assert.Equal("Ativa", viagem.Estado);
+        Assert.Equal(EstadoViagem.Ativa, viagem.Estado);
     }
- 
+
     [Fact]
     public async Task F003_PesquisaValida_FiltraOrdenaEPaginaResultados()
     {
@@ -772,11 +788,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -795,39 +811,42 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = partidaMaisTardia,
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = partidaMaisProxima,
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Lisboa",
                 Destino = "Braga",
                 PartidaEm = DateTime.UtcNow.AddDays(1),
                 LugaresOferecidos = 4,
                 LugaresDisponiveis = 4,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(
             "Porto",
@@ -842,7 +861,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.NotNull(resposta.Value);
 
         using var documento = JsonDocument.Parse(
-            JsonSerializer.Serialize(resposta.Value));
+            JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
 
@@ -858,20 +877,20 @@ public sealed class I051ValidacoesControllersTests
 
         Assert.Equal(
             "Porto",
-            primeiraViagem.GetProperty("Origem").GetString());
+            primeiraViagem.GetProperty("origem").GetString());
 
         Assert.Equal(
             "Braga",
-            primeiraViagem.GetProperty("Destino").GetString());
+            primeiraViagem.GetProperty("destino").GetString());
 
         var partidaDevolvida = primeiraViagem
-            .GetProperty("PartidaEm")
+            .GetProperty("partidaEm")
             .GetDateTime();
 
         Assert.Equal(partidaMaisProxima, partidaDevolvida);
     }
 
-    
+
     [Fact]
     public async Task F003_PesquisaSemFiltros_DevolveApenasViagensElegiveis()
     {
@@ -879,11 +898,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -901,55 +920,59 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = agora.AddDays(2),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Lisboa",
                 Destino = "Coimbra",
                 PartidaEm = agora.AddDays(3),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 0,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Aveiro",
                 Destino = "Porto",
                 PartidaEm = agora.AddDays(4),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Indisponibilizada"
+                Estado = EstadoViagem.Indisponibilizada
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Braga",
                 Destino = "Porto",
                 PartidaEm = agora.AddDays(-1),
                 LugaresOferecidos = 2,
                 LugaresDisponiveis = 2,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(null, null, null, null, 1, 20, CancellationToken.None);
 
         var resposta = Assert.IsType<OkObjectResult>(resultado);
 
-        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value));
+        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
         var viagens = dados.GetProperty("viagens");
@@ -958,13 +981,13 @@ public sealed class I051ValidacoesControllersTests
         Assert.Single(viagens.EnumerateArray());
         Assert.Equal(
             "Porto",
-            viagens[0].GetProperty("Origem").GetString());
+            viagens[0].GetProperty("origem").GetString());
         Assert.Equal(
             "Braga",
-            viagens[0].GetProperty("Destino").GetString());
+            viagens[0].GetProperty("destino").GetString());
     }
 
-    
+
     [Fact]
     public async Task F003_FiltroDataEHora_DevolveApenasPartidasCorrespondentes()
     {
@@ -972,11 +995,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -994,26 +1017,29 @@ public sealed class I051ValidacoesControllersTests
         db.Viagens.AddRange(
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = dataPartida.ToDateTime(new TimeOnly(10, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
                 PartidaEm = dataPartida.ToDateTime(new TimeOnly(15, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             },
             new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = "Porto",
                 Destino = "Braga",
@@ -1021,13 +1047,13 @@ public sealed class I051ValidacoesControllersTests
                     .ToDateTime(new TimeOnly(16, 0)),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             }
         );
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultado = await controller.Pesquisar(
             null, null, dataPartida, new TimeOnly(12, 0),
@@ -1035,7 +1061,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resposta = Assert.IsType<OkObjectResult>(resultado);
 
-        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value));
+        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
         var viagens = dados.GetProperty("viagens");
@@ -1045,7 +1071,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(
             new TimeOnly(15, 0),
             TimeOnly.FromDateTime(
-                viagens[0].GetProperty("PartidaEm").GetDateTime()));
+                viagens[0].GetProperty("partidaEm").GetDateTime()));
     }
 
     [Fact]
@@ -1055,11 +1081,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -1078,19 +1104,20 @@ public sealed class I051ValidacoesControllersTests
         {
             db.Viagens.Add(new Viagem
             {
+                DestinoLatitude = 41.55m,
                 CondutorId = utilizador.Id,
                 Origem = $"Origem {i}",
                 Destino = "Braga",
                 PartidaEm = agora.AddDays(i),
                 LugaresOferecidos = 3,
                 LugaresDisponiveis = 3,
-                Estado = "Ativa"
+                Estado = EstadoViagem.Ativa
             });
         }
 
         await db.SaveChangesAsync();
 
-        var controller = new PesquisaController(db);
+        var controller = ServicosDeTeste.CriarPesquisaController(db);
 
         var resultadoPagina1 = await controller.Pesquisar(null, null, null, null, 1, 2, CancellationToken.None);
 
@@ -1099,8 +1126,8 @@ public sealed class I051ValidacoesControllersTests
         var resposta1 = Assert.IsType<OkObjectResult>(resultadoPagina1);
         var resposta2 = Assert.IsType<OkObjectResult>(resultadoPagina2);
 
-        using var documento1 = JsonDocument.Parse(JsonSerializer.Serialize(resposta1.Value));
-        using var documento2 = JsonDocument.Parse(JsonSerializer.Serialize(resposta2.Value));
+        using var documento1 = JsonDocument.Parse(JsonSerializer.Serialize(resposta1.Value, JsonWeb));
+        using var documento2 = JsonDocument.Parse(JsonSerializer.Serialize(resposta2.Value, JsonWeb));
 
         var viagens1 = documento1.RootElement.GetProperty("viagens");
         var viagens2 = documento2.RootElement.GetProperty("viagens");
@@ -1112,17 +1139,17 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(2, viagens1.GetArrayLength());
         Assert.Equal(2, viagens2.GetArrayLength());
 
-        Assert.Equal("Origem 1", viagens1[0].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 2", viagens1[1].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 3", viagens2[0].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 4", viagens2[1].GetProperty("Origem").GetString());
-        
+        Assert.Equal("Origem 1", viagens1[0].GetProperty("origem").GetString());
+        Assert.Equal("Origem 2", viagens1[1].GetProperty("origem").GetString());
+        Assert.Equal("Origem 3", viagens2[0].GetProperty("origem").GetString());
+        Assert.Equal("Origem 4", viagens2[1].GetProperty("origem").GetString());
+
         var idsPagina1 = viagens1.EnumerateArray()
-            .Select(v => v.GetProperty("Id").GetString()!)
+            .Select(v => v.GetProperty("id").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
         var idsPagina2 = viagens2.EnumerateArray()
-            .Select(v => v.GetProperty("Id").GetString()!)
+            .Select(v => v.GetProperty("id").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
         Assert.Empty(idsPagina1.Intersect(idsPagina2));
@@ -1145,7 +1172,7 @@ public sealed class I051ValidacoesControllersTests
         }
     }
 
-    
+
     private sealed class FakeMapasHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

@@ -1,17 +1,26 @@
-using CampusCarpool.Application.Interfaces;
+using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Infrastructure.BackgroundJobs;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
-using CampusCarpool.Infrastructure.Services;
+using CampusCarpool.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CampusCarpool.Infrastructure.DependencyInjection;
 
+/// <summary>
+/// Registo da camada Infrastructure: base de dados, repositórios, integrações externas e trabalhadores em segundo plano.
+/// </summary>
 public static class InfrastructureServiceRegistration
 {
-    // Regista os serviços e o acesso à base de dados.
+    /// <summary>Regista os serviços e o acesso à base de dados.</summary>
+    /// <param name="services">Coleção de serviços da aplicação.</param>
+    /// <param name="configuration">Configuração; tem de ter <c>ConnectionStrings:DefaultConnection</c>.</param>
+    /// <returns>A mesma coleção, para encadear chamadas.</returns>
+    /// <exception cref="InvalidOperationException">Falta a connection string (a API não arranca sem ela).</exception>
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -22,18 +31,50 @@ public static class InfrastructureServiceRegistration
                 "ConnectionStrings:DefaultConnection não configurada.");
 
         // Configura o Entity Framework Core para SQL Server.
+        // As migrations não são aplicadas ao arrancar: aplicam-se à parte (dotnet ef database update ou script).
         services.AddDbContext<CampusCarpoolDbContext>(
             options => options.UseSqlServer(connection));
-            
+
+        // /health responde 503 se a BD não responder ou não tiver as tabelas (C1). Fica aqui porque a Api não conhece o contexto.
+        services.AddHealthChecks().AddDbContextCheck<CampusCarpoolDbContext>(customTestQuery: async (db, ct) =>
+        {
+            await db.Utilizadores.AnyAsync(ct);
+            return true;
+        });
 
         // Repositórios de mensagens e utilizadores.
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
         services.AddScoped<IRepositorioUtilizadores, RepositorioUtilizadores>();
+        services.AddScoped<IRepositorioLigacoesExternas, RepositorioLigacoesExternas>();
+        services.AddScoped<IRepositorioConfirmacoesConta, RepositorioConfirmacoesConta>();
+        services.AddScoped<IRepositorioTokensRevogados, RepositorioTokensRevogados>();
+
+        // Palavras-passe e tokens de acesso.
+        services.AddSingleton<IHashPalavraPasse, HashPalavraPasse>();
+        services.AddSingleton<IGeradorTokens, GeradorTokensJwt>();
+
+        // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
+        // O registo e o reenvio esperam pelo envio; os 100 s por omissão prenderiam o pedido e revelariam a conta pendente.
+        services.AddHttpClient<IServicoEmail, ServicoEmail>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        services.AddSingleton<CacheTokenFcm>();
+        // A fila tem um só leitor: sem limite curto, um FCM lento atrasaria todos os push seguintes (IN-05).
+        services.AddHttpClient<IServicoPush, ServicoPush>(client => client.Timeout = TimeSpan.FromSeconds(10));
+
+        // O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
+        services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            client.BaseAddress = new Uri(
+                config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
+                .TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(
+                config.GetValue("Maps:TimeoutSeconds", 10));
+        });
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
         services.AddScoped<IRepositorioDispositivos, RepositorioDispositivo>();
-        
+
 
         // Repositório de participações.
         services.AddScoped<IRepositorioParticipacoes, RepositorioParticipacoes>();
@@ -43,11 +84,11 @@ public static class InfrastructureServiceRegistration
 
 
 
-        // Serviço de avisos do condutor (I044).
-        services.AddScoped<IAvisoService, AvisoService>();
+        // Consultas do histórico pessoal (I049).
+        services.AddScoped<IRepositorioHistorico, RepositorioHistorico>();
 
-        // Serviço da unidade de trabalho.
-        services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
+        // Repositório de avisos do condutor (I044).
+        services.AddScoped<IRepositorioAvisos, RepositorioAvisos>();
 
         // Serviço da unidade de trabalho.
         services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalhoEfCore>();
@@ -56,14 +97,18 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IRepositorioAvaliacoes, RepositorioAvaliacoes>();
 
         // Fila partilhada de notificações push (I047).
+        // Singleton: a mesma fila em memória é partilhada por todos os pedidos e pelo trabalhador.
         services.AddSingleton<IFilaNotificacoesPush, FilaNotificacoesPush>();
 
         // Trabalhador que processa a fila em segundo plano (I047).
         services.AddHostedService<TrabalhadorNotificacoesPush>();
 
+        // Conclusão automática das viagens (I110, DEF-BE-009; UC-F002-05).
+        services.AddHostedService<TrabalhadorConclusaoViagens>();
+
         return services;
     }
 }
 
-     
+
 

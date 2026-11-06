@@ -3,23 +3,27 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using CampusCarpool.Application.Interfaces;
 using CampusCarpool.Domain.Entities;
+using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
 
+/// <summary>IT-033: histórico por HTTP (sem sessão 401, com sessão 200, isolamento entre utilizadores).</summary>
+/// <remarks>
+/// <c>WebApplicationFactory&lt;Program&gt;</c> com SQLite e autenticação de teste (<c>X-Test-User-Id</c>).
+/// </remarks>
 public sealed class HistoricoHttpIntegrationTests
 {
     private sealed class TestAuthHandler(
@@ -78,10 +82,10 @@ public sealed class HistoricoHttpIntegrationTests
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<CampusCarpoolDbContext>>();
-services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
+                services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
 
-services.AddDbContext<CampusCarpoolDbContext>(options =>
-    options.UseSqlite(connection));
+                services.AddDbContext<CampusCarpoolDbContext>(options =>
+                    options.UseBaseDeTeste(connection));
                 services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = "Test";
@@ -95,7 +99,7 @@ services.AddDbContext<CampusCarpoolDbContext>(options =>
 
                 scope.ServiceProvider
                     .GetRequiredService<CampusCarpoolDbContext>()
-                    .Database.EnsureCreated();
+                    .Database.CriarEsquemaDeTeste();
             });
         }
 
@@ -171,20 +175,22 @@ services.AddDbContext<CampusCarpoolDbContext>(options =>
             db.Viagens.AddRange(
                 new Viagem
                 {
+                    DestinoLatitude = 41.55m,
                     CondutorId = primeiroId,
                     Origem = "Porto",
                     Destino = "Braga",
-                    Estado = "Concluida",
+                    Estado = EstadoViagem.Concluida,
                     PartidaEm = DateTime.UtcNow.AddDays(-2),
                     LugaresOferecidos = 2,
                     LugaresDisponiveis = 2
                 },
                 new Viagem
                 {
+                    DestinoLatitude = 41.55m,
                     CondutorId = segundoId,
                     Origem = "Lisboa",
                     Destino = "Coimbra",
-                    Estado = "Concluida",
+                    Estado = EstadoViagem.Concluida,
                     PartidaEm = DateTime.UtcNow.AddDays(-2),
                     LugaresOferecidos = 2,
                     LugaresDisponiveis = 2
