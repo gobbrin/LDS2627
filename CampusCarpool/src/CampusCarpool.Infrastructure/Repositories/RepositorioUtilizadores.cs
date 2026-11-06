@@ -35,4 +35,10 @@ public sealed class RepositorioUtilizadores(CampusCarpoolDbContext context) : IR
     {
         return await context.Utilizadores.AnyAsync(u => u.Id == utilizadorId && u.EmailConfirmado, ct);
     }
+
+    /// <inheritdoc />
+    public async Task<Utilizador?> ObterParaAlterarAsync(Guid utilizadorId, CancellationToken ct)
+    {
+        return await context.Utilizadores.FirstOrDefaultAsync(u => u.Id == utilizadorId, ct);
+    }
 }

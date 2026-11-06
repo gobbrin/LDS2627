@@ -1,6 +1,7 @@
 using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Application.Historico;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
@@ -24,6 +25,7 @@ public static class ApplicationServiceRegistration
         // Gere a lógica de negócio das mensagens, notificações e participações.
         services.AddScoped<IAvisoService, AvisoService>();
         services.AddScoped<IHistoricoService, HistoricoService>();
+        services.AddScoped<IPerfilService, PerfilService>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();

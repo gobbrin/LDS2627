@@ -1,28 +1,17 @@
-
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using CampusCarpool.Application.Avaliacoes;
-using CampusCarpool.Domain.Entities;
-using CampusCarpool.Infrastructure.Persistence;
+using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CampusCarpool.Api.Controllers;
 
 /// <summary>Perfil do utilizador autenticado e perfil público de outros utilizadores (F001). Rotas em <c>/api/v1/utilizadores</c>.</summary>
-/// <remarks>Usa o <see cref="CampusCarpoolDbContext"/> diretamente.</remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/utilizadores")]
-public sealed class UtilizadoresController(
-    CampusCarpoolDbContext db) : ControllerBase
+public sealed class UtilizadoresController(IPerfilService perfis) : ControllerBase
 {
-    // P-27: número máximo de ligações externas por utilizador.
-    private const int MaximoLigacoes = 5;
-    private const int TamanhoMaximoUrl = 2048;
-    private const int TamanhoMaximoDescricao = 100;
-
     /// <summary>Corpo de <c>POST me/ligacoes</c>: URL absoluto http ou https e descrição opcional.</summary>
     public sealed record NovaLigacao(string Url, string? Descricao);
 
@@ -50,119 +39,33 @@ public sealed class UtilizadoresController(
     public async Task<IActionResult> ConsultarPerfil(
         CancellationToken ct)
     {
-        var id = ObterUtilizadorId();
-
-        if (id is null)
+        if (ObterUtilizadorId() is not Guid id)
             return Unauthorized();
 
-        var perfil = await db.Utilizadores
-            .AsNoTracking()
-            .Where(u => u.Id == id.Value)
-            .Select(u => new
-            {
-                u.Id,
-                u.Nome,
-                u.Email,
-                u.EmailConfirmado,
-                u.Curso,
-                u.Instituicao,
-                u.CriadoEm
-            })
-            .FirstOrDefaultAsync(ct);
-
-        if (perfil is null)
-            return NotFound(new
-            {
-                erro = "Utilizador não encontrado."
-            });
-
-        var ligacoes = await ListarLigacoes(id.Value, ct);
-
-        return Ok(new
-        {
-            perfil.Id,
-            perfil.Nome,
-            perfil.Email,
-            perfil.EmailConfirmado,
-            perfil.Curso,
-            perfil.Instituicao,
-            perfil.CriadoEm,
-            LigacoesExternas = ligacoes
-        });
+        return this.Responder(await perfis.ConsultarAsync(id, ct), perfil => Ok(perfil));
     }
-
-    private Task<List<LigacaoPerfil>> ListarLigacoes(Guid utilizadorId, CancellationToken ct) =>
-        db.LigacoesExternas
-            .AsNoTracking()
-            .Where(l => l.UtilizadorId == utilizadorId)
-            .OrderBy(l => l.Ordem)
-            .Select(l => new LigacaoPerfil(l.Id, l.Url, l.Descricao))
-            .ToListAsync(ct);
-
-    /// <summary>Ligação a um perfil externo, tal como aparece nos perfis.</summary>
-    public sealed record LigacaoPerfil(Guid Id, string Url, string? Descricao);
 
     /// <summary>Associa uma ligação a um perfil externo ao próprio perfil (RF-F001-15, RF-F001-16, P-27, DEF-BE-005).</summary>
     /// <returns>201 ligação criada; 400 URL que não seja absoluto http ou https, texto longo ou mais de 5 ligações; 401.</returns>
     [HttpPost("me/ligacoes")]
     public async Task<IActionResult> AdicionarLigacao([FromBody] NovaLigacao input, CancellationToken ct)
     {
-        var id = ObterUtilizadorId();
-
-        if (id is null)
+        if (ObterUtilizadorId() is not Guid id)
             return Unauthorized();
 
-        // RF-F001-16: recusa, por exemplo, javascript:alert(1) ou texto sem esquema.
-        var urlValido = input.Url?.Length <= TamanhoMaximoUrl
-            && Uri.TryCreate(input.Url.Trim(), UriKind.Absolute, out var url)
-            && (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps);
-
-        if (!urlValido || input.Descricao?.Trim().Length > TamanhoMaximoDescricao)
-            return BadRequest(new { erro = "Ligação inválida: indica um URL http ou https." });
-
-        var existentes = await db.LigacoesExternas
-            .Where(l => l.UtilizadorId == id.Value)
-            .Select(l => l.Ordem)
-            .ToListAsync(ct);
-
-        if (existentes.Count >= MaximoLigacoes)
-            return BadRequest(new { erro = "O perfil já tem o número máximo de ligações." });
-
-        var ligacao = new LigacaoExterna
-        {
-            UtilizadorId = id.Value,
-            Url = input.Url!.Trim(),
-            Descricao = string.IsNullOrWhiteSpace(input.Descricao) ? null : input.Descricao.Trim(),
-            Ordem = existentes.Count == 0 ? 1 : existentes.Max() + 1
-        };
-
-        db.LigacoesExternas.Add(ligacao);
-        await db.SaveChangesAsync(ct);
-
-        return StatusCode(
-            StatusCodes.Status201Created,
-            new LigacaoPerfil(ligacao.Id, ligacao.Url, ligacao.Descricao));
+        return this.Responder(
+            await perfis.AdicionarLigacaoAsync(id, input.Url, input.Descricao, ct),
+            ligacao => StatusCode(StatusCodes.Status201Created, ligacao));
     }
 
     /// <summary>Remove uma ligação do próprio perfil (RF-F001-22). 204; 401; 404 inexistente ou de outro utilizador.</summary>
     [HttpDelete("me/ligacoes/{ligacaoId:guid}")]
     public async Task<IActionResult> RemoverLigacao(Guid ligacaoId, CancellationToken ct)
     {
-        var id = ObterUtilizadorId();
-
-        if (id is null)
+        if (ObterUtilizadorId() is not Guid id)
             return Unauthorized();
 
-        var ligacao = await db.LigacoesExternas
-            .FirstOrDefaultAsync(l => l.Id == ligacaoId && l.UtilizadorId == id.Value, ct);
-
-        if (ligacao is null)
-            return NotFound(new { erro = "Ligação não encontrada." });
-
-        db.LigacoesExternas.Remove(ligacao);
-        await db.SaveChangesAsync(ct);
-
-        return NoContent();
+        return this.Responder(await perfis.RemoverLigacaoAsync(id, ligacaoId, ct), () => NoContent());
     }
 
     /// <summary>
@@ -174,38 +77,12 @@ public sealed class UtilizadoresController(
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> ConsultarPerfilPublico(
         Guid id,
-        [FromServices] IAvaliacaoService avaliacoes,
         CancellationToken ct)
     {
         if (ObterUtilizadorId() is null)
             return Unauthorized();
 
-        var utilizador = await db.Utilizadores
-            .AsNoTracking()
-            .Where(u => u.Id == id)
-            .Select(u => new { u.Id, u.Nome, u.Curso, u.Instituicao })
-            .FirstOrDefaultAsync(ct);
-
-        if (utilizador is null)
-            return NotFound(new
-            {
-                erro = "Utilizador não encontrado."
-            });
-
-        var ligacoes = await ListarLigacoes(id, ct);
-
-        var resumo = await avaliacoes.ConsultarAsync(id, ct);
-
-        return Ok(new
-        {
-            utilizador.Id,
-            utilizador.Nome,
-            utilizador.Curso,
-            utilizador.Instituicao,
-            LigacoesExternas = ligacoes,
-            ClassificacaoMedia = resumo.Media,
-            TotalAvaliacoes = resumo.Total
-        });
+        return this.Responder(await perfis.ConsultarPublicoAsync(id, ct), perfil => Ok(perfil));
     }
 
     // PUT /api/v1/utilizadores/me
@@ -220,50 +97,11 @@ public sealed class UtilizadoresController(
         [FromBody] AtualizarPerfil input,
         CancellationToken ct)
     {
-        var id = ObterUtilizadorId();
-
-        if (id is null)
+        if (ObterUtilizadorId() is not Guid id)
             return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(input.Nome)
-            || input.Nome.Trim().Length > 100
-            || input.Curso?.Trim().Length > 150
-            || input.Instituicao?.Trim().Length > 150)
-        {
-            return BadRequest(new
-            {
-                erro = "Dados de perfil inválidos."
-            });
-        }
-
-        var utilizador = await db.Utilizadores
-            .FirstOrDefaultAsync(u => u.Id == id.Value, ct);
-
-        if (utilizador is null)
-            return NotFound(new
-            {
-                erro = "Utilizador não encontrado."
-            });
-
-        utilizador.Nome = input.Nome.Trim();
-        utilizador.Curso = string.IsNullOrWhiteSpace(input.Curso)
-            ? null
-            : input.Curso.Trim();
-        utilizador.Instituicao =
-            string.IsNullOrWhiteSpace(input.Instituicao)
-                ? null
-                : input.Instituicao.Trim();
-
-        await db.SaveChangesAsync(ct);
-
-        return Ok(new
-        {
-            utilizador.Id,
-            utilizador.Nome,
-            utilizador.Email,
-            utilizador.EmailConfirmado,
-            utilizador.Curso,
-            utilizador.Instituicao
-        });
+        return this.Responder(
+            await perfis.AtualizarAsync(id, input.Nome, input.Curso, input.Instituicao, ct),
+            perfil => Ok(perfil));
     }
 }

@@ -105,7 +105,7 @@ public sealed class ApiIntegrationTests
         var user = new Utilizador { Email = "a@estg.ipp.pt", Nome = "A", PasswordHash = "HASH_SECRETO" };
         fixture.Db.Utilizadores.Add(user);
         await fixture.Db.SaveChangesAsync();
-        var controller = new UtilizadoresController(fixture.Db);
+        var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(fixture.Db));
         Authenticate(controller, user.Id);
         var result = Assert.IsType<OkObjectResult>(await controller.ConsultarPerfil(default));
         Assert.DoesNotContain("PasswordHash", System.Text.Json.JsonSerializer.Serialize(result.Value));
@@ -119,7 +119,7 @@ public sealed class ApiIntegrationTests
         var user = new Utilizador { Email = "a@estg.ipp.pt", Nome = "Antes", PasswordHash = "HASH" };
         fixture.Db.Utilizadores.Add(user);
         await fixture.Db.SaveChangesAsync();
-        var controller = new UtilizadoresController(fixture.Db);
+        var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(fixture.Db));
         Authenticate(controller, user.Id);
         Assert.IsType<OkObjectResult>(await controller.Atualizar(new("Depois", "EI", "ESTG"), default));
         var persisted = await fixture.Db.Utilizadores.FindAsync(user.Id);
@@ -132,7 +132,7 @@ public sealed class ApiIntegrationTests
     public async Task CT022_NomeVazio_Devolve400()
     {
         using var fixture = new DatabaseFixture();
-        var controller = new UtilizadoresController(fixture.Db);
+        var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(fixture.Db));
         Authenticate(controller, Guid.NewGuid());
         Assert.IsType<BadRequestObjectResult>(await controller.Atualizar(new(" ", null, null), default));
     }

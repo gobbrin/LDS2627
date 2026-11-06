@@ -127,26 +127,26 @@ public sealed class EndpointsAdditionalTests
     [Fact]
     public async Task PerfilSemIdentidade_Devolve401()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db);
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db));
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         Assert.IsType<UnauthorizedResult>(await c.ConsultarPerfil(default));
     }
     [Fact]
     public async Task PerfilUtilizadorInexistente_Devolve404()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<NotFoundObjectResult>(await c.ConsultarPerfil(default));
     }
     [Fact]
     public async Task AtualizarPerfilInexistente_Devolve404()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<NotFoundObjectResult>(await c.Atualizar(new("Novo", null, null), default));
     }
     [Fact]
     public async Task AtualizarPerfilNomeMuitoLongo_Devolve400()
     {
-        using var f = new Fixture(); var c = new UtilizadoresController(f.Db); Auth(c, Guid.NewGuid());
+        using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
         Assert.IsType<BadRequestObjectResult>(await c.Atualizar(new(new string('A', 101), null, null), default));
     }
     [Fact]

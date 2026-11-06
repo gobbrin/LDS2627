@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -34,7 +35,7 @@ public sealed class LigacoesExternasTests : IDisposable
         ligacao.Dispose();
     }
 
-    private UtilizadoresController Controller(Guid utilizadorId) => new(db)
+    private UtilizadoresController Controller(Guid utilizadorId) => new(ServicosDeTeste.CriarPerfil(db))
     {
         ControllerContext = new ControllerContext
         {
@@ -55,7 +56,7 @@ public sealed class LigacoesExternasTests : IDisposable
         Assert.Equal(201, Assert.IsType<ObjectResult>(resultado).StatusCode);
 
         var perfil = Assert.IsType<OkObjectResult>(await Controller(dono.Id).ConsultarPerfil(default)).Value!;
-        var ligacoes = Assert.IsType<List<UtilizadoresController.LigacaoPerfil>>(
+        var ligacoes = Assert.IsType<List<LigacaoPerfil>>(
             perfil.GetType().GetProperty("LigacoesExternas")!.GetValue(perfil));
         var ligacaoGuardada = Assert.Single(ligacoes);
         Assert.Equal("https://github.com/exemplo", ligacaoGuardada.Url);
@@ -86,7 +87,7 @@ public sealed class LigacoesExternasTests : IDisposable
     [Fact]
     public async Task I110_57_RemoverLigacao_SoODono()
     {
-        var criada = Assert.IsType<UtilizadoresController.LigacaoPerfil>(
+        var criada = Assert.IsType<LigacaoPerfil>(
             Assert.IsType<ObjectResult>(await Controller(dono.Id).AdicionarLigacao(new("https://exemplo.pt", null), default)).Value);
 
         Assert.IsType<NotFoundObjectResult>(await Controller(outro.Id).RemoverLigacao(criada.Id, default));

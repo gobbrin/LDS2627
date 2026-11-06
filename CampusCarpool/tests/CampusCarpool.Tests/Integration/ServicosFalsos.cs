@@ -1,8 +1,10 @@
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Application.Comunicacao;
 using CampusCarpool.Application.Historico;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
@@ -169,6 +171,12 @@ public static class ServicosDeTeste
 
     public static SimulacoesController CriarSimulacoesController(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
         new(CriarParticipacoes(db, mapas));
+
+    public static PerfilService CriarPerfil(CampusCarpoolDbContext db) => new(
+        new RepositorioUtilizadores(db),
+        new RepositorioLigacoesExternas(db),
+        new AvaliacaoService(new RepositorioAvaliacoes(db)),
+        new UnidadeDeTrabalhoEfCore(db));
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,

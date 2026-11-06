@@ -5,7 +5,7 @@ namespace CampusCarpool.Domain.Entities;
 /// </summary>
 /// <remarks>
 /// O URL tem de ser absoluto, com esquema http ou https; cada utilizador tem até 5 ligações (P-27).
-/// As regras estão no <c>UtilizadoresController</c>.
+/// As regras estão no <c>PerfilService</c>.
 /// </remarks>
 public sealed class LigacaoExterna
 {

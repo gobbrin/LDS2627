@@ -208,7 +208,7 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new UtilizadoresController(db)
+        var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(db))
         {
             ControllerContext = new ControllerContext
             {

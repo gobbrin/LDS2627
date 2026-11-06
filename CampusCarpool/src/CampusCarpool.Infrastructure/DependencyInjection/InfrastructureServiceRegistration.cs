@@ -39,6 +39,7 @@ public static class InfrastructureServiceRegistration
         // Repositórios de mensagens e utilizadores.
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
         services.AddScoped<IRepositorioUtilizadores, RepositorioUtilizadores>();
+        services.AddScoped<IRepositorioLigacoesExternas, RepositorioLigacoesExternas>();
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();

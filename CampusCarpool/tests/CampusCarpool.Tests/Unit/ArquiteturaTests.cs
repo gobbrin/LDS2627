@@ -30,7 +30,6 @@ public class ArquiteturaTests
     private static readonly string[] ApiAindaComDbContext =
     [
         "AutenticacaoController",
-        "UtilizadoresController",
         "ViagensController",
     ];
 

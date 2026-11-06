@@ -1,11 +1,9 @@
 using System.Security.Claims;
 using System.Text.Json;
 using CampusCarpool.Api.Controllers;
-using CampusCarpool.Application.Avaliacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
-using CampusCarpool.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -51,7 +49,7 @@ public sealed class PerfilPublicoTests : IDisposable
         return utilizador;
     }
 
-    private UtilizadoresController CriarController(Guid utilizadorId) => new(_db)
+    private UtilizadoresController CriarController(Guid utilizadorId) => new(ServicosDeTeste.CriarPerfil(_db))
     {
         ControllerContext = new ControllerContext
         {
@@ -65,7 +63,7 @@ public sealed class PerfilPublicoTests : IDisposable
 
     private Task<IActionResult> ConsultarAsync(Guid quem, Guid perfil) =>
         CriarController(quem).ConsultarPerfilPublico(
-            perfil, new AvaliacaoService(new RepositorioAvaliacoes(_db)), default);
+            perfil, default);
 
     [Fact]
     public async Task I110_20_PerfilPublico_DevolveCamposDeP10ComMedia()
