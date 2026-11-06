@@ -49,15 +49,6 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
 
         return this.Responder(
             await rotas.ConsultarDaViagemAsync(viagemId, utilizadorId, ct),
-            rota => Ok(new
-            {
-                viagemId = rota.ViagemId,
-                participacoesAceites = rota.ParticipacoesAceites,
-                rota.PontosOrdenados,
-                rota.Segmentos,
-                rota.DistanciaTotalKm,
-                rota.DuracaoTotalMinutos,
-                rota.EstimativaCusto
-            }));
+            rota => Ok(rota));
     }
 }

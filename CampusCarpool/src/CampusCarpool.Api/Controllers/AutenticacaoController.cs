@@ -36,7 +36,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     public async Task<IActionResult> Registar(Registo input, CancellationToken ct) =>
         this.Responder(
             await autenticacao.RegistarAsync(input.Nome, input.Email, input.Password, ct),
-            () => Accepted(new { mensagem = "Verifica o email académico para confirmar a conta." }));
+            () => Accepted(new RespostaMensagem("Verifica o email académico para confirmar a conta.")));
 
     /// <summary>Envia uma nova ligação de confirmação a uma conta por confirmar (RF-F001-21).</summary>
     /// <remarks>
@@ -48,7 +48,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     public async Task<IActionResult> ReenviarConfirmacaoEmail(ReenviarConfirmacao input, CancellationToken ct) =>
         this.Responder(
             await autenticacao.ReenviarConfirmacaoAsync(input.Email, ct),
-            () => Accepted(new { mensagem = MensagemReenvio }));
+            () => Accepted(new RespostaMensagem(MensagemReenvio)));
 
     /// <summary>Confirma a conta com o token da ligação do email (RF-F001-07, RF-F001-08).</summary>
     /// <remarks>Ver <see cref="IAutenticacaoService.ConfirmarContaAsync"/>.</remarks>
@@ -77,7 +77,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
 
         return this.Responder(
             await autenticacao.IniciarSessaoAsync(input.Email, input.Password, ct),
-            token => Ok(new { accessToken = token.AccessToken, expiresIn = token.ExpiresIn }));
+            token => Ok(token));
     }
 
     /// <summary>
@@ -107,5 +107,5 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// <summary>Devolve o id do utilizador autenticado (útil para o frontend validar o token). 200; 401 sem sessão.</summary>
     /// <remarks>O perfil completo está em <c>GET /api/v1/utilizadores/me</c>.</remarks>
     [Authorize, HttpGet("me")]
-    public IActionResult Me() => Ok(new { id = User.TextoDoId() });
+    public IActionResult Me() => Ok(new SessaoAtual(User.TextoDoId()));
 }

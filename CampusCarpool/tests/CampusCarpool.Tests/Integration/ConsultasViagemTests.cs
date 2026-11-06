@@ -130,7 +130,7 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal(1, Campo<int>(detalhes, "PontosAdicionais"));
 
         var pesquisa = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar(null, null, null, null)).Value!;
-        var resultado = Assert.Single((System.Collections.IEnumerable)pesquisa.GetType().GetProperty("viagens")!.GetValue(pesquisa)!);
+        var resultado = Assert.Single(Assert.IsType<ResultadoPesquisa>(pesquisa).Viagens);
         Assert.Equal(condutorDetalhes, Campo<CondutorViagem>(resultado, "Condutor"));
         Assert.Equal(1, Campo<int>(resultado, "PontosAdicionais"));
     }
@@ -205,7 +205,7 @@ public sealed class ConsultasViagemTests : IDisposable
 
         var resposta = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar(origem, destino, null, null)).Value!;
 
-        Assert.Equal(1, Campo<int>(resposta, "total"));
+        Assert.Equal(1, Campo<int>(resposta, "Total"));
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class ConsultasViagemTests : IDisposable
 
         var resposta = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(db).Pesquisar("guimaraes", null, null, null)).Value!;
 
-        Assert.Equal(1, Campo<int>(resposta, "total"));
+        Assert.Equal(1, Campo<int>(resposta, "Total"));
     }
 
     [Fact]

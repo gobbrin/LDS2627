@@ -95,15 +95,7 @@ public sealed class AutenticacaoFluxoIntegrationTests
 
         var resposta = Assert.IsType<OkObjectResult>(login);
 
-        var json = System.Text.Json.JsonSerializer.Serialize(
-            resposta.Value);
-
-        using var documento =
-            System.Text.Json.JsonDocument.Parse(json);
-
-        var tokenJwt = documento.RootElement
-            .GetProperty("accessToken")
-            .GetString();
+        var tokenJwt = Assert.IsType<TokenAcesso>(resposta.Value).AccessToken;
 
         Assert.False(string.IsNullOrWhiteSpace(tokenJwt));
 

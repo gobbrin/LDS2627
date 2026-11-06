@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
@@ -210,7 +211,7 @@ public sealed class ApiIntegrationTests
         var controller = ServicosDeTeste.CriarPesquisaController(fixture.Db);
         var result = Assert.IsType<OkObjectResult>(await controller.Pesquisar(
             null, null, null, null, 1, 20, default));
-        var total = result.Value!.GetType().GetProperty("total")!.GetValue(result.Value);
+        var total = Assert.IsType<ResultadoPesquisa>(result.Value).Total;
         Assert.Equal(1, total);
     }
 

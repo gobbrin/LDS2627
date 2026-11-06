@@ -36,15 +36,6 @@ public sealed class PedidosController(IParticipacaoService participacoes) : Cont
 
         return this.Responder(
             await participacoes.CriarPedidoAsync(input.ViagemId, passageiroId, input.Recolha, input.Destino, ct),
-            pedido => StatusCode(StatusCodes.Status201Created, new
-            {
-                pedido.Id,
-                pedido.ViagemId,
-                pedido.PassageiroId,
-                pedido.Estado,
-                pedido.Recolha,
-                pedido.Destino,
-                pedido.CriadoEm
-            }));
+            pedido => StatusCode(StatusCodes.Status201Created, pedido));
     }
 }

@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Domain.Entities;
@@ -35,8 +34,8 @@ public sealed class Participacao
     /// <summary>Navegação para o passageiro.</summary>
     public Utilizador Passageiro { get; set; } = null!;
 
-    /// <summary>Estado do pedido; serializado em JSON como texto (<c>"Pendente"</c>, <c>"Aceite"</c>, ...).</summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))] public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente;
+    /// <summary>Estado do pedido.</summary>
+    public EstadoParticipacao Estado { get; set; } = EstadoParticipacao.Pendente;
 
     /// <summary>Ponto de recolha indicado pelo passageiro (texto); <c>null</c> significa a origem da viagem (P-20).</summary>
     public string? Recolha { get; set; }

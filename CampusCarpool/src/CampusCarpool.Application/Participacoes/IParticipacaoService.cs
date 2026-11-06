@@ -1,7 +1,23 @@
 using CampusCarpool.Application.Comum;
-using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Participacoes;
+
+/// <summary>Pedido de participação acabado de criar.</summary>
+/// <param name="Id">Identificador da participação.</param>
+/// <param name="ViagemId">Viagem.</param>
+/// <param name="PassageiroId">Passageiro.</param>
+/// <param name="Estado">Nome do estado (<c>Pendente</c>).</param>
+/// <param name="Recolha">Ponto de recolha; <c>null</c> segue a origem da viagem (P-20).</param>
+/// <param name="Destino">Ponto de destino; <c>null</c> segue o destino da viagem (P-20).</param>
+/// <param name="CriadoEm">Data do pedido.</param>
+public sealed record PedidoCriado(
+    Guid Id,
+    Guid ViagemId,
+    Guid PassageiroId,
+    string Estado,
+    string? Recolha,
+    string? Destino,
+    DateTime CriadoEm);
 
 /// <summary>Resultado da simulação: rota original e simulada (distância em km, duração em minutos, ordem dos pontos) e o desvio.</summary>
 public sealed record SimulacaoPedido(
@@ -41,7 +57,7 @@ public interface IParticipacaoService
     /// <param name="destino">Ponto de destino; <c>null</c> segue o destino da viagem (P-20).</param>
     /// <param name="ct">Cancelamento.</param>
     /// <returns>O pedido criado, ou o erro que explica a recusa.</returns>
-    Task<Resultado<Participacao>> CriarPedidoAsync(
+    Task<Resultado<PedidoCriado>> CriarPedidoAsync(
         Guid viagemId,
         Guid passageiroId,
         string? recolha,

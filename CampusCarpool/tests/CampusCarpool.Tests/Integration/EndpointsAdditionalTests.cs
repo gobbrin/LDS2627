@@ -3,6 +3,7 @@ using System.Text.Json;
 using CampusCarpool.Api.Controllers;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
@@ -79,7 +80,7 @@ public sealed class EndpointsAdditionalTests
     private static int Total(IActionResult result)
     {
         var ok = Assert.IsType<OkObjectResult>(result);
-        return (int)ok.Value!.GetType().GetProperty("total")!.GetValue(ok.Value)!;
+        return Assert.IsType<ResultadoPesquisa>(ok.Value).Total;
     }
 
     [Fact]
@@ -289,7 +290,7 @@ public sealed class EndpointsAdditionalTests
         var result = Assert.IsType<OkObjectResult>(await ServicosDeTeste.CriarPesquisaController(f.Db).Pesquisar(
             null, null, null, null, 2, 1, default));
         Assert.Equal(2, Total(result));
-        var items = (System.Collections.IEnumerable)result.Value!.GetType().GetProperty("viagens")!.GetValue(result.Value)!;
+        var items = Assert.IsType<ResultadoPesquisa>(result.Value).Viagens;
         Assert.Single(items.Cast<object>());
     }
     [Fact]

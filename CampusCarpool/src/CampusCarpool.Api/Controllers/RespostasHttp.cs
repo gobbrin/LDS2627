@@ -18,7 +18,7 @@ internal static class RespostasHttp
     /// <summary>Resposta de um erro: com corpo <c>{ erro }</c> se tiver mensagem, sem corpo se não tiver.</summary>
     public static IActionResult RespostaDeErro(this ControllerBase controller, Erro erro)
     {
-        var corpo = erro.Mensagem is null ? null : new { erro = erro.Mensagem };
+        var corpo = erro.Mensagem is null ? null : new CorpoErro(erro.Mensagem);
 
         return erro.Tipo switch
         {

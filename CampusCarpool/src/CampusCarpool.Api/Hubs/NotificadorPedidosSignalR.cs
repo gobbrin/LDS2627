@@ -3,11 +3,15 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace CampusCarpool.Api.Hubs;
 
+/// <summary>Corpo dos eventos em tempo real: o cliente vai buscar os detalhes por HTTP.</summary>
+/// <param name="PedidoId">Pedido a que o evento se refere.</param>
+public sealed record EventoPedido(Guid PedidoId);
+
 /// <summary>Implementação SignalR de <see cref="INotificadorPedidosTempoReal"/>: envia eventos pelo <see cref="PedidosHub"/>.</summary>
 /// <remarks>
 /// Cada evento vai para todas as ligações do utilizador (<c>Clients.User</c>, identificado pelo
 /// <see cref="PedidosUserIdProvider"/>), com o nome <c>PedidoRecebido</c>, <c>PedidoAceite</c> ou
-/// <c>PedidoRejeitado</c> e o corpo <c>{ pedidoId }</c>. O cliente vai buscar os detalhes por HTTP.
+/// <c>PedidoRejeitado</c> e o corpo <see cref="EventoPedido"/>.
 /// Uma falha de envio só fica no log: a operação que a originou já está gravada e não é desfeita.
 /// </remarks>
 public sealed class NotificadorPedidosSignalR(
@@ -52,7 +56,7 @@ public sealed class NotificadorPedidosSignalR(
                 .User(destinatarioId.ToString("D"))
                 .SendAsync(
                     nomeEvento,
-                    new { PedidoId = pedidoId },
+                    new EventoPedido(pedidoId),
                     ct);
         }
         catch (Exception ex)

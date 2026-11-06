@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +22,9 @@ public sealed class PesquisaController(IPesquisaService pesquisa) : ControllerBa
         [FromQuery] int tamanho = 20, CancellationToken ct = default)
     {
         if (pagina < 1 || tamanho is < 1 or > 100 || (long)(pagina - 1) * tamanho > int.MaxValue)
-            return BadRequest(new { erro = "Paginação inválida." });
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Paginação inválida."));
 
-        var resultado = await pesquisa.PesquisarAsync(
-            new FiltroPesquisaViagens(origem, destino, data, hora, pagina, tamanho), ct);
-
-        return Ok(new
-        {
-            total = resultado.Total,
-            pagina = resultado.Pagina,
-            tamanho = resultado.Tamanho,
-            viagens = resultado.Viagens
-        });
+        return Ok(await pesquisa.PesquisarAsync(
+            new FiltroPesquisaViagens(origem, destino, data, hora, pagina, tamanho), ct));
     }
 }

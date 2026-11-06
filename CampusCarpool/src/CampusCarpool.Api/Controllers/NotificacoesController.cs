@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         if (pagina < 1 || tamanhoPagina is < 1 or > 100)
-            return BadRequest(new { erro = "Parâmetros de paginação inválidos." });
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Parâmetros de paginação inválidos."));
         return Ok(await notificacaoService.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct));
     }
 
@@ -37,6 +38,6 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         var quantidade = await notificacaoService.MarcarTodasComoLidasAsync(utilizadorId, ct);
-        return Ok(new { marcadas = quantidade });
+        return Ok(new NotificacoesMarcadas(quantidade));
     }
 }

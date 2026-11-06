@@ -23,6 +23,9 @@ namespace CampusCarpool.Tests.Unit;
 /// </remarks>
 public sealed class I051ValidacoesControllersTests
 {
+    // O mesmo formato da API: nomes em camelCase.
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
+
     [Theory]
     [InlineData("", "aluno@estg.ipp.pt", "password123456")]
     [InlineData("Aluno", "aluno@gmail.com", "password123456")]
@@ -99,11 +102,11 @@ public sealed class I051ValidacoesControllersTests
         var tipoResposta = resposta.Value.GetType();
 
         var token = tipoResposta
-            .GetProperty("accessToken")?
+            .GetProperty("AccessToken")?
             .GetValue(resposta.Value) as string;
 
         var expiracao = tipoResposta
-            .GetProperty("expiresIn")?
+            .GetProperty("ExpiresIn")?
             .GetValue(resposta.Value);
 
         Assert.False(string.IsNullOrWhiteSpace(token));
@@ -853,7 +856,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.NotNull(resposta.Value);
 
         using var documento = JsonDocument.Parse(
-            JsonSerializer.Serialize(resposta.Value));
+            JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
 
@@ -869,14 +872,14 @@ public sealed class I051ValidacoesControllersTests
 
         Assert.Equal(
             "Porto",
-            primeiraViagem.GetProperty("Origem").GetString());
+            primeiraViagem.GetProperty("origem").GetString());
 
         Assert.Equal(
             "Braga",
-            primeiraViagem.GetProperty("Destino").GetString());
+            primeiraViagem.GetProperty("destino").GetString());
 
         var partidaDevolvida = primeiraViagem
-            .GetProperty("PartidaEm")
+            .GetProperty("partidaEm")
             .GetDateTime();
 
         Assert.Equal(partidaMaisProxima, partidaDevolvida);
@@ -960,7 +963,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resposta = Assert.IsType<OkObjectResult>(resultado);
 
-        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value));
+        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
         var viagens = dados.GetProperty("viagens");
@@ -969,10 +972,10 @@ public sealed class I051ValidacoesControllersTests
         Assert.Single(viagens.EnumerateArray());
         Assert.Equal(
             "Porto",
-            viagens[0].GetProperty("Origem").GetString());
+            viagens[0].GetProperty("origem").GetString());
         Assert.Equal(
             "Braga",
-            viagens[0].GetProperty("Destino").GetString());
+            viagens[0].GetProperty("destino").GetString());
     }
 
 
@@ -1046,7 +1049,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resposta = Assert.IsType<OkObjectResult>(resultado);
 
-        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value));
+        using var documento = JsonDocument.Parse(JsonSerializer.Serialize(resposta.Value, JsonWeb));
 
         var dados = documento.RootElement;
         var viagens = dados.GetProperty("viagens");
@@ -1056,7 +1059,7 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(
             new TimeOnly(15, 0),
             TimeOnly.FromDateTime(
-                viagens[0].GetProperty("PartidaEm").GetDateTime()));
+                viagens[0].GetProperty("partidaEm").GetDateTime()));
     }
 
     [Fact]
@@ -1110,8 +1113,8 @@ public sealed class I051ValidacoesControllersTests
         var resposta1 = Assert.IsType<OkObjectResult>(resultadoPagina1);
         var resposta2 = Assert.IsType<OkObjectResult>(resultadoPagina2);
 
-        using var documento1 = JsonDocument.Parse(JsonSerializer.Serialize(resposta1.Value));
-        using var documento2 = JsonDocument.Parse(JsonSerializer.Serialize(resposta2.Value));
+        using var documento1 = JsonDocument.Parse(JsonSerializer.Serialize(resposta1.Value, JsonWeb));
+        using var documento2 = JsonDocument.Parse(JsonSerializer.Serialize(resposta2.Value, JsonWeb));
 
         var viagens1 = documento1.RootElement.GetProperty("viagens");
         var viagens2 = documento2.RootElement.GetProperty("viagens");
@@ -1123,17 +1126,17 @@ public sealed class I051ValidacoesControllersTests
         Assert.Equal(2, viagens1.GetArrayLength());
         Assert.Equal(2, viagens2.GetArrayLength());
 
-        Assert.Equal("Origem 1", viagens1[0].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 2", viagens1[1].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 3", viagens2[0].GetProperty("Origem").GetString());
-        Assert.Equal("Origem 4", viagens2[1].GetProperty("Origem").GetString());
+        Assert.Equal("Origem 1", viagens1[0].GetProperty("origem").GetString());
+        Assert.Equal("Origem 2", viagens1[1].GetProperty("origem").GetString());
+        Assert.Equal("Origem 3", viagens2[0].GetProperty("origem").GetString());
+        Assert.Equal("Origem 4", viagens2[1].GetProperty("origem").GetString());
 
         var idsPagina1 = viagens1.EnumerateArray()
-            .Select(v => v.GetProperty("Id").GetString()!)
+            .Select(v => v.GetProperty("id").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
         var idsPagina2 = viagens2.EnumerateArray()
-            .Select(v => v.GetProperty("Id").GetString()!)
+            .Select(v => v.GetProperty("id").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
         Assert.Empty(idsPagina1.Intersect(idsPagina2));

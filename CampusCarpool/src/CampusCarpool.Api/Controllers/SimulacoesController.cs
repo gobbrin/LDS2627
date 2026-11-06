@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Participacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +29,7 @@ public sealed class SimulacoesController(IParticipacaoService participacoes) : C
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
         if (input is null || input.PedidoId == Guid.Empty)
-            return BadRequest(new { erro = "Indica um pedidoId válido." });
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica um pedidoId válido."));
 
         return this.Responder(
             await participacoes.SimularAsync(viagemId, input.PedidoId, utilizadorId, ct),

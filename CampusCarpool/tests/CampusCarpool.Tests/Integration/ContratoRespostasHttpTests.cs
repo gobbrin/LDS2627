@@ -195,7 +195,7 @@ public sealed class ContratoRespostasHttpTests : IDisposable
             new { viagemId, recolha = "Paços de Ferreira", destino = (string?)null });
 
         AssertCampos(pedido, "id", "viagemId", "passageiroId", "estado", "recolha", "destino", "criadoEm");
-        Assert.Equal(JsonValueKind.Number, pedido.GetProperty("estado").ValueKind);
+        Assert.Equal("Pendente", pedido.GetProperty("estado").GetString());
 
         using var aceite = await EnviarAsync(HttpMethod.Post, $"/api/v1/participacoes/{pedido.GetProperty("id").GetString()}/aceitar", condutor.Id);
         Assert.Equal(HttpStatusCode.NoContent, aceite.StatusCode);

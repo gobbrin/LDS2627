@@ -63,7 +63,7 @@ public sealed class ParticipacaoService(
         || mesmoLocal(destino, origemViagem);
 
     /// <inheritdoc />
-    public async Task<Resultado<Participacao>> CriarPedidoAsync(
+    public async Task<Resultado<PedidoCriado>> CriarPedidoAsync(
         Guid viagemId,
         Guid passageiroId,
         string? recolha,
@@ -193,7 +193,14 @@ public sealed class ParticipacaoService(
         await notificacaoService.EnviarPushAsync(notificacao, CancellationToken.None);
         await notificadorPedidosTempoReal.PedidoRecebidoAsync(viagem.CondutorId, pedido.Id, CancellationToken.None);
 
-        return pedido;
+        return new PedidoCriado(
+            pedido.Id,
+            pedido.ViagemId,
+            pedido.PassageiroId,
+            pedido.Estado.ToString(),
+            pedido.Recolha,
+            pedido.Destino,
+            pedido.CriadoEm);
     }
 
     /// <inheritdoc />
