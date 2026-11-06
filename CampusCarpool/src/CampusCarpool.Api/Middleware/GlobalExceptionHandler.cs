@@ -10,7 +10,7 @@ namespace CampusCarpool.Api.Middleware;
 /// <remarks>
 /// <see cref="RegraDeNegocioException"/> → 409 (aviso no log); qualquer outra → 500 (erro no log, com a exceção).
 /// Os textos são genéricos: a mensagem e a stack trace nunca vão para o cliente. Outras exceções conhecidas
-/// (<c>DbUpdateConcurrencyException</c>, <c>ArgumentException</c>, ...) também dão 500 se chegarem aqui; a tabela
+/// (<c>ArgumentException</c>, ...) também dão 500 se chegarem aqui; a tabela
 /// única exceção → código está por fazer (DC-41, fica para m4).
 /// </remarks>
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetails) : IExceptionHandler

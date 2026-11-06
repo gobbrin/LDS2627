@@ -4,8 +4,8 @@ namespace CampusCarpool.Domain.Entities;
 /// Conta de um membro da comunidade académica (F001). O mesmo utilizador pode ser condutor e passageiro.
 /// </summary>
 /// <remarks>
-/// O registo só aceita emails académicos (P-01; hoje fixo em <c>@estg.ipp.pt</c> no
-/// <c>AutenticacaoController</c>, DEF-BE-002). Só contas confirmadas iniciam sessão (P-09).
+/// O registo só aceita emails académicos, da lista configurada em <c>EmailAcademico:Dominios</c> (P-01).
+/// Só contas confirmadas iniciam sessão (P-09).
 /// Campos públicos do perfil (P-10): nome, curso, instituição, ligações externas e classificação média.
 /// </remarks>
 public sealed class Utilizador

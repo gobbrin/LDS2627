@@ -11,7 +11,7 @@ namespace CampusCarpool.Domain.Entities;
 /// depois da hora de partida mais a duração estimada, RF-F002-12). As viagens nunca são apagadas (RF-F002-14).
 /// O estado é guardado como texto, mas só aceita os nomes de <see cref="EstadoViagem"/>: o código escreve-os
 /// sempre com <c>nameof</c> e a restrição <c>CK_Viagens_Estado</c> recusa outros valores.
-/// As transições estão em <c>ViagensController</c> e nos serviços, não nesta entidade (DO-01).
+/// As transições estão nos serviços, não nesta entidade (DO-01).
 /// </remarks>
 public sealed class Viagem
 {

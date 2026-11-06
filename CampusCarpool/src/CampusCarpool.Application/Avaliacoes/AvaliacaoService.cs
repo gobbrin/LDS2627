@@ -1,6 +1,7 @@
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
+using CampusCarpool.Domain.Rules;
 namespace CampusCarpool.Application.Avaliacoes;
 
 /// <summary>Implementação das regras das avaliações (F007). Ver <see cref="IAvaliacaoService"/>.</summary>
@@ -59,7 +60,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         var recebidas = await repositorio.ListarRecebidasAsync(utilizadorId, ct);
         // RF-F007-08: média aritmética, arredondada a 1 casa (o arredondamento não está nos requisitos);
         // calculada em cada consulta, por isso reflete logo qualquer criação ou alteração (RF-F007-09).
-        decimal? media = recebidas.Count == 0 ? null : Math.Round(recebidas.Average(x => (decimal)x.Classificacao), 1, MidpointRounding.AwayFromZero);
+        var media = CalculadoraDeClassificacao.Media(recebidas.Select(x => x.Classificacao));
         return new ResumoAvaliacoes(utilizadorId, recebidas.Count, media,
             recebidas.Select(x => new AvaliacaoPublica(x.Classificacao, x.CriadoEm)).ToList());
     }

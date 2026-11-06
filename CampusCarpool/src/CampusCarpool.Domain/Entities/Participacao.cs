@@ -12,7 +12,7 @@ namespace CampusCarpool.Domain.Entities;
 /// A conversão EF mantém o estado persistido como texto para compatibilidade
 /// com o esquema existente.
 /// As transições de estado (aceitar, rejeitar, cancelar) estão em <c>ParticipacaoService</c>, e a
-/// indisponibilização em <c>ViagensController</c>; não nesta entidade (DO-01).
+/// indisponibilização em <c>ViagemService</c>; não nesta entidade (DO-01).
 /// Ao contrário da <see cref="Viagem"/>, não tem coluna de versão: aceitar e cancelar o mesmo pedido em
 /// simultâneo não gera conflito (DO-03, fica para m4).
 /// Os pontos indicados no pedido ficam com o texto e as coordenadas obtidas na validação (A8); um ponto omitido
