@@ -52,8 +52,7 @@ public sealed class Viagem
     public decimal DestinoLongitude { get; internal set; }
 
     /// <summary>
-    /// Data e hora de partida (UTC). A API só aceita valores com <c>Kind = Utc</c>; lidos da BD vêm com
-    /// <c>Kind = Unspecified</c>, porque não há conversor UTC (DC-42, fica para m4).
+    /// Data e hora de partida (UTC). A API só aceita valores com <c>Kind = Utc</c>.
     /// </summary>
     public DateTime PartidaEm { get; internal set; }
 

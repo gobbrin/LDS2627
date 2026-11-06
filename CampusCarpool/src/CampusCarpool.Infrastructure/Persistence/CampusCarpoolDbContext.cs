@@ -12,7 +12,7 @@ namespace CampusCarpool.Infrastructure.Persistence;
 /// Toda a configuração do modelo está em <see cref="OnModelCreating"/>; os ficheiros em <c>Configurations/</c>
 /// estão vazios (DC-24). O esquema real das BD de produção vem das migrations (<c>Migrations/</c>), aplicadas à
 /// parte; os testes usam <c>EnsureCreated</c>, que segue este modelo. Os dois divergem no índice das avaliações
-/// (ver abaixo, IN-01). Não há conversor de datas UTC: as datas lidas vêm com <c>Kind = Unspecified</c> (DC-42).
+/// (ver abaixo, IN-01). Todas as datas são UTC: <see cref="ConfigureConventions"/> aplica o <see cref="ConversorDataUtc"/>.
 /// Não há restrições <c>CHECK</c> além do estado da viagem, nem tamanhos na maior parte dos textos (DO-07).
 /// </remarks>
 public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbContext> options) : DbContext(options)
@@ -67,6 +67,13 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
             entrada.Entity.DestinoPesquisa = TextoPesquisa.Normalizar(entrada.Entity.Destino);
             entrada.Entity.PartidaMinutoDoDia = HoraDePortugal.MinutoDoDia(entrada.Entity.PartidaEm);
         }
+    }
+
+    /// <inheritdoc />
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveConversion<ConversorDataUtc>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<ConversorDataUtc>();
     }
 
     /// <summary>Configura índices, tamanhos, precisões, conversões, restrições e chaves estrangeiras.</summary>

@@ -89,6 +89,17 @@ public sealed class PesquisaHoraPortugalHttpTests : IDisposable
         Assert.Equal(0, await TotalAsync("data=9999-12-31"));
     }
 
+    [Fact]
+    public async Task I110_123_DataLidaDaBaseDeDados_SaiComZ()
+    {
+        CriarViagem(new DateTime(2030, 7, 15, 8, 30, 0, DateTimeKind.Utc));
+
+        using var resposta = await _cliente.GetAsync("/api/v1/pesquisa/viagens");
+        var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal("2030-07-15T08:30:00Z", corpo.GetProperty("viagens")[0].GetProperty("partidaEm").GetString());
+    }
+
     [Theory]
     [InlineData(2030, 1, 15, 0)]
     [InlineData(2030, 7, 15, 60)]
