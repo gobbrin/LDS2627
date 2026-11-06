@@ -4,6 +4,7 @@
 
 | Pasta | Conteúdo |
 |---|---|
+| [arquitetura/](arquitetura/) | [Guia do código do backend](arquitetura/GUIA-DO-CODIGO.md): camadas, fluxo de um pedido, onde está cada funcionalidade e armadilhas. |
 | [entregas/](entregas/) | Documentos de entrega por item: I029, I034–I037, I041, I044. |
 | [testes/](testes/) | Especificações, evidências e relatórios de testes (I050, I053, I054, I059) e coleções Postman (I055, I034–I037). |
 | [operacao/](operacao/) | Pipeline CI/CD (I058) e manual de instalação do backend (I064). |
