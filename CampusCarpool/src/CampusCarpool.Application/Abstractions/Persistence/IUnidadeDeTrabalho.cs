@@ -17,13 +17,6 @@ public interface IUnidadeDeTrabalho
     /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">Outro pedido alterou a mesma viagem entretanto.</exception>
     Task ConfirmarAsync(CancellationToken ct);
 
-    /// <summary>Executa a operação numa transação serializável e confirma-a no fim; uma exceção desfaz tudo.</summary>
-    /// <remarks>A operação continua a ter de chamar <see cref="ConfirmarAsync"/> para gravar as suas alterações.</remarks>
-    /// <param name="operacao">Operação; recebe o cancelamento.</param>
-    /// <param name="ct">Cancelamento.</param>
-    /// <returns>O valor devolvido pela operação.</returns>
-    Task<T> EmTransacaoSerializavelAsync<T>(Func<CancellationToken, Task<T>> operacao, CancellationToken ct);
-
     /// <summary>Esquece as alterações por gravar e as entidades rastreadas, para isolar uma operação da seguinte.</summary>
     void DescartarAlteracoes();
 }

@@ -1,4 +1,3 @@
-using System.Data;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -44,17 +43,6 @@ public sealed class UnidadeDeTrabalhoEfCore(CampusCarpoolDbContext context) : IU
         {
             throw Conflito(ex);
         }
-    }
-
-    /// <inheritdoc />
-    public async Task<T> EmTransacaoSerializavelAsync<T>(Func<CancellationToken, Task<T>> operacao, CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(operacao);
-
-        await using var transacao = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        var resultado = await operacao(ct);
-        await transacao.CommitAsync(ct);
-        return resultado;
     }
 
     /// <inheritdoc />

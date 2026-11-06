@@ -4,11 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CampusCarpool.Api.Controllers;
 
-/// <summary>Endpoints para emissão e consulta de avisos de uma viagem.</summary>
-/// <remarks>
-/// O controller trata HTTP e identidade. As regras de acesso, persistência e
-/// criação das notificações vivem em <see cref="IAvisoService"/>.
-/// </remarks>
+/// <summary>Emissão e consulta de avisos de uma viagem (F005). Rotas em <c>/api/v1/viagens/{viagemId}/avisos</c>.</summary>
+/// <remarks>As regras de acesso e a criação das notificações estão no <see cref="IAvisoService"/>.</remarks>
 [ApiController, Authorize, Route("api/v1/viagens/{viagemId:guid}/avisos")]
 public sealed class AvisosController(IAvisoService avisoService) : ControllerBase
 {
@@ -22,19 +19,10 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     {
         if (User.IdUtilizador() is not Guid condutorId) return Unauthorized();
 
-        var resultado = await avisoService.CriarAsync(viagemId, condutorId, input?.Conteudo, ct);
-        return resultado.Resultado switch
-        {
-            ResultadoCriacaoAviso.Sucesso => Created(
-                // CORREÇÃO: Aponta para a rota da lista de avisos (que existe), 
-                // em vez de apontar para um ID individual (que não existe na I044).
-                $"/api/v1/viagens/{viagemId}/avisos",
-                new { resultado.Aviso!.Id, resultado.Aviso.Conteudo, resultado.Aviso.CriadoEm }),
-            ResultadoCriacaoAviso.ViagemNaoEncontrada => NotFound(),
-            ResultadoCriacaoAviso.NaoAutorizado => Forbid(),
-            ResultadoCriacaoAviso.ViagemNaoAtiva => Conflict(new { erro = "A viagem não está ativa." }),
-            _ => BadRequest(new { erro = "Conteúdo do aviso inválido." })
-        };
+        return this.Responder(
+            await avisoService.CriarAsync(viagemId, condutorId, input?.Conteudo, ct),
+            // Aponta para a lista: não existe rota para um aviso individual.
+            aviso => Created($"/api/v1/viagens/{viagemId}/avisos", aviso));
     }
 
     /// <summary>Lista os avisos quando o utilizador é condutor ou passageiro aceite.</summary>
@@ -44,12 +32,6 @@ public sealed class AvisosController(IAvisoService avisoService) : ControllerBas
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
 
-        var resultado = await avisoService.ListarAsync(viagemId, utilizadorId, ct);
-        return resultado.Resultado switch
-        {
-            ResultadoConsultaAvisos.Sucesso => Ok(resultado.Avisos),
-            ResultadoConsultaAvisos.ViagemNaoEncontrada => NotFound(),
-            _ => Forbid()
-        };
+        return this.Responder(await avisoService.ListarAsync(viagemId, utilizadorId, ct), avisos => Ok(avisos));
     }
 }

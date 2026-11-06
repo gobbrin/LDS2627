@@ -156,7 +156,6 @@ public sealed class I052ParticipacaoServiceTests
             Confirmar();
             return Task.CompletedTask;
         }
-        public Task<T> EmTransacaoSerializavelAsync<T>(Func<CancellationToken, Task<T>> operacao, CancellationToken ct) => operacao(ct);
         public void DescartarAlteracoes()
         {
         }
