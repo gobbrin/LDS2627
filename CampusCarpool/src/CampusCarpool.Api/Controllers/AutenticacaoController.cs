@@ -33,7 +33,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// 202 conta criada e email enviado; 400 dados inválidos ou email não académico (RF-F001-03); 409 email já
     /// registado (RF-F001-04); 503 conta criada mas o envio do email falhou.
     /// </returns>
-    [HttpPost("registo"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
+    [AllowAnonymous, HttpPost("registo"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> Registar(Registo input, CancellationToken ct) =>
         this.Responder(
             await autenticacao.RegistarAsync(input.Nome, input.Email, input.Password, ct),
@@ -45,7 +45,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// No máximo um reenvio por minuto. Cada reenvio invalida as ligações anteriores por usar.
     /// </remarks>
     /// <returns>202 sempre que o email tem formato aceitável (exista ou não a conta); 400 email vazio ou longo.</returns>
-    [HttpPost("reenviar-confirmacao"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
+    [AllowAnonymous, HttpPost("reenviar-confirmacao"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> ReenviarConfirmacaoEmail(ReenviarConfirmacao input, CancellationToken ct) =>
         this.Responder(
             await autenticacao.ReenviarConfirmacaoAsync(input.Email, ct),
@@ -54,7 +54,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// <summary>Confirma a conta com o token da ligação do email (RF-F001-07, RF-F001-08).</summary>
     /// <remarks>Ver <see cref="IAutenticacaoService.ConfirmarContaAsync"/>.</remarks>
     /// <returns>204 conta confirmada; 400 token em falta, inválido, expirado ou já usado; 404 utilizador inexistente.</returns>
-    [HttpPost("confirmar")]
+    [AllowAnonymous, HttpPost("confirmar")]
     public async Task<IActionResult> ConfirmarConta(Confirmar input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Token))
@@ -72,7 +72,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// 200 <c>{ accessToken, expiresIn }</c>; 401 credenciais inválidas, com a mesma mensagem para email inexistente e
     /// palavra-passe errada (RF-F001-11); 403 conta por confirmar (P-09).
     /// </returns>
-    [HttpPost("login"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
+    [AllowAnonymous, HttpPost("login"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> IniciarSessao(Login input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password))

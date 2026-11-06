@@ -35,6 +35,12 @@ public static class InfrastructureServiceRegistration
         services.AddDbContext<CampusCarpoolDbContext>(
             options => options.UseSqlServer(connection));
 
+        // /health responde 503 se a BD não responder ou não tiver as tabelas (C1). Fica aqui porque a Api não conhece o contexto.
+        services.AddHealthChecks().AddDbContextCheck<CampusCarpoolDbContext>(customTestQuery: async (db, ct) =>
+        {
+            await db.Utilizadores.AnyAsync(ct);
+            return true;
+        });
 
         // Repositórios de mensagens e utilizadores.
         services.AddScoped<IRepositorioMensagens, RepositorioMensagens>();
@@ -49,7 +55,9 @@ public static class InfrastructureServiceRegistration
 
         // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
         services.AddHttpClient<IServicoEmail, ServicoEmail>();
-        services.AddHttpClient<IServicoPush, ServicoPush>();
+        services.AddSingleton<CacheTokenFcm>();
+        // A fila tem um só leitor: sem limite curto, um FCM lento atrasaria todos os push seguintes (IN-05).
+        services.AddHttpClient<IServicoPush, ServicoPush>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
         // O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
         services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>

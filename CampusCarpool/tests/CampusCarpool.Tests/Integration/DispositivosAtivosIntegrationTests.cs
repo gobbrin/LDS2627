@@ -115,7 +115,8 @@ public sealed class DispositivosAtivosIntegrationTests
             http,
             configuracao,
             repositorio,
-            NullLogger<ServicoPush>.Instance);
+            NullLogger<ServicoPush>.Instance,
+            new CacheTokenFcm());
 
         await push.EnviarAsync(
             utilizador.Id,

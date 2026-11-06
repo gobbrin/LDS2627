@@ -148,7 +148,7 @@ public sealed class ServicoPushTests
         using var http = new HttpClient(new HandlerHttpFalso(
             (_, _) => throw new InvalidOperationException("Não deveria ser efetuado qualquer pedido HTTP.")));
 
-        var servico = new ServicoPush(http, new ConfigurationBuilder().Build(), repositorio, NullLogger<ServicoPush>.Instance);
+        var servico = new ServicoPush(http, new ConfigurationBuilder().Build(), repositorio, NullLogger<ServicoPush>.Instance, new CacheTokenFcm());
 
         await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
 
@@ -297,7 +297,39 @@ public sealed class ServicoPushTests
         Assert.Equal(0, repositorio.Desativacoes);
     }
 
-    private static ServicoPush CriarServico(HttpClient http, RepositorioDispositivosFalso repositorio)
+    /// <summary>Dois envios com a mesma cache, como dois <c>ServicoPush</c> em notificações seguidas.</summary>
+    public static async Task<(string? Primeiro, string? Segundo, int PedidosOAuth)> EnviarDuasVezesAsync()
+    {
+        var utilizadorId = Guid.NewGuid();
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos = [new Dispositivo { UtilizadorId = utilizadorId, Token = "token-teste", Ativo = true }]
+        };
+
+        var pedidosOAuth = 0;
+        var autorizacoes = new List<string?>();
+
+        using var http = new HttpClient(new HandlerHttpFalso((pedido, _) =>
+        {
+            if (pedido.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                pedidosOAuth++;
+                return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste","expires_in":3600}""");
+            }
+
+            autorizacoes.Add(pedido.Headers.Authorization?.Parameter);
+            return Resposta(HttpStatusCode.OK, "{}");
+        }));
+
+        var cache = new CacheTokenFcm();
+
+        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+
+        return (autorizacoes[0], autorizacoes[1], pedidosOAuth);
+    }
+
+    private static ServicoPush CriarServico(HttpClient http, RepositorioDispositivosFalso repositorio, CacheTokenFcm? cache = null)
     {
         using var rsa = RSA.Create(2048);
 
@@ -310,7 +342,7 @@ public sealed class ServicoPushTests
             })
             .Build();
 
-        return new ServicoPush(http, configuracao, repositorio, NullLogger<ServicoPush>.Instance);
+        return new ServicoPush(http, configuracao, repositorio, NullLogger<ServicoPush>.Instance, cache ?? new CacheTokenFcm());
     }
 
     private static HttpResponseMessage Resposta(HttpStatusCode status, string conteudo)

@@ -15,7 +15,7 @@ public interface INotificacaoService
 {
     /// <summary>Regista uma notificação para o destinatário.</summary>
     /// <param name="utilizadorId">Destinatário.</param>
-    /// <param name="tipo">Tipo; o título é o nome do tipo (DC-40).</param>
+    /// <param name="tipo">Tipo; define o título apresentado (DC-40).</param>
     /// <param name="mensagem">Texto da notificação.</param>
     /// <returns>A notificação, para o push depois de gravar.</returns>
     Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem);

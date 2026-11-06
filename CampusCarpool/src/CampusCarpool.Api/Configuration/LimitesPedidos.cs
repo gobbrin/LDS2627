@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
+using CampusCarpool.Api.Controllers;
 
 namespace CampusCarpool.Api.Configuration;
 
@@ -23,6 +24,8 @@ public static class LimitesPedidos
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = (contexto, ct) => new ValueTask(contexto.HttpContext.Response.WriteAsJsonAsync(
+                new CorpoErro("Demasiados pedidos. Aguarda um minuto e tenta novamente."), ct));
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
                 Limite(context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Ip(context), PedidosPorMinuto));
             options.AddPolicy(Autenticacao, context => Limite(Ip(context), PedidosAutenticacaoPorMinuto));

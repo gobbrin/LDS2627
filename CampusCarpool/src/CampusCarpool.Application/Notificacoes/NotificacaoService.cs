@@ -13,6 +13,18 @@ public sealed class NotificacaoService(
     IUnidadeDeTrabalho unidadeDeTrabalho)
     : INotificacaoService
 {
+    // DC-40: texto mostrado ao utilizador, também no push. Os nomes seguem RF-F006-01 a RF-F006-06.
+    private static string Titulo(TipoNotificacao tipo) => tipo switch
+    {
+        TipoNotificacao.PedidoRecebido => "Pedido recebido",
+        TipoNotificacao.PedidoAceite => "Pedido aceite",
+        TipoNotificacao.PedidoRejeitado => "Pedido rejeitado",
+        TipoNotificacao.AlteracaoViagem => "Alteração da viagem",
+        TipoNotificacao.Aviso => "Aviso do condutor",
+        TipoNotificacao.NovaMensagem => "Nova mensagem",
+        _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Tipo de notificação desconhecido.")
+    };
+
     /// <inheritdoc />
     /// <remarks>Só as notificações de aviso ficam ligadas à viagem (<see cref="RegistarAviso"/>).</remarks>
     public Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem)
@@ -21,8 +33,7 @@ public sealed class NotificacaoService(
         {
             UtilizadorId = utilizadorId,
             Tipo = tipo,
-            // DC-40 / AP-06: o título é o nome do enum (ex.: "PedidoAceite"), também no push; fica para m4.
-            Titulo = tipo.ToString(),
+            Titulo = Titulo(tipo),
             Conteudo = mensagem
         };
 
@@ -53,7 +64,7 @@ public sealed class NotificacaoService(
                 UtilizadorId = passageiro,
                 ViagemId = viagemId,
                 Tipo = TipoNotificacao.Aviso,
-                Titulo = "Aviso do condutor",
+                Titulo = Titulo(TipoNotificacao.Aviso),
                 Conteudo = texto
             });
         }

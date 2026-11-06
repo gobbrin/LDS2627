@@ -9,9 +9,10 @@ namespace CampusCarpool.Api.Middleware;
 /// </summary>
 /// <remarks>
 /// <see cref="RegraDeNegocioException"/> → 409 (aviso no log), com a mensagem da exceção, que é escrita para o
-/// utilizador; hoje só a lança um conflito de concorrência ao gravar. Qualquer outra → 500 (erro no log, com a
-/// exceção), com um texto genérico: a mensagem e a stack trace nunca vão para o cliente. Os erros previstos não
-/// passam por aqui: saem como <c>Resultado</c> e são traduzidos no <c>RespostasHttp</c> (DC-41).
+/// utilizador; lançam-na as entidades numa transição inválida e a gravação num conflito de concorrência. Qualquer
+/// outra → 500 (erro no log, com a exceção), com um texto genérico: a mensagem e a stack trace nunca vão para o
+/// cliente. O texto vem também no campo <c>erro</c>, para o frontend ler todos os erros da mesma maneira. Os erros
+/// previstos não passam por aqui: saem como <c>Resultado</c> e são traduzidos no <c>RespostasHttp</c> (DC-41).
 /// </remarks>
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetails) : IExceptionHandler
 {
@@ -64,6 +65,8 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 ? exception.Message
                 : "Ocorreu um erro inesperado."
         };
+
+        problem.Extensions["erro"] = problem.Detail;
 
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {

@@ -15,11 +15,14 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// Configuração: <c>Firebase:ProjectId</c>, <c>Firebase:ClientEmail</c> e <c>Firebase:PrivateKey</c> (PEM; as
 /// quebras de linha podem vir escritas como <c>\n</c>). Sem configuração, o push é ignorado com um aviso no log.
 /// Os erros nunca chegam ao pedido HTTP do utilizador: o envio corre no <c>TrabalhadorNotificacoesPush</c>.
-/// IN-05 (fica para m4): pede um token OAuth novo em cada envio (não o guarda em cache durante a hora de validade).
+/// O token OAuth é reutilizado enquanto for válido (<see cref="CacheTokenFcm"/>, IN-05).
 /// </remarks>
 public sealed class ServicoPush(HttpClient http, IConfiguration config,
-    IRepositorioDispositivos dispositivos, ILogger<ServicoPush> logger) : IServicoPush
+    IRepositorioDispositivos dispositivos, ILogger<ServicoPush> logger, CacheTokenFcm cacheToken) : IServicoPush
 {
+    // A Google indica a validade na resposta; este valor só se usa se não vier.
+    private const int ValidadeTokenSegundos = 3600;
+
     private static readonly Action<ILogger, Exception?> LogFalhaAutenticacao = LoggerMessage.Define(
         LogLevel.Error, new EventId(2001, nameof(LogFalhaAutenticacao)), "Falha ao autenticar Firebase Cloud Messaging");
 
@@ -44,6 +47,12 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         var key = config["Firebase:PrivateKey"]?.Replace("\\n", "\n");
         if (string.IsNullOrWhiteSpace(project) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(key))
             return null;
+
+        var agora = DateTime.UtcNow;
+
+        if (cacheToken.Obter(agora) is { } guardado)
+            return guardado;
+
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var header = B64(Encoding.UTF8.GetBytes("{\"alg\":\"RS256\",\"typ\":\"JWT\"}"));
         var claims = B64(JsonSerializer.SerializeToUtf8Bytes(new
@@ -66,7 +75,15 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
             }), ct);
         tokenResponse.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync(ct));
-        return doc.RootElement.GetProperty("access_token").GetString();
+        var accessToken = doc.RootElement.GetProperty("access_token").GetString();
+
+        if (accessToken is not null)
+        {
+            var validade = doc.RootElement.TryGetProperty("expires_in", out var segundos) ? segundos.GetInt32() : ValidadeTokenSegundos;
+            cacheToken.Guardar(accessToken, TimeSpan.FromSeconds(validade), agora);
+        }
+
+        return accessToken;
     }
     /// <inheritdoc />
     /// <remarks>
@@ -104,6 +121,8 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                 }), Encoding.UTF8, "application/json");
                 using var response = await http.SendAsync(request, ct);
                 if (response.IsSuccessStatusCode) continue;
+                // Token revogado antes do tempo: o próximo envio pede outro.
+                if (response.StatusCode == HttpStatusCode.Unauthorized) cacheToken.Limpar();
                 var error = await response.Content.ReadAsStringAsync(ct);
                 // Desativar apenas tokens explicitamente inválidos/não registados.
                 if (response.StatusCode == HttpStatusCode.NotFound ||

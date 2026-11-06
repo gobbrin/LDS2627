@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using CampusCarpool.Api.Configuration;
+using CampusCarpool.Api.Controllers;
 using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Application.Abstractions.Integrations;
@@ -8,6 +10,8 @@ using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Infrastructure.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
 // Ponto de entrada da API (top-level statements): regista os serviços (DI) e monta o pipeline HTTP.
@@ -15,8 +19,14 @@ using Microsoft.IdentityModel.Tokens;
 // User Secrets em desenvolvimento ou variáveis de ambiente (Jwt__Key, ConnectionStrings__DefaultConnection).
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    // Os enums saem pelo nome, como estão na BD (API-13).
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+    // Corpo em falta ou mal formado: a mesma forma e a mesma língua dos outros erros (API-07).
+    .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = _ =>
+        new BadRequestObjectResult(new CorpoErro("Pedido inválido. Confirma se todos os campos estão preenchidos.")));
 builder.Services.AddSignalR();
+builder.Services.AddPoliticaCors(builder.Configuration);
 
 // Serviços da própria Api: tempo real (SignalR).
 builder.Services.AddScoped<
@@ -32,8 +42,6 @@ builder.Services.AddLimitesPedidos();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
-// /health só indica que o processo responde; não verifica a BD (C1).
-builder.Services.AddHealthChecks();
 // Camadas Application e Infrastructure (esta lança exceção sem ConnectionStrings:DefaultConnection).
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -82,22 +90,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
-// Sem FallbackPolicy: cada controller tem de pôr [Authorize] (API-10). Sem CORS (DC-45, fica para m4).
-builder.Services.AddAuthorization();
+// RNF-SEG-04: uma rota nova exige sessão por omissão; as públicas têm de o declarar com [AllowAnonymous] (API-10).
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 var app = builder.Build();
 // Pipeline HTTP, pela ordem em que cada pedido o atravessa. O tratamento de exceções vem primeiro para
 // apanhar os erros de todos os passos seguintes.
 app.UseExceptionHandler();
-if (app.Environment.IsDevelopment()) app.MapOpenApi();
+if (app.Environment.IsDevelopment()) app.MapOpenApi().AllowAnonymous();
+else app.UseHsts();
+// Antes do redirecionamento: um pedido de verificação do browser (OPTIONS) não pode ser redirecionado.
+app.UseCors();
 app.UseHttpsRedirection();
 // Depois da autenticação, para o limite global contar por utilizador (A6).
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<PedidosHub>("/hubs/pedidos");
-app.MapHealthChecks("/health");
-app.MapGet("/", () => Results.Ok(new { service = "Campus Carpool API", status = "running" }));
+// A ligação fecha quando o token expira, em vez de continuar a receber eventos (API-11).
+app.MapHub<PedidosHub>("/hubs/pedidos", options => options.CloseOnAuthenticationExpiration = true);
+app.MapHealthChecks("/health").AllowAnonymous();
+app.MapGet("/", () => Results.Ok(new { service = "Campus Carpool API", status = "running" })).AllowAnonymous();
 app.Run();
 // Torna a classe Program pública para os testes com WebApplicationFactory<Program>.
 public partial class Program { }

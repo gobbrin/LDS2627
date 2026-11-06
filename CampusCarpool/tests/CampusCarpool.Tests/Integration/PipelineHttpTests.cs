@@ -72,10 +72,12 @@ public sealed class PipelineHttpTests
         using var resposta = await cliente.PostAsync("/api/v1/autenticacao/login", conteudo);
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.Equal("application/problem+json", resposta.Content.Headers.ContentType?.MediaType);
+
+        using var json = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.Contains("Pedido inválido", json.RootElement.GetProperty("erro").GetString(), StringComparison.Ordinal);
     }
 
-    /// <summary>RNF-SEG-09: o estado do serviço responde sem token e não depende da base de dados.</summary>
+    /// <summary>RNF-SEG-09: o estado do serviço responde sem token.</summary>
     [Theory]
     [InlineData("/health")]
     [InlineData("/")]
@@ -90,13 +92,16 @@ public sealed class PipelineHttpTests
     }
 
     [Fact]
-    public async Task I110_92_RotaInexistente_Devolve404()
+    public async Task I110_92_RotaInexistente_Devolve404ComSessaoE401Sem()
     {
         using var app = new AplicacaoReal();
-        using var cliente = app.CreateClient();
+        using var anonimo = app.CreateClient();
+        using var comSessao = app.ClienteDe(app.CriarUtilizador("Utilizador"));
 
-        using var resposta = await cliente.GetAsync("/api/v1/nao-existe");
+        using var semToken = await anonimo.GetAsync("/api/v1/nao-existe");
+        using var comToken = await comSessao.GetAsync("/api/v1/nao-existe");
 
-        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, semToken.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, comToken.StatusCode);
     }
 }
