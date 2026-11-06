@@ -31,6 +31,20 @@ public sealed class UnidadeDeTrabalhoEfCore(CampusCarpoolDbContext context) : IU
     }
 
     /// <inheritdoc />
+    public async Task<bool> TentarConfirmarAsync(CancellationToken ct)
+    {
+        try
+        {
+            await ConfirmarAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
     public void DescartarAlteracoes() => context.ChangeTracker.Clear();
 
     private static RegraDeNegocioException Conflito(DbUpdateConcurrencyException causa) =>

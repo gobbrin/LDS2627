@@ -16,8 +16,31 @@ public sealed class RepositorioDispositivo(CampusCarpoolDbContext db) : IReposit
     {
         // Um token FCM identifica uma instalação; nunca pode pertencer a duas contas.
         var dispositivo = await db.Dispositivos.SingleOrDefaultAsync(d => d.Token == token, ct);
-        if (dispositivo is null) db.Dispositivos.Add(new Dispositivo { UtilizadorId = utilizadorId, Token = token, Ativo = true });
-        else { dispositivo.UtilizadorId = utilizadorId; dispositivo.Ativo = true; }
+
+        if (dispositivo is not null)
+        {
+            await AtribuirAsync(dispositivo, utilizadorId, ct);
+            return;
+        }
+
+        db.Dispositivos.Add(new Dispositivo { UtilizadorId = utilizadorId, Token = token, Ativo = true });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Outro pedido registou o mesmo token entretanto: o índice único recusou este, por isso atualiza esse registo.
+            db.ChangeTracker.Clear();
+            await AtribuirAsync(await db.Dispositivos.SingleAsync(d => d.Token == token, ct), utilizadorId, ct);
+        }
+    }
+
+    private async Task AtribuirAsync(Dispositivo dispositivo, Guid utilizadorId, CancellationToken ct)
+    {
+        dispositivo.UtilizadorId = utilizadorId;
+        dispositivo.Ativo = true;
         await db.SaveChangesAsync(ct);
     }
     /// <inheritdoc />

@@ -50,7 +50,7 @@ public sealed class AutenticacaoService(
         if (!validadorEmail.Permitido(normalizado) || normalizado.Length > 255)
             return new Erro(TipoErro.DadosInvalidos, "É necessário um email académico permitido.");
 
-        // API-11: o 409 revela que o email já tem conta (enumeração de contas), ao contrário do reenvio.
+        // RF-F001-04 pede este erro de conflito, apesar de revelar que o email já tem conta.
         if (await utilizadores.ExisteEmailAsync(normalizado, ct))
             return new Erro(TipoErro.Conflito, "Email já registado.");
 
@@ -68,20 +68,29 @@ public sealed class AutenticacaoService(
         });
 
         // A conta fica gravada antes do envio: se o email falhar, o utilizador pode pedir o reenvio.
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
+        if (!await unidadeDeTrabalho.TentarConfirmarAsync(ct))
+        {
+            // Dois registos simultâneos passam ambos a verificação acima; o índice único recusa o segundo.
+            unidadeDeTrabalho.DescartarAlteracoes();
 
-        // DC-43 / IN-03 (fica para m4): a Brevo recusar o envio lança HttpRequestException, que não é
-        // apanhada aqui e chega ao cliente como 500, em vez do 503.
+            if (await utilizadores.ExisteEmailAsync(normalizado, ct))
+                return new Erro(TipoErro.Conflito, "Email já registado.");
+
+            throw new InvalidOperationException("A base de dados recusou o registo.");
+        }
+
         try
         {
             await servicoEmail.EnviarConfirmacaoAsync(normalizado, token, ct);
         }
-        catch (Exception ex) when (ex is System.Net.Mail.SmtpException or InvalidOperationException)
+        catch (Exception ex) when (
+            ex is HttpRequestException or InvalidOperationException ||
+            (ex is TaskCanceledException && !ct.IsCancellationRequested))
         {
-            // Não marcar como confirmado nem revelar o token; permitir reenvio após configurar SMTP.
+            // Serviço de Email recusou, excedeu o tempo ou está por configurar. A conta fica por confirmar.
             return new Erro(
                 TipoErro.ServicoIndisponivel,
-                "Conta criada, mas o envio do email falhou. Contacta o suporte para reenviar a confirmação.");
+                "Conta criada, mas o envio do email falhou. Pede o reenvio da ligação de confirmação.");
         }
 
         return Resultado.Sucesso;
@@ -172,7 +181,14 @@ public sealed class AutenticacaoService(
     {
         var utilizador = await utilizadores.ObterPorEmailAsync(Normalizar(email), ct);
 
-        if (utilizador is null || !hashPalavraPasse.Verificar(utilizador, palavraPasse))
+        if (utilizador is null)
+        {
+            // O mesmo custo de verificar um hash: o tempo de resposta não revela se o email tem conta.
+            hashPalavraPasse.Gerar(new Utilizador(), palavraPasse);
+            return new Erro(TipoErro.NaoAutenticado, "Credenciais inválidas.");
+        }
+
+        if (!hashPalavraPasse.Verificar(utilizador, palavraPasse))
             return new Erro(TipoErro.NaoAutenticado, "Credenciais inválidas.");
 
         if (!utilizador.EmailConfirmado)

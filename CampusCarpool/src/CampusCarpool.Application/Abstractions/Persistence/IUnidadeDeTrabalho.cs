@@ -12,6 +12,11 @@ public interface IUnidadeDeTrabalho
     /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">Outro pedido alterou a mesma viagem entretanto.</exception>
     Task ConfirmarAsync(CancellationToken ct);
 
+    /// <summary>Grava como <see cref="ConfirmarAsync"/>, mas devolve <c>false</c> se a BD recusar, por exemplo por um índice único.</summary>
+    /// <param name="ct">Cancelamento.</param>
+    /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">Outro pedido alterou a mesma viagem entretanto.</exception>
+    Task<bool> TentarConfirmarAsync(CancellationToken ct);
+
     /// <summary>Esquece as alterações por gravar e as entidades rastreadas, para isolar uma operação da seguinte.</summary>
     void DescartarAlteracoes();
 }

@@ -115,13 +115,17 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
         return Task.CompletedTask;
     }
 
+    public async Task<bool> TentarConfirmarAsync(CancellationToken ct)
+    {
+        await ConfirmarAsync(ct);
+        return true;
+    }
 
     public void DescartarAlteracoes()
     {
     }
 }
 
-/// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
 /// <summary>Verificações de respostas devolvidas diretamente por um controller.</summary>
 public static class RespostaEsperada
 {
@@ -134,6 +138,7 @@ public static class RespostaEsperada
     }
 }
 
+/// <summary>Monta os controllers com os serviços reais, como a injeção de dependências faria em execução.</summary>
 public static class ServicosDeTeste
 {
     public static ConsultaViagensService CriarConsultas(CampusCarpoolDbContext db) => new(

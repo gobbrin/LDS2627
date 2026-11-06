@@ -157,6 +157,7 @@ public sealed class I052ParticipacaoServiceTests
             Confirmacoes++;
             return Task.CompletedTask;
         }
+        public Task<bool> TentarConfirmarAsync(CancellationToken ct) => Task.FromResult(true);
         public void DescartarAlteracoes()
         {
         }
