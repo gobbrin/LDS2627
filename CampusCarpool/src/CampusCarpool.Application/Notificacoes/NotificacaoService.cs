@@ -1,6 +1,6 @@
-
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 
@@ -9,20 +9,13 @@ namespace CampusCarpool.Application.Notificacoes;
 /// <summary>Implementação das notificações pessoais (F006). Ver <see cref="INotificacaoService"/>.</summary>
 public sealed class NotificacaoService(
     IRepositorioNotificacoes repositorioNotificacoes,
-    IFilaNotificacoesPush filaNotificacoesPush)
+    IFilaNotificacoesPush filaNotificacoesPush,
+    IUnidadeDeTrabalho unidadeDeTrabalho)
     : INotificacaoService
 {
     /// <inheritdoc />
-    /// <remarks>
-    /// Cria uma notificação e delega a persistência ao repositório.
-    /// Não preenche <c>Notificacao.ViagemId</c>: só as notificações de aviso (criadas pelo <c>AvisoService</c>)
-    /// ficam ligadas à viagem.
-    /// </remarks>
-    public async Task<Notificacao> CriarAsync(
-        Guid utilizadorId,
-        TipoNotificacao tipo,
-        string mensagem,
-        CancellationToken ct)
+    /// <remarks>Só as notificações de aviso ficam ligadas à viagem (<see cref="RegistarAviso"/>).</remarks>
+    public Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem)
     {
         var notificacao = new Notificacao
         {
@@ -33,129 +26,109 @@ public sealed class NotificacaoService(
             Conteudo = mensagem
         };
 
-        // Guarda a notificação antes de colocar o push na fila.
-        await repositorioNotificacoes.AdicionarAsync(notificacao, ct);
-
-        // Apenas estes três eventos geram notificações push Android.
-        if (tipo is TipoNotificacao.PedidoRecebido
-            or TipoNotificacao.PedidoAceite
-            or TipoNotificacao.PedidoRejeitado)
-        {
-            await filaNotificacoesPush.EnfileirarAsync(
-                utilizadorId,
-                notificacao.Titulo,
-                mensagem,
-                tipo.ToString(),
-                ct);
-        }
+        repositorioNotificacoes.Adicionar(notificacao);
 
         return notificacao;
     }
 
     /// <inheritdoc />
-    public async Task NotificarAlteracaoViagemAsync(
-        Guid condutorId,
-        IEnumerable<Guid> passageiros,
-        Guid origemId,
-        string mensagem,
-        CancellationToken ct)
+    public void RegistarAlteracaoViagem(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
     {
         var destinatarios = passageiros
             .Append(condutorId)
             .Where(id => id != origemId)
-            .Distinct()
-            .ToList();
+            .Distinct();
 
         foreach (var destinatario in destinatarios)
+            Registar(destinatario, TipoNotificacao.AlteracaoViagem, mensagem);
+    }
+
+    /// <inheritdoc />
+    public void RegistarAviso(Guid viagemId, IEnumerable<Guid> passageiros, string texto)
+    {
+        foreach (var passageiro in passageiros.Distinct())
         {
-            await CriarAsync(destinatario, TipoNotificacao.AlteracaoViagem, mensagem, ct);
+            repositorioNotificacoes.Adicionar(new Notificacao
+            {
+                UtilizadorId = passageiro,
+                ViagemId = viagemId,
+                Tipo = TipoNotificacao.Aviso,
+                Titulo = "Aviso do condutor",
+                Conteudo = texto
+            });
         }
     }
 
-    // Devolve uma página de notificações pessoais.
     /// <inheritdoc />
-    public async Task<PaginaNotificacoes> ListarAsync(
-        Guid utilizadorId,
-        int pagina,
-        int tamanhoPagina,
-        CancellationToken ct)
+    public async Task EnviarPushAsync(Notificacao notificacao, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(notificacao);
+
+        if (notificacao.Tipo is not (TipoNotificacao.PedidoRecebido or TipoNotificacao.PedidoAceite or TipoNotificacao.PedidoRejeitado))
+            return;
+
+        await filaNotificacoesPush.EnfileirarAsync(
+            notificacao.UtilizadorId,
+            notificacao.Titulo,
+            notificacao.Conteudo,
+            notificacao.Tipo.ToString(),
+            ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<PaginaNotificacoes> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(pagina, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(tamanhoPagina, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(tamanhoPagina, 100);
 
-        var itens = await repositorioNotificacoes.ListarAsync(
-            utilizadorId, pagina, tamanhoPagina, ct);
+        var itens = await repositorioNotificacoes.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct);
+        var total = await repositorioNotificacoes.ContarAsync(utilizadorId, ct);
+        var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(utilizadorId, ct);
+        var totalPaginas = (int)Math.Ceiling(total / (double)tamanhoPagina);
 
-        var total = await repositorioNotificacoes.ContarAsync(
-            utilizadorId, ct);
+        var dtos = itens
+            .Select(n => new NotificacaoPessoal(
+                n.Id, n.UtilizadorId, n.ViagemId, n.Tipo.ToString(), n.Titulo, n.Conteudo, n.LidaEm, n.CriadaEm))
+            .ToList();
 
-        var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(
-            utilizadorId, ct);
-
-        var totalPaginas = (int)Math.Ceiling(
-            total / (double)tamanhoPagina);
-
-        return new PaginaNotificacoes(
-            itens,
-            pagina,
-            tamanhoPagina,
-            total,
-            totalPaginas,
-            naoLidas);
+        return new PaginaNotificacoes(dtos, pagina, tamanhoPagina, total, totalPaginas, naoLidas);
     }
 
-    // Marca uma notificação como lida apenas se pertencer ao utilizador.
     /// <inheritdoc />
-    public async Task<bool> MarcarComoLidaAsync(
-        Guid notificacaoId,
-        Guid utilizadorId,
-        CancellationToken ct)
+    public async Task<Resultado> MarcarComoLidaAsync(Guid notificacaoId, Guid utilizadorId, CancellationToken ct)
     {
-        var notificacao = await repositorioNotificacoes.ObterAsync(
-            notificacaoId, utilizadorId, ct);
+        // Só encontra a notificação se pertencer ao utilizador.
+        var notificacao = await repositorioNotificacoes.ObterAsync(notificacaoId, utilizadorId, ct);
 
         if (notificacao is null)
-        {
-            return false;
-        }
+            return new Erro(TipoErro.NaoEncontrado);
 
         if (notificacao.LidaEm is not null)
-        {
-            return true;
-        }
+            return Resultado.Sucesso;
 
         notificacao.LidaEm = DateTime.UtcNow;
 
-        await repositorioNotificacoes.GuardarAlteracoesAsync(ct);
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
-        return true;
+        return Resultado.Sucesso;
     }
 
-    // Marca todas as notificações não lidas como lidas.
     /// <inheritdoc />
-    public async Task<int> MarcarTodasComoLidasAsync(
-        Guid utilizadorId,
-        CancellationToken ct)
+    public async Task<int> MarcarTodasComoLidasAsync(Guid utilizadorId, CancellationToken ct)
     {
-        var notificacoes = await repositorioNotificacoes.ListarNaoLidasAsync(
-            utilizadorId, ct);
+        var notificacoes = await repositorioNotificacoes.ListarNaoLidasAsync(utilizadorId, ct);
 
         if (notificacoes.Count == 0)
-        {
             return 0;
-        }
 
         var dataLeitura = DateTime.UtcNow;
 
         foreach (var notificacao in notificacoes)
-        {
             notificacao.LidaEm = dataLeitura;
-        }
 
-        await repositorioNotificacoes.GuardarAlteracoesAsync(ct);
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return notificacoes.Count;
     }
 }
-

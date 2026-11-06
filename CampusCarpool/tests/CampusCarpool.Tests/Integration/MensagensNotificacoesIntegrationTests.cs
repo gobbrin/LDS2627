@@ -62,7 +62,7 @@ public sealed class MensagensNotificacoesIntegrationTests
         //Envia uma mensagem individual.
         const string conteudo = "Olá! Esta é uma mensagem de teste.";
 
-        var mensagem = await mensagemService.EnviarAsync(remetente.Id, destinatario.Id, conteudo, CancellationToken.None);
+        var mensagem = (await mensagemService.EnviarAsync(remetente.Id, destinatario.Id, conteudo, CancellationToken.None)).Valor;
 
         //Confirma que a mensagem foi guardada corretamente.
         Assert.Equal(remetente.Id, mensagem.RemetenteId);

@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -11,42 +12,33 @@ public sealed class MensagemService(
     IRepositorioUtilizadores repositorioUtilizadores,
     INotificacaoService notificacaoService) : IMensagemService
 {
+    // P-14: tamanho máximo do texto.
+    private const int TamanhoMaximoConteudo = 1000;
 
     /// <inheritdoc />
     /// <remarks>
     /// Valida os participantes, guarda a mensagem e cria a notificação. São duas gravações separadas: se a
     /// notificação falhar, a mensagem já ficou gravada (AP-02).
     /// </remarks>
-    public async Task<Mensagem> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
+    public async Task<Resultado<MensagemIndividual>> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
     {
-        //Impede o envio de mensagens para a própria conta.
         if (remetenteId == destinatarioId)
-        {
-            throw new ArgumentException("Não é possível enviar mensagens para si próprio.");
-        }
+            return new Erro(TipoErro.DadosInvalidos, "Não é possível enviar mensagens para si próprio.");
 
-        //Valida o conteúdo antes de consultar a base de dados.
-        if (string.IsNullOrWhiteSpace(conteudo) || conteudo.Trim().Length > 1000)
-        {
-            throw new ArgumentException("A mensagem deve conter entre 1 e 1000 caracteres.");
-        }
+        // O conteúdo valida-se antes de consultar a base de dados.
+        if (string.IsNullOrWhiteSpace(conteudo) || conteudo.Trim().Length > TamanhoMaximoConteudo)
+            return new Erro(TipoErro.DadosInvalidos, "A mensagem deve conter entre 1 e 1000 caracteres.");
 
-        //Confirma a existência e o estado das contas envolvidas.
         var remetente = await repositorioUtilizadores.ObterPorIdAsync(remetenteId, ct);
 
         if (remetente is null || !remetente.EmailConfirmado)
-        {
-            throw new InvalidOperationException("O remetente não existe ou não tem a conta confirmada.");
-        }
+            return new Erro(TipoErro.DadosInvalidos, "O remetente não existe ou não tem a conta confirmada.");
 
         var destinatario = await repositorioUtilizadores.ObterPorIdAsync(destinatarioId, ct);
 
         if (destinatario is null || !destinatario.EmailConfirmado)
-        {
-            throw new InvalidOperationException("O destinatário não existe ou não tem a conta confirmada.");
-        }
+            return new Erro(TipoErro.DadosInvalidos, "O destinatário não existe ou não tem a conta confirmada.");
 
-        //Cria a mensagem com o conteúdo normalizado e a data atual.
         var mensagem = new Mensagem
         {
             RemetenteId = remetenteId,
@@ -55,45 +47,43 @@ public sealed class MensagemService(
             EnviadoEm = DateTime.UtcNow
         };
 
-        //Persiste a mensagem antes de criar a notificação.
         await repositorioMensagens.AdicionarAsync(mensagem, ct);
 
-        //Notifica o destinatário de que recebeu uma nova mensagem.
         await notificacaoService.CriarAsync(
             destinatarioId,
             TipoNotificacao.NovaMensagem,
             $"Recebeste uma nova mensagem de {remetente.Nome}.",
             ct);
 
-        return mensagem;
+        return Dto(mensagem);
     }
 
     /// <inheritdoc />
-    /// <remarks>Devolve o histórico da conversa entre os dois participantes, sem paginação (AP-10).</remarks>
-    public async Task<IReadOnlyList<Mensagem>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
+    public async Task<Resultado<List<MensagemIndividual>>> ObterConversaAsync(Guid utilizadorId, Guid outroUtilizadorId, CancellationToken ct)
     {
-        //Impede a consulta de uma conversa consigo próprio.
         if (utilizadorId == outroUtilizadorId)
-        {
-            throw new ArgumentException("Não é possível consultar uma conversa consigo próprio.");
-        }
+            return new Erro(TipoErro.DadosInvalidos, "Não é possível consultar uma conversa consigo próprio.");
 
-        //Confirma que o outro participante existe e tem a conta confirmada.
         var outroUtilizador = await repositorioUtilizadores.ObterPorIdAsync(outroUtilizadorId, ct);
 
         if (outroUtilizador is null || !outroUtilizador.EmailConfirmado)
-        {
-            throw new InvalidOperationException("O utilizador não existe ou não tem a conta confirmada.");
-        }
+            return new Erro(TipoErro.DadosInvalidos, "O utilizador não existe ou não tem a conta confirmada.");
 
-        //O repositório devolve apenas mensagens entre estes participantes.
-        return await repositorioMensagens.ObterConversaAsync(
-            utilizadorId,
-            outroUtilizadorId,
-            ct);
+        // O repositório devolve apenas mensagens entre estes participantes.
+        var mensagens = await repositorioMensagens.ObterConversaAsync(utilizadorId, outroUtilizadorId, ct);
+
+        return mensagens.Select(Dto).ToList();
     }
 
     /// <inheritdoc />
     public Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct) =>
         repositorioMensagens.ListarConversasAsync(utilizadorId, ct);
+
+    private static MensagemIndividual Dto(Mensagem mensagem) => new(
+        mensagem.Id,
+        mensagem.ViagemId,
+        mensagem.RemetenteId,
+        mensagem.DestinatarioId,
+        mensagem.Conteudo,
+        mensagem.EnviadoEm);
 }
