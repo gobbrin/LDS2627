@@ -239,7 +239,7 @@ public sealed class ParticipacaoService(
         var recolha = string.IsNullOrWhiteSpace(pedido.Recolha) ? viagem.Origem : pedido.Recolha.Trim();
         var destino = string.IsNullOrWhiteSpace(pedido.Destino) ? viagem.Destino : pedido.Destino.Trim();
 
-        if (string.Equals(recolha, destino, StringComparison.OrdinalIgnoreCase))
+        if (RegraMesmoLocal.MesmoTexto(recolha, destino))
             return new Erro(TipoErro.DadosInvalidos, "A recolha e o destino efetivos não podem ser iguais.");
 
         using var limite = CancellationTokenSource.CreateLinkedTokenSource(ct);

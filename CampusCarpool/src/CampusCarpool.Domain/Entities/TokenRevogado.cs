@@ -7,7 +7,7 @@ namespace CampusCarpool.Domain.Entities;
 /// O token é identificado pela claim <c>jti</c>. A validação do JwtBearer
 /// (<c>ValidacaoTokensRevogados</c>) recusa qualquer token cujo <c>jti</c> esteja nesta tabela.
 /// <see cref="ExpiraEm"/> é a expiração do próprio token: depois dela o registo deixa de ser
-/// necessário (ainda não há limpeza automática).
+/// necessário, e o próprio fim de sessão apaga os expirados.
 /// </remarks>
 public sealed class TokenRevogado
 {

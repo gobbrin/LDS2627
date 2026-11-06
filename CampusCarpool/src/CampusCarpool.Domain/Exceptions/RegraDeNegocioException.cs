@@ -5,7 +5,8 @@ namespace CampusCarpool.Domain.Exceptions;
 /// </summary>
 /// <remarks>
 /// O <c>GlobalExceptionHandler</c> da Api converte-a num 409 <c>ProblemDetails</c>, com a mensagem da exceção.
-/// É lançada pela <c>UnidadeDeTrabalhoEfCore</c>, quando há um conflito de concorrência ao gravar. Os erros
+/// É lançada pelas entidades, numa transição inválida, e pela <c>UnidadeDeTrabalhoEfCore</c>, quando há um conflito de
+/// concorrência ao gravar. Os erros
 /// previstos dos serviços saem como <c>Resultado</c> (decisão D3).
 /// </remarks>
 public sealed class RegraDeNegocioException : Exception

@@ -7,7 +7,7 @@ namespace CampusCarpool.Infrastructure.BackgroundJobs;
 /// <remarks>
 /// Registada como Singleton. Até 1000 elementos; com a fila cheia, <see cref="EnfileirarAsync"/> espera
 /// (<c>FullMode.Wait</c>), o que atrasa o pedido HTTP que criou a notificação. Os elementos perdem-se se o
-/// processo reiniciar (AP-07, fica para m4). Um só leitor: o <see cref="TrabalhadorNotificacoesPush"/>.
+/// processo reiniciar (AP-07, aceite no MVP pela decisão G17). Um só leitor: o <see cref="TrabalhadorNotificacoesPush"/>.
 /// </remarks>
 public sealed class FilaNotificacoesPush : IFilaNotificacoesPush
 {

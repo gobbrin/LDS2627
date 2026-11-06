@@ -2,7 +2,7 @@
 
 Para quem vai ler, corrigir ou acrescentar código ao backend do Campus Carpool sem o ter escrito. Explica como as peças encaixam e onde procurar; o detalhe de cada classe está nos comentários XML do próprio código.
 
-Descreve o código da branch `feat/29-i110-…` no commit `7e523ce` (06/11/2026). **Quando este guia e o código divergirem, vale o código.**
+Descreve o código da branch `feat/29-i110-…` depois das melhorias e da revisão final de 06/11/2026. **Quando este guia e o código divergirem, vale o código.**
 
 **Referências usadas no texto:** `RF-Fnnn-nn`, `RNF-…` e `P-nn` são requisitos e pressupostos da especificação; `UC-Fnnn-nn` são casos de uso; `AD-001` a `AD-003` são os documentos adicionais sobre estados, rotas e permissões. `DEF-BE-nnn` são defeitos da RTM. `DC-nn`, `API-nn`, `DO-nn`, `AP-nn`, `IN-nn` e `C1` são achados da revisão do backend, e aparecem assim nos comentários do código.
 
@@ -77,7 +77,7 @@ Na prática: **um controller nunca toca na base de dados nem devolve uma entidad
 3. Se faltar uma consulta, acrescentá-la ao repositório, incluindo os falsos de `I052ParticipacaoServiceTests`.
 4. Acrescentar o método ao serviço. Devolve `Resultado` ou `Resultado<T>` ([§2](#erros-três-caminhos)).
 5. Definir o DTO da resposta.
-6. Acrescentar a ação ao controller, com `[Authorize]` ao nível da classe ou da ação: **sem isso a rota fica pública** ([§9](#segurança)).
+6. Acrescentar a ação ao controller. A rota exige sessão por omissão; só uma rota pública leva `[AllowAnonymous]` ([§9](#segurança)).
 7. Atualizar o `ContratoRespostasHttpTests` se a resposta for nova, e os comentários XML que citem requisitos.
 
 ## 2. Um pedido do início ao fim
@@ -88,7 +88,8 @@ O `Program.cs` monta os passos por esta ordem. A ordem importa: o tratamento de 
 
 ```mermaid
 flowchart LR
-    A["UseExceptionHandler"] --> B["UseHttpsRedirection"]
+    A["UseExceptionHandler<br/>e UseHsts"] --> A2["UseCors"]
+    A2 --> B["UseHttpsRedirection"]
     B --> C["UseAuthentication<br/>valida o JWT"]
     C --> D["UseRateLimiter<br/>100 por minuto"]
     D --> E["UseAuthorization<br/>[Authorize]"]
@@ -138,9 +139,9 @@ Assim nunca se anuncia uma operação que falhou nem se grava uma operação sem
 
 | Situação | Como sai do serviço | Quem traduz | Resposta |
 |---|---|---|---|
-| Erro previsto (dados inválidos, sem permissão, estado que não permite) | `Resultado` com um `Erro` | `Api/Controllers/RespostasHttp.cs` | `{ "erro": "…" }`, ou sem corpo |
-| Conflito ao gravar, ou transição inválida numa entidade | `RegraDeNegocioException` | `GlobalExceptionHandler` | 409 `ProblemDetails`, com a mensagem em `detail` |
-| Qualquer outra exceção | Exceção | `GlobalExceptionHandler` | 500 `ProblemDetails` com texto genérico; o detalhe fica só no log |
+| Erro previsto (dados inválidos, sem permissão, estado que não permite) | `Resultado` com um `Erro` | `Api/Controllers/RespostasHttp.cs` | Sempre `{ "erro": "…" }` |
+| Conflito ao gravar, ou transição inválida numa entidade | `RegraDeNegocioException` | `GlobalExceptionHandler` | 409 `ProblemDetails`, com a mensagem em `detail` e em `erro` |
+| Qualquer outra exceção | Exceção | `GlobalExceptionHandler` | 500 `ProblemDetails` com texto genérico, também em `erro`; o detalhe fica só no log |
 
 Um serviço escreve simplesmente `return new Erro(TipoErro.Conflito, "Viagem indisponível.")` ou `return valor`: as conversões implícitas de `Resultado<T>` tratam do resto. O controller responde com `this.Responder(resultado, valor => Ok(valor))`.
 
@@ -235,9 +236,9 @@ erDiagram
 | `Utilizador` | `Utilizadores` | Conta | Email único. A classificação média não é guardada: calcula-se (`CalculadoraDeClassificacao`) |
 | `ConfirmacaoConta` | `ConfirmacoesConta` | Token de confirmação | Só o hash |
 | `TokenRevogado` | `TokensRevogados` | `jti` de sessões terminadas | Sem chave estrangeira; os expirados são apagados no logout seguinte |
-| `Viagem` | `Viagens` | Oferta do condutor | Estado em texto, rota em JSON, `Versao` para concorrência |
-| `Participacao` | `Participacoes` | Pedido de um passageiro | Índice único filtrado: um só pedido `Pendente` ou `Aceite` por passageiro e viagem |
-| `Avaliacao` | `Avaliacoes` | Classificação entre participantes | Ver [o aviso sobre o índice](#migrations) |
+| `Viagem` | `Viagens` | Oferta do condutor | Estado em texto, rota em JSON, `Versao` para concorrência, colunas de pesquisa |
+| `Participacao` | `Participacoes` | Pedido de um passageiro | Índice único filtrado: um só pedido `Pendente` ou `Aceite` por passageiro e viagem; `Versao` para concorrência |
+| `Avaliacao` | `Avaliacoes` | Classificação entre participantes | Índice único no par `(AvaliadorId, AvaliadoId)`, seja qual for a viagem |
 | `Mensagem` | `Mensagens` | Mensagem individual | `ViagemId` opcional |
 | `Aviso` | `Avisos` | Aviso do condutor | Até 100 caracteres |
 | `Notificacao` | `Notificacoes` | Notificação pessoal | Título e conteúdo são copiados ao criar |
@@ -261,7 +262,7 @@ dotnet ef migrations add <Nome> --project src/CampusCarpool.Infrastructure --sta
 dotnet ef migrations has-pending-model-changes --project src/CampusCarpool.Infrastructure --startup-project src/CampusCarpool.Api
 ```
 
-**Atenção ao índice das avaliações:** a migration `I048_AvaliacoesPorPar` deixa-o em `(AvaliadorId, AvaliadoId)`, mas o `DbContext` e o snapshot ainda declaram `(ViagemId, AvaliadorId, AvaliadoId)` (IN-01, DEF-BE-025). O SQLite dos testes segue o modelo e o SQL Server as migrations, por isso os dois têm esquemas diferentes neste ponto. Ao corrigir, escrever o `Up` à mão: um `migrations add` tentaria apagar um índice que as bases migradas já não têm.
+**Migrations à mão:** o SQL Server não altera uma coluna usada por um `CHECK` ou por um índice filtrado, e um `migrations add` não trata disso: ver `I110_TamanhosERestricoes`. Um preenchimento de dados vai dentro de `EXEC`, porque num script único o lote seria compilado antes de a coluna existir. A CI aplica as migrations em SQL Server real; localmente, sem SQL Server, os testes correm em SQLite com o esquema do modelo.
 
 ## 6. Ciclo de vida da viagem e da participação
 
@@ -442,7 +443,7 @@ As falhas do serviço (RF-F008-12) passam por `ChamadaMapas`.
 
 ### Fora das funcionalidades
 
-`GET /` e `GET /health` são anónimos e só indicam que o processo responde.
+`GET /` e `GET /health` são anónimos. `GET /` só indica que o processo responde; `GET /health` faz uma consulta à base de dados e responde 503 se ela falhar.
 
 ## 9. Armadilhas
 
@@ -450,25 +451,27 @@ As falhas do serviço (RF-F008-12) passam por `ChamadaMapas`.
 
 - **`Listar…` não muda nada.** Os métodos `ListarPorViagemAsync` e semelhantes usam `AsNoTracking`: alterar o que devolvem não é gravado. Para alterar, usar `ObterPorIdAsync` ou `Listar…ParaAlterarAsync`.
 - **Nem tudo espera pelo `ConfirmarAsync`.** Três repositórios gravam sozinhos: participações (pedido novo) e avaliações, porque têm de reconhecer a recusa da base de dados, e dispositivos, por ser uma operação isolada. No pedido novo, a notificação registada antes entra nessa gravação.
-- **Concorrência só na viagem.** A coluna `Versao` existe só em SQL Server (`Database.IsSqlServer()` no `OnModelCreating`); em SQLite não é controlada. A segunda gravação falha e chega ao cliente como 409. `Participacao` não tem versão: aceitar e cancelar o mesmo pedido em simultâneo não gera conflito (DO-03).
+- **Concorrência na viagem e na participação.** A coluna `Versao` só é controlada em SQL Server (`Database.IsSqlServer()` no `OnModelCreating`); em SQLite não é. A segunda gravação falha e chega ao cliente como 409.
 - **O estado da viagem é `Concluida`, sem acento.** Fica em texto, e `CK_Viagens_Estado` recusa outros valores. Mudar o nome de um membro de `EstadoViagem`, `EstadoParticipacao` ou `TipoNotificacao` exige uma migration de dados.
-- **Pesquisa sem acentos.** `OrigemPesquisa` e `DestinoPesquisa` são preenchidas pelo próprio `DbContext` ao gravar (`TextoPesquisa`). Não as escrever à mão.
+- **Colunas de pesquisa.** `OrigemPesquisa`, `DestinoPesquisa` e `PartidaMinutoDoDia` são preenchidas pelo próprio `DbContext` ao gravar. Não as escrever à mão.
+- **Tamanhos e `CHECK`.** Seguem o modelo de dados v06. Um limite novo numa coluna tem de existir também no serviço, para dar 400 e não 500.
 
 ### Datas
 
-- As colunas são `datetime2` e não há conversor UTC. Lidas da base de dados, as datas vêm com `Kind = Unspecified` e são serializadas **sem `Z`** (DC-42).
-- A API só aceita datas com `Kind = Utc`: uma partida sem `Z` dá 400.
-- Por isso, as datas que a API devolve não voltam a ser aceites tal como vêm. O cliente tem de as tratar como UTC.
+- As colunas são `datetime2` e guardam sempre UTC. O `ConversorDataUtc` faz as datas lidas saírem com `Kind = Utc`, por isso a API devolve-as com `Z`.
+- A API só aceita datas com `Z`: uma partida sem `Z`, ou com um desvio como `+01:00`, dá 400. O `toISOString()` do JavaScript já envia `Z`.
+- Os filtros `data` e `hora` da pesquisa são os do relógio de Portugal (`HoraDePortugal`), não UTC.
 
 ### JSON e testes
 
 - O JSON da API é camelCase, mas os records têm propriedades PascalCase. Um teste que serialize `result.Value` tem de usar `JsonSerializerDefaults.Web`.
-- Um `Erro` sem mensagem dá uma resposta sem corpo.
-- Há dois formatos de erro ([§2](#erros-três-caminhos)): os clientes têm de contar com `{ erro }` e com `ProblemDetails`.
+- Um `Erro` tem sempre mensagem: o tipo exige-a (RNF-USA-02).
+- Todos os erros da API têm o campo `erro` ([§2](#erros-três-caminhos)), incluindo os 400 de corpo inválido e os 429. A exceção é o 401 do JwtBearer, sem corpo.
 
 ### Segurança
 
-- **Não há `FallbackPolicy` (API-10):** um controller sem `[Authorize]` fica público. O `RotasProtegidasHttpTests` percorre as rotas da aplicação e falha nesse caso.
+- **Autorização por omissão:** uma rota nova exige sessão. Uma rota pública tem de ter `[AllowAnonymous]` e entrar na lista do `RotasProtegidasHttpTests`, que percorre as rotas da aplicação. Sem sessão, uma rota inexistente dá 401, não 404.
+- **CORS:** as origens do browser vêm de `Cors:Origens`. Fora dessa lista, o browser não chama a API.
 - **Nunca pôr segredos no repositório:** é público. O `appsettings.json` não tem `Jwt:Key`, de propósito. Nas coleções Postman também não vão emails, palavras-passe nem tokens reais.
 
 ### Configuração e documentos antigos
@@ -484,18 +487,11 @@ Estão também marcadas nos comentários do código, com o mesmo identificador.
 
 | Id | Limitação | Consequência |
 |---|---|---|
-| DC-42 | Datas sem UTC na leitura | Ver [§9](#datas) |
-| DO-03 | `Participacao` sem controlo de concorrência | Duas decisões simultâneas sobre o mesmo pedido podem cruzar-se |
-| IN-01, DEF-BE-025 | Índice das avaliações diferente entre modelo e migrations | Ver [§5](#migrations) |
-| DC-43 | Recusa da Brevo não tratada no registo | 500 em vez de 503, com a conta já criada |
-| AP-07 | Fila de push em memória | Um reinício perde os pushes por enviar |
+| AP-07 | Fila de push em memória, aceite no MVP (G17) | Um reinício perde os pushes por enviar; as notificações ficam na base de dados |
 | AP-10 | Histórico e conversa sem paginação | Respostas grandes em contas com muito uso |
-| API-10 | Sem `FallbackPolicy` | Ver [§9](#segurança) |
-| DC-45 | Sem CORS | Um frontend noutra origem não chama a API sem isto |
-| C1 | `/health` não verifica a base de dados | Responde 200 com a base de dados em baixo |
 | DC-46 | JWT na query string do hub | Pode ficar nos logs de acesso |
 | IN-04 | `Maps:BaseUrl` sem efeito | Mudar o fornecedor exige alterar o código |
-| — | Ligação ao hub não fecha no logout nem ao expirar o token | Continua a receber eventos até desligar |
+| — | Ligação ao hub não fecha logo no logout | Continua a receber eventos até o token expirar, no máximo 60 minutos |
 
 ## 11. Como correr
 
@@ -522,6 +518,7 @@ Em produção, variáveis de ambiente: `Jwt__Key`, `ConnectionStrings__DefaultCo
 | `Brevo:ApiKey`, `Brevo:FromEmail`, `Frontend:ConfirmUrl` | Para registar | A conta é criada, mas o registo responde 503 |
 | `Firebase:ProjectId`, `Firebase:ClientEmail`, `Firebase:PrivateKey` | Não | O push não é enviado; fica um aviso no log |
 | `Custos:PrecoPorKm` | No `appsettings.json` | — |
+| `Cors:Origens` | No `appsettings.json` traz `http://localhost:4200`; em produção, o endereço do frontend | O browser não chama a API |
 | `ConclusaoViagens:IntervaloSegundos` | Não | 60 segundos |
 
 Sem Brevo não há como receber o token de confirmação. Numa base de dados **de desenvolvimento**, pôr `EmailConfirmado = 1` diretamente no utilizador.
