@@ -30,6 +30,9 @@ public sealed class AutenticacaoService(
     // P-02: validade da ligação de confirmação.
     private const int HorasDeValidadeConfirmacao = 24;
 
+    /// <summary>Tempo que uma revogação fica depois de o token expirar: tem de exceder o <c>ClockSkew</c> de 30 s do JwtBearer.</summary>
+    private static readonly TimeSpan MargemDepoisDeExpirar = TimeSpan.FromMinutes(1);
+
     // P-08 / RF-F001-05: mínimo de 8 caracteres, com pelo menos uma letra e um dígito.
     private static bool PalavraPasseValida(string? palavraPasse) =>
         palavraPasse is { Length: >= 8 } && palavraPasse.Any(char.IsLetter) && palavraPasse.Any(char.IsDigit);
@@ -218,15 +221,22 @@ public sealed class AutenticacaoService(
     {
         var agora = DateTime.UtcNow;
 
-        // Limpeza: um token expirado já é recusado pela validação da data.
-        await tokensRevogados.RemoverExpiradosAsync(agora, ct);
+        // Limpeza: passada a margem, um token expirado já é recusado pela validação da data.
+        await tokensRevogados.RemoverExpiradosAsync(agora - MargemDepoisDeExpirar, ct);
 
         if (!string.IsNullOrWhiteSpace(tokenDispositivo) && utilizadorId is Guid id)
             await dispositivos.DesativarAsync(id, tokenDispositivo.Trim(), ct);
 
         tokensRevogados.Adicionar(new TokenRevogado { Jti = jti, ExpiraEm = expiraEm ?? agora.AddMinutes(60) });
 
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
+        if (await unidadeDeTrabalho.TentarConfirmarAsync(ct) is { } recusa)
+        {
+            // Dois pedidos com o mesmo token (duplo clique, repetição): o índice único recusa o segundo, e a sessão terminou na mesma.
+            unidadeDeTrabalho.DescartarAlteracoes();
+
+            if (!await tokensRevogados.EstaRevogadoAsync(jti, ct))
+                throw new InvalidOperationException("A base de dados recusou o fim de sessão.", recusa);
+        }
     }
 
     /// <inheritdoc />

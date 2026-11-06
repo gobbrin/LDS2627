@@ -106,6 +106,16 @@ public sealed class RegistoResilienteTests : IDisposable
     private static AutenticacaoController Controller(CampusCarpoolDbContext db, IServicoEmail email) =>
         ServicosDeTeste.CriarAutenticacaoController(db, new ConfigurationBuilder().Build(), email);
 
+    private void GravarRevogado(string jti, DateTime expiraEm)
+    {
+        using var outro = Contexto();
+        outro.TokensRevogados.Add(new TokenRevogado { Jti = jti, ExpiraEm = expiraEm });
+        outro.SaveChanges();
+    }
+
+    private static AutenticacaoService ServicoDe(CampusCarpoolDbContext db) =>
+        ServicosDeTeste.CriarAutenticacaoService(db, new ConfigurationBuilder().Build(), new EmailSemFalha());
+
     private void GravarUtilizador(string email)
     {
         using var outro = Contexto();
@@ -218,5 +228,40 @@ public sealed class RegistoResilienteTests : IDisposable
 
         Assert.NotNull(resultado.Erro);
         Assert.Equal(1, hash.Calculos);
+    }
+
+    [Fact]
+    public async Task I110_147_DoisLogoutsSimultaneos_ComOMesmoToken_NaoFalham()
+    {
+        var expiraEm = DateTime.UtcNow.AddMinutes(30);
+        await using var db = Contexto(() => GravarRevogado("jti-repetido", expiraEm));
+
+        await ServicoDe(db).TerminarSessaoAsync("jti-repetido", expiraEm, null, null, CancellationToken.None);
+
+        await using var leitura = Contexto();
+        Assert.Equal(1, await leitura.TokensRevogados.CountAsync(t => t.Jti == "jti-repetido"));
+    }
+
+    [Fact]
+    public async Task I110_148_Logout_SeABdRecusarSemHaverRevogacao_NaoFingeQueTerminou()
+    {
+        await using var db = Contexto(() => throw new DbUpdateException("BD em baixo."));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ServicoDe(db).TerminarSessaoAsync("jti-novo", DateTime.UtcNow.AddMinutes(30), null, null, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task I110_149_Limpeza_GuardaOsTokensAindaAceitesPelaMargemDoRelogio()
+    {
+        GravarRevogado("dentro-da-margem", DateTime.UtcNow.AddSeconds(-10));
+        GravarRevogado("fora-da-margem", DateTime.UtcNow.AddMinutes(-5));
+
+        await using var db = Contexto();
+        await ServicoDe(db).TerminarSessaoAsync("outro", null, null, null, CancellationToken.None);
+
+        await using var leitura = Contexto();
+        Assert.True(await leitura.TokensRevogados.AnyAsync(t => t.Jti == "dentro-da-margem"));
+        Assert.False(await leitura.TokensRevogados.AnyAsync(t => t.Jti == "fora-da-margem"));
     }
 }
