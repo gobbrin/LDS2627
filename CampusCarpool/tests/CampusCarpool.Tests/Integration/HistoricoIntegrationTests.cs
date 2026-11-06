@@ -28,11 +28,11 @@ public sealed class HistoricoIntegrationTests
 
             var options =
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                    .UseSqlite(connection)
+                    .UseBaseDeTeste(connection)
                     .Options;
 
             Db = new CampusCarpoolDbContext(options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public void Dispose()

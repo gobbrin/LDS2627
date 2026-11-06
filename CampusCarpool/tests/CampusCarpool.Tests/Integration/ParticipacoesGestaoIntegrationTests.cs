@@ -66,9 +66,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection)
+                .UseBaseDeTeste(connection)
                 .Options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         /// <summary>Cria um utilizador confirmado para os cenários de participação.</summary>

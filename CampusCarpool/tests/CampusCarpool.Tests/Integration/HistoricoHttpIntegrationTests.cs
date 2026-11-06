@@ -85,7 +85,7 @@ public sealed class HistoricoHttpIntegrationTests
                 services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
 
                 services.AddDbContext<CampusCarpoolDbContext>(options =>
-                    options.UseSqlite(connection));
+                    options.UseBaseDeTeste(connection));
                 services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = "Test";
@@ -99,7 +99,7 @@ public sealed class HistoricoHttpIntegrationTests
 
                 scope.ServiceProvider
                     .GetRequiredService<CampusCarpoolDbContext>()
-                    .Database.EnsureCreated();
+                    .Database.CriarEsquemaDeTeste();
             });
         }
 

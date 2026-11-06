@@ -83,7 +83,7 @@ public sealed class DispositivosHttpIntegrationTests
                 services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
 
                 services.AddDbContext<CampusCarpoolDbContext>(
-                    options => options.UseSqlite(connection));
+                    options => options.UseBaseDeTeste(connection));
 
                 services.AddAuthentication(options =>
                 {
@@ -98,7 +98,7 @@ public sealed class DispositivosHttpIntegrationTests
 
                 scope.ServiceProvider
                     .GetRequiredService<CampusCarpoolDbContext>()
-                    .Database.EnsureCreated();
+                    .Database.CriarEsquemaDeTeste();
             });
         }
 

@@ -24,8 +24,8 @@ public sealed class PerfilPublicoTests : IDisposable
     {
         _ligacao.Open();
         _db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(_ligacao).Options);
-        _db.Database.EnsureCreated();
+            .UseBaseDeTeste(_ligacao).Options);
+        _db.Database.CriarEsquemaDeTeste();
     }
 
     public void Dispose()

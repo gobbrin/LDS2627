@@ -28,9 +28,9 @@ public sealed class AvisosIntegrationTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection)
+                .UseBaseDeTeste(connection)
                 .Options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<Utilizador> CriarUtilizador()

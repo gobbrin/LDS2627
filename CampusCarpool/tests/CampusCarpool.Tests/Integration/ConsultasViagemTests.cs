@@ -28,8 +28,8 @@ public sealed class ConsultasViagemTests : IDisposable
     public ConsultasViagemTests()
     {
         ligacao.Open();
-        db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseSqlite(ligacao).Options);
-        db.Database.EnsureCreated();
+        db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseBaseDeTeste(ligacao).Options);
+        db.Database.CriarEsquemaDeTeste();
         db.AddRange(condutor, passageiro, pendente, outro);
         db.SaveChanges();
     }

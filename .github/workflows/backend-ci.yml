@@ -92,6 +92,17 @@ jobs:
             --logger "trx;LogFileName=test-results.trx" \
             --results-directory TestResults
 
+      # A mesma suite outra vez, em SQL Server real e com o esquema das migrations, em vez de SQLite.
+      - name: Test on SQL Server
+        env:
+          CAMPUSCARPOOL_TESTES_BD: SqlServer
+        run: |
+          dotnet test CampusCarpool.slnx \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=test-results-sqlserver.trx" \
+            --results-directory TestResultsSqlServer
+
       - name: Quality Gate
         shell: bash
         run: |
@@ -155,6 +166,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: campuscarpool-test-evidence
-          path: CampusCarpool/TestResults/
+          path: |
+            CampusCarpool/TestResults/
+            CampusCarpool/TestResultsSqlServer/
           if-no-files-found: ignore
           retention-days: 7

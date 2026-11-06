@@ -72,11 +72,11 @@ public sealed class CriacaoViagemIntegrationTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var condutor = new Utilizador
         {

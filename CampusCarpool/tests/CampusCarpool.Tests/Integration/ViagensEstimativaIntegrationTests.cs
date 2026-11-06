@@ -31,8 +31,8 @@ public sealed class ViagensEstimativaIntegrationTests
             _connection.Open();
             Db = new CampusCarpoolDbContext(
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                    .UseSqlite(_connection).Options);
-            Db.Database.EnsureCreated();
+                    .UseBaseDeTeste(_connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public void Dispose()

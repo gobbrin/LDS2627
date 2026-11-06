@@ -64,8 +64,7 @@ public sealed class RegistadorDeLogs(ConcurrentQueue<string> destino) : ILoggerP
 
 /// <summary>A API tal como o <c>Program.cs</c> a monta: JwtBearer, limitador, tratamento de erros, controllers e hub (TE-04).</summary>
 /// <remarks>
-/// Só se troca o que sai do processo: a base de dados (SQLite em memória, com o esquema do <c>EnsureCreated</c>), o
-/// Serviço de Mapas (<see cref="MapasFalsos"/>), o email (<see cref="EmailRegistador"/>) e a fila de push
+/// Só se troca o que sai do processo: a base de dados (ver <see cref="BaseDeDadosDeTeste"/>), o Serviço de Mapas (<see cref="MapasFalsos"/>), o email (<see cref="EmailRegistador"/>) e a fila de push
 /// (<see cref="FilaNotificacoesPushFalsa"/>). Cada pedido usa a sua ligação à mesma BD, porque o hub e os pedidos correm
 /// em paralelo. Corre como <c>Production</c>, sem User Secrets nem OpenAPI. Os limites de pedidos estão ativos: um teste
 /// que faça muitos pedidos por minuto recebe 429, por isso cada teste tem a sua instância.
@@ -97,7 +96,11 @@ public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = nu
         {
             services.RemoveAll<DbContextOptions<CampusCarpoolDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
-            services.AddDbContext<CampusCarpoolDbContext>(options => options.UseSqlite(_cadeiaDeLigacao));
+            services.AddDbContext<CampusCarpoolDbContext>(options =>
+            {
+                if (BaseDeDadosDeTeste.EmSqlServer) options.UseBaseDeTeste(_ligacaoPermanente!);
+                else options.UseSqlite(_cadeiaDeLigacao);
+            });
 
             services.RemoveAll<IServicoMapasRotas>();
             services.AddSingleton<IServicoMapasRotas>(Mapas.CriarServico());
@@ -119,7 +122,7 @@ public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = nu
         var host = base.CreateHost(builder);
 
         using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>().Database.EnsureCreated();
+        scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>().Database.CriarEsquemaDeTeste();
 
         return host;
     }

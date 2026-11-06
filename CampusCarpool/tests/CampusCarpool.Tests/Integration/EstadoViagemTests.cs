@@ -21,8 +21,8 @@ public sealed class EstadoViagemTests : IDisposable
     {
         _ligacao.Open();
         _db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(_ligacao).Options);
-        _db.Database.EnsureCreated();
+            .UseBaseDeTeste(_ligacao).Options);
+        _db.Database.CriarEsquemaDeTeste();
     }
 
     public void Dispose()
@@ -69,7 +69,7 @@ public sealed class EstadoViagemTests : IDisposable
         await CriarViagemAsync(EstadoViagem.Ativa);
 
         // Por SQL direto: pelo modelo já não é possível gravar um estado fora de EstadoViagem.
-        var erro = await Assert.ThrowsAsync<SqliteException>(() =>
+        var erro = await Assert.ThrowsAnyAsync<System.Data.Common.DbException>(() =>
             _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Viagens SET Estado = {estado}"));
 
         Assert.Contains("CK_Viagens_Estado", erro.Message);

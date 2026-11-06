@@ -64,7 +64,7 @@ public sealed class ContratoRespostasHttpTests : IDisposable
                 services.RemoveAll<IHostedService>();
                 services.RemoveAll<DbContextOptions<CampusCarpoolDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<CampusCarpoolDbContext>>();
-                services.AddDbContext<CampusCarpoolDbContext>(options => options.UseSqlite(ligacao));
+                services.AddDbContext<CampusCarpoolDbContext>(options => options.UseBaseDeTeste(ligacao));
 
                 services.RemoveAll<IServicoMapasRotas>();
                 services.AddSingleton<IServicoMapasRotas>(new MapasFalsos().CriarServico());
@@ -95,7 +95,7 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         var db = scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>();
         var hash = scope.ServiceProvider.GetRequiredService<IHashPalavraPasse>();
 
-        db.Database.EnsureCreated();
+        db.Database.CriarEsquemaDeTeste();
         condutor.PasswordHash = hash.Gerar(condutor, PalavraPasse);
         passageiro.PasswordHash = hash.Gerar(passageiro, PalavraPasse);
         db.Utilizadores.AddRange(condutor, passageiro);

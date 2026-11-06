@@ -35,8 +35,8 @@ public sealed class EndpointsAdditionalTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
         public void Dispose() { Db.Dispose(); connection.Dispose(); }
         public async Task<Utilizador> User(string email = "user@estg.ipp.pt", bool confirmed = true)

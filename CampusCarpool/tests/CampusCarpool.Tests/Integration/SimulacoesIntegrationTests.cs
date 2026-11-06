@@ -38,8 +38,8 @@ public sealed class SimulacoesIntegrationTests
         {
             _connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(_connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(_connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
             Db.Utilizadores.AddRange(Condutor, Passageiro, Terceiro);
             Viagem = new Viagem
             {

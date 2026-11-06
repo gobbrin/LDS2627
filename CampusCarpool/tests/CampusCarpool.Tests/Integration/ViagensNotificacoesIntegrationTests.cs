@@ -30,11 +30,11 @@ public sealed class ViagensNotificacoesIntegrationTests
             _connection.Open();
 
             var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(_connection)
+                .UseBaseDeTeste(_connection)
                 .Options;
 
             Db = new CampusCarpoolDbContext(options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<Utilizador> CriarUtilizadorAsync()

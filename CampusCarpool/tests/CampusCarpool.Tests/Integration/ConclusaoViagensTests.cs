@@ -28,8 +28,8 @@ public sealed class ConclusaoViagensTests : IDisposable
     {
         _ligacao.Open();
         _db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(_ligacao).Options);
-        _db.Database.EnsureCreated();
+            .UseBaseDeTeste(_ligacao).Options);
+        _db.Database.CriarEsquemaDeTeste();
         _condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt", EmailConfirmado = true };
         _db.Utilizadores.Add(_condutor);
         _db.SaveChanges();
@@ -117,7 +117,7 @@ public sealed class ConclusaoViagensTests : IDisposable
         Assert.Equal(EstadoViagem.Indisponibilizada, await EstadoAsync(indisponivel.Id));
     }
 
-    [Fact]
+    [SoSqliteFact]
     public async Task I110_15_FalhaNumaViagem_NaoImpedeAsRestantes()
     {
         var comFalha = CriarViagem(Agora.AddHours(-3), duracaoMinutos: 30);

@@ -75,14 +75,14 @@ public sealed class NotificacoesMesmaGravacaoTests : IAsyncLifetime, IDisposable
 
     private DbContextOptions<CampusCarpoolDbContext> Opcoes(bool contar) =>
         (contar
-            ? new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseSqlite(ligacao).AddInterceptors(contador)
-            : new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseSqlite(ligacao)).Options;
+            ? new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseBaseDeTeste(ligacao).AddInterceptors(contador)
+            : new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseBaseDeTeste(ligacao)).Options;
 
     public async Task InitializeAsync()
     {
         await ligacao.OpenAsync();
         db = new CampusCarpoolDbContext(Opcoes(contar: true));
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         condutor = new Utilizador { Nome = "Condutor", Email = $"{Guid.NewGuid():N}@estg.ipp.pt", EmailConfirmado = true };
         passageiro = new Utilizador { Nome = "Passageiro", Email = $"{Guid.NewGuid():N}@estg.ipp.pt", EmailConfirmado = true };

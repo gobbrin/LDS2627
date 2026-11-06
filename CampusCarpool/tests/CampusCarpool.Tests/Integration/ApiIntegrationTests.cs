@@ -29,8 +29,8 @@ public sealed class ApiIntegrationTests
         {
             connection.Open();
             Db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                .UseSqlite(connection).Options);
-            Db.Database.EnsureCreated();
+                .UseBaseDeTeste(connection).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
         public void Dispose() { Db.Dispose(); connection.Dispose(); }
     }

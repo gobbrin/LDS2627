@@ -23,8 +23,8 @@ public sealed class LigacoesExternasTests : IDisposable
     public LigacoesExternasTests()
     {
         ligacao.Open();
-        db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseSqlite(ligacao).Options);
-        db.Database.EnsureCreated();
+        db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>().UseBaseDeTeste(ligacao).Options);
+        db.Database.CriarEsquemaDeTeste();
         db.AddRange(dono, outro);
         db.SaveChanges();
     }

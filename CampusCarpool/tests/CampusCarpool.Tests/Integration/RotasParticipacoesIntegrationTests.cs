@@ -34,11 +34,11 @@ public sealed class RotasParticipacoesIntegrationTests
 
             var options =
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                    .UseSqlite(connection)
+                    .UseBaseDeTeste(connection)
                     .Options;
 
             Db = new CampusCarpoolDbContext(options);
-            Db.Database.EnsureCreated();
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<Utilizador> CriarUtilizador()

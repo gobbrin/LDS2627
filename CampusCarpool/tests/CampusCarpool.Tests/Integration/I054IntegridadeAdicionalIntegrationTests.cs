@@ -22,8 +22,8 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
             _ligacao.Open();
             Db = new CampusCarpoolDbContext(
                 new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-                    .UseSqlite(_ligacao).Options);
-            Db.Database.EnsureCreated();
+                    .UseBaseDeTeste(_ligacao).Options);
+            Db.Database.CriarEsquemaDeTeste();
         }
 
         public async Task<(Utilizador Condutor, Utilizador Passageiro, Viagem Viagem)> PrepararAsync()

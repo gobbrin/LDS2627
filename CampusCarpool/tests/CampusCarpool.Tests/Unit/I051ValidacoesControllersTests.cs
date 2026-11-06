@@ -59,11 +59,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -182,11 +182,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -251,11 +251,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -288,11 +288,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -349,11 +349,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -414,11 +414,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -450,11 +450,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -488,11 +488,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var emailFake = new EmailFake();
         var config = new ConfigurationBuilder().Build();
@@ -530,11 +530,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -598,11 +598,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -676,11 +676,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -787,11 +787,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -894,11 +894,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -987,11 +987,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
@@ -1070,11 +1070,11 @@ public sealed class I051ValidacoesControllersTests
         await connection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
-            .UseSqlite(connection)
+            .UseBaseDeTeste(connection)
             .Options;
 
         await using var db = new CampusCarpoolDbContext(options);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.CriarEsquemaDeTesteAsync();
 
         var utilizador = new Utilizador
         {
