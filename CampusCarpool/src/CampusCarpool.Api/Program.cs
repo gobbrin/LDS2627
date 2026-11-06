@@ -4,6 +4,7 @@ using CampusCarpool.Api.Hubs;
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.DependencyInjection;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Infrastructure.DependencyInjection;
 using CampusCarpool.Infrastructure.Integrations;
@@ -26,6 +27,7 @@ builder.Services.AddSingleton<
     Microsoft.AspNetCore.SignalR.IUserIdProvider,
     PedidosUserIdProvider>();
 builder.Services.Configure<OpcoesCustos>(builder.Configuration.GetSection(OpcoesCustos.Seccao));
+builder.Services.Configure<OpcoesEmailAcademico>(builder.Configuration.GetSection(OpcoesEmailAcademico.Seccao));
 // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();

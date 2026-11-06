@@ -1,4 +1,5 @@
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Rotas;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -50,5 +51,17 @@ public sealed class RegistoServicosTests
         var estimativa = scope.ServiceProvider.GetRequiredService<EstimativaCustoService>().Calcular(10m, 0);
 
         Assert.Equal(0.25m, estimativa.PrecoPorKm);
+    }
+
+    [Fact]
+    public void DominiosAcademicos_VemDaSeccaoEmailAcademico()
+    {
+        using var factory = new ApiFactory();
+        using var scope = factory.Services.CreateScope();
+
+        var validador = scope.ServiceProvider.GetRequiredService<ValidadorEmailAcademico>();
+
+        Assert.True(validador.Permitido("aluno@estg.ipp.pt"));
+        Assert.False(validador.Permitido("aluno@gmail.com"));
     }
 }

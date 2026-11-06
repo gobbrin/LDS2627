@@ -179,6 +179,14 @@ public static class ServicosDeTeste
         new AvaliacaoService(new RepositorioAvaliacoes(db)),
         new UnidadeDeTrabalhoEfCore(db));
 
+    public static ValidadorEmailAcademico CriarValidadorEmail()
+    {
+        var opcoes = new OpcoesEmailAcademico();
+        opcoes.Dominios.Add("estg.ipp.pt");
+
+        return new ValidadorEmailAcademico(Options.Create(opcoes));
+    }
+
     public static AutenticacaoController CriarAutenticacaoController(
         CampusCarpoolDbContext db,
         IConfiguration configuracao,
@@ -191,7 +199,8 @@ public static class ServicosDeTeste
             new UnidadeDeTrabalhoEfCore(db),
             email,
             new HashPalavraPasse(),
-            new GeradorTokensJwt(configuracao)));
+            new GeradorTokensJwt(configuracao),
+            CriarValidadorEmail()));
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,

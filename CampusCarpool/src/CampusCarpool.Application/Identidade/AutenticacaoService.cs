@@ -10,7 +10,6 @@ namespace CampusCarpool.Application.Identidade;
 /// <summary>Implementação de <see cref="IAutenticacaoService"/>.</summary>
 /// <remarks>
 /// Os tokens de confirmação são 32 bytes aleatórios; na BD só fica o SHA-256 (ver <see cref="ConfirmacaoConta"/>).
-/// O domínio académico (<c>@estg.ipp.pt</c>) está fixo no código em vez de vir da configuração (P-01, DEF-BE-002).
 /// </remarks>
 public sealed class AutenticacaoService(
     IRepositorioUtilizadores utilizadores,
@@ -20,10 +19,9 @@ public sealed class AutenticacaoService(
     IUnidadeDeTrabalho unidadeDeTrabalho,
     IServicoEmail servicoEmail,
     IHashPalavraPasse hashPalavraPasse,
-    IGeradorTokens geradorTokens) : IAutenticacaoService
+    IGeradorTokens geradorTokens,
+    ValidadorEmailAcademico validadorEmail) : IAutenticacaoService
 {
-    private const string DominioAcademico = "@estg.ipp.pt";
-
     // P-02: validade da ligação de confirmação.
     private const int HorasDeValidadeConfirmacao = 24;
 
@@ -49,7 +47,7 @@ public sealed class AutenticacaoService(
 
         var normalizado = Normalizar(email);
 
-        if (!normalizado.EndsWith(DominioAcademico, StringComparison.OrdinalIgnoreCase) || normalizado.Length > 255)
+        if (!validadorEmail.Permitido(normalizado) || normalizado.Length > 255)
             return new Erro(TipoErro.DadosInvalidos, "É necessário um email académico permitido.");
 
         // API-11: o 409 revela que o email já tem conta (enumeração de contas), ao contrário do reenvio.
@@ -97,7 +95,7 @@ public sealed class AutenticacaoService(
 
         var normalizado = Normalizar(email);
 
-        if (!normalizado.EndsWith(DominioAcademico, StringComparison.OrdinalIgnoreCase))
+        if (!validadorEmail.Permitido(normalizado))
             return Resultado.Sucesso;
 
         var utilizador = await utilizadores.ObterPorEmailAsync(normalizado, ct);

@@ -12,7 +12,7 @@ namespace CampusCarpool.Application.DependencyInjection;
 
 /// <summary>Registo dos serviços da camada Application no contentor de injeção de dependências.</summary>
 /// <remarks>
-/// <see cref="OpcoesCustos"/> é ligado no <c>Program.cs</c>.
+/// <see cref="OpcoesCustos"/> e <see cref="OpcoesEmailAcademico"/> são ligados no <c>Program.cs</c>.
 /// </remarks>
 public static class ApplicationServiceRegistration
 {
@@ -27,6 +27,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IHistoricoService, HistoricoService>();
         services.AddScoped<IPerfilService, PerfilService>();
         services.AddScoped<IAutenticacaoService, AutenticacaoService>();
+        services.AddSingleton<ValidadorEmailAcademico>();
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();
