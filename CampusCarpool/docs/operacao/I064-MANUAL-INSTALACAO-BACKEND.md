@@ -3,11 +3,12 @@
 **Projeto:** G15 — CampusCarpool
 **Issue:** I064 · **Branch:** `docs/i064-manual-instalacao-backend`
 **Executor:** Vítor Samuel Vieira Lopes · **Revisor:** Cristiana Gabriela Oliveira Macedo · **Auditor:** Joana Francisca Pacheco Rodrigues
-**Última verificação dos procedimentos:** 02/11/2026 (ver [secção 11](#11-verificação-dos-procedimentos))
+**Última verificação dos procedimentos:** 04/11/2026 (ver [secção 11](#11-verificação-dos-procedimentos))
+**Versão do backend descrita:** a entregue em m3, `04-artefactos-tecnicos/04.12-backend/m3-v01` (commit `ee689ee` da branch `feat/29-i110-…`). Atualizado a 04/11/2026 na preparação da entrega (I068) para refletir as correções da I110: chave JWT obrigatória fora do `appsettings.json`, migrations novas, conclusão automática das viagens, pipeline no GitHub Actions e teste IT023.
 
 ## 1. Objetivo e âmbito
 
-Este manual permite que qualquer elemento da equipa prepare o ambiente, configure e execute o backend do CampusCarpool (API .NET 10) a partir de um clone limpo do repositório, ligado a uma base de dados SQL Server (local ou Azure SQL).
+Este manual permite que qualquer elemento da equipa prepare o ambiente, configure e execute o backend do CampusCarpool (API .NET 10) a partir de um clone limpo do repositório, ou da cópia entregue em `04.12-backend/m3-v01` (equivalente à pasta `CampusCarpool/` do repositório), ligado a uma base de dados SQL Server (local ou Azure SQL).
 
 **Não inclui** credenciais reais. Todos os valores sensíveis surgem como `<PLACEHOLDER>` e devem ser pedidos à equipa por um canal privado e guardados apenas em User Secrets ou variáveis de ambiente (ver [secção 6](#6-configuração)).
 
@@ -19,8 +20,9 @@ Este manual permite que qualquer elemento da equipa prepare o ambiente, configur
 | Git | qualquer recente | Obter o código | Sim |
 | SQL Server acessível | LocalDB, SQL Server ou Azure SQL | Base de dados da API | Sim |
 | `dotnet-ef` (ferramenta global) | 10.0.x | Criar/aplicar o esquema da base de dados | Sim, na primeira instalação |
-| Postman | recente | Testes manuais (`docs/testes/I055/`) | Opcional |
-| Python 3 / PowerShell 7+ | — | Apenas scripts de análise estática (`docs/qualidade/analise-estatica/I056-LEIAME.md`) | Opcional |
+| Postman | recente | Testes manuais (collection e environment em `03.01.05-postman` da entrega; `docs/testes/I055/` no repositório) | Opcional |
+| Python 3 / PowerShell 7+ | — | Apenas o script de análise estática `scripts/analisar-i056.ps1` (ver o relatório de análise estática, `03.01.06`) | Opcional |
+| SQL Server para o teste IT023 | LocalDB, SQL Server ou contentor `mcr.microsoft.com/mssql/server` | Único teste que precisa de SQL Server (secção 8); sem ele o teste é saltado | Opcional |
 
 Não é necessário Node/Angular para o backend. O frontend é um projeto separado; o backend apenas precisa de conhecer o seu URL (`Frontend:ConfirmUrl`).
 
@@ -100,7 +102,9 @@ Guardá-la em User Secrets ou em variável de ambiente (secção 6) — nunca em
 
 ### 5.3 Criar/atualizar o esquema (migrations)
 
-As migrations estão versionadas em `src/CampusCarpool.Infrastructure/Migrations` (`InitialCreate` … `AdicionarVersaoViagem`).
+As migrations estão versionadas em `src/CampusCarpool.Infrastructure/Migrations`: 8 migrations, de `InitialCreate` a `I110_ParticipacaoAceiteEm`. As duas últimas (`I110_EstadoViagemConcluidaSemAcento` e `I110_ParticipacaoAceiteEm`) convertem o estado `Concluída` em `Concluida`, criam a restrição `CK_Viagens_Estado` e acrescentam `Participacoes.AceiteEm`; uma base de dados criada antes de 04/11/2026 tem de as receber.
+
+Os scripts SQL já gerados (criação, migração idempotente e migração das bases anteriores à I110) estão na entrega em `04-artefactos-tecnicos/04.13-scripts-de-base-de-dados/m3-v01`, com instruções no `LEIA-ME.md` dessa pasta. São a alternativa ao `dotnet ef` quando não se quer instalar a ferramenta.
 
 Instalar a ferramenta (uma vez por máquina):
 
@@ -141,7 +145,7 @@ O ASP.NET Core junta, por esta ordem (a última ganha): `appsettings.json` → `
 - Em variáveis de ambiente, o separador `:` escreve-se `__` (ex.: `Jwt:Key` → `Jwt__Key`).
 - `dotnet run` com o perfil de lançamento define `ASPNETCORE_ENVIRONMENT=Development`; sem perfil, o ambiente é `Production` e os User Secrets **não** são carregados.
 
-> **Atenção:** o `appsettings.json` versionado contém valores de desenvolvimento por defeito (uma `Jwt:Key` de exemplo, a connection string LocalDB e uma `Maps:ApiKey`). Por isso a API arranca "sem configurar nada" — mas esses valores **não servem para ambientes partilhados nem públicos** e devem ser sobrepostos por segredos reais. Ver [secção 10](#10-pontos-de-atenção-conhecidos).
+> **Atenção:** o `appsettings.json` versionado só contém valores não secretos (connection string LocalDB de desenvolvimento, `Jwt:Issuer`/`Audience`, URL do OpenRouteService, preço por km e `Frontend:ConfirmUrl`). **Não contém `Jwt:Key` nem `Maps:ApiKey`** (retiradas na I110): a API **recusa arrancar** sem uma `Jwt:Key` com pelo menos 32 bytes, por isso é obrigatório defini-la em User Secrets (6.3) ou numa variável de ambiente (6.4) antes do primeiro `dotnet run`.
 
 ### 6.2 Chaves de configuração
 
@@ -159,12 +163,14 @@ O ASP.NET Core junta, por esta ordem (a última ganha): `appsettings.json` → `
 | `Maps:ApiKey` | Para rotas/estimativas | Chave OpenRouteService; sem ela os endpoints de mapas falham | `<ORS_API_KEY>` |
 | `Maps:TimeoutSeconds` | Não | Timeout dos pedidos de mapas (defeito 10) | `10` |
 | `Custos:PrecoPorKm` | Para estimativa de custo | Preço por km | `0.10` |
+| `ConclusaoViagens:IntervaloSegundos` | Não | Intervalo, em segundos, com que o serviço em segundo plano conclui as viagens cuja hora de chegada prevista já passou (RF-F002-12); 60 por omissão | `60` |
 | `Firebase:ProjectId`, `Firebase:ClientEmail`, `Firebase:PrivateKey` | Não | Notificações push (FCM). Se faltar algum, o push é ignorado com um aviso no log. A chave privada é uma PEM com `\n` literais | `<FIREBASE_…>` |
 
 Notas:
-- O registo (`POST /api/v1/autenticacao/registar`) grava o utilizador e **depois** envia o email. Sem `Brevo:*` e `Frontend:ConfirmUrl` devolve `503` (a conta fica criada mas por confirmar). Para testar fluxos autenticados é preciso a Brevo configurada, ou uma conta já confirmada na base de dados.
+- O registo (`POST /api/v1/autenticacao/registo`) grava o utilizador e **depois** envia o email. Sem `Brevo:*` e `Frontend:ConfirmUrl` devolve `503` (a conta fica criada mas por confirmar). Para testar fluxos autenticados é preciso a Brevo configurada, ou uma conta já confirmada na base de dados.
 - Só são aceites emails `@estg.ipp.pt` e palavras-passe com pelo menos 12 caracteres.
-- A secção `Email:*` do `appsettings.json` (SMTP) **não é usada** pelo código atual; a integração real é `Brevo:*`.
+- O envio de email usa só `Brevo:*` (a antiga secção `Email:*`, que o código não lia, foi retirada do `appsettings.json` na I110).
+- `Maps:BaseUrl` e `Maps:Provider` não têm efeito: o serviço de mapas usa os URL absolutos do OpenRouteService (`api.heigit.org`).
 
 ### 6.3 Opção recomendada — User Secrets (local)
 
@@ -227,19 +233,21 @@ Endpoints úteis: API REST em `/api/v1/...`, hub SignalR em `/hubs/pedidos` (o t
 
 ### Testar com Postman
 
-Importar a collection e o environment oficiais de `docs/testes/I055/` (ver `docs/testes/I055/I055_LEIA-ME.md`). Ajustar `baseUrl` para o URL em que a API está a escutar — o environment local antigo na raiz do repositório usa `https://localhost:7001`, que **não** corresponde ao perfil atual (`http://localhost:5100`).
+Importar a collection e o environment oficiais: na entrega, `03-artefactos-de-qualidade-de-produto/03.01-backend/03.01.05-postman` (`m3-collection-postman-v01.json`, `m3-environment-postman-v01.json` e as instruções `m3-postman-instrucoes-execucao-v01.md`); no repositório, `docs/testes/I055/`. O environment não traz contas nem tokens: preencher `emailCondutor`, `passwordCondutor`, `emailPassageiro` e `passwordPassageiro` com contas de teste confirmadas. Ajustar `baseUrl` para o URL em que a API está a escutar — o environment local antigo na raiz do repositório usa `https://localhost:7001`, que **não** corresponde ao perfil atual (`http://localhost:5100`).
 
 ## 8. Testes e verificações de qualidade
 
 ```powershell
 dotnet test CampusCarpool.slnx
 dotnet test CampusCarpool.slnx --filter "FullyQualifiedName~ViagemServiceTests"
+dotnet test CampusCarpool.slnx --settings coverage.runsettings --collect:"XPlat Code Coverage"   # cobertura, sem migrations
 dotnet format whitespace CampusCarpool.slnx --verify-no-changes
+dotnet format style CampusCarpool.slnx --verify-no-changes
 ```
 
-- Os testes "de integração" usam SQLite em memória; a maioria instancia os controllers diretamente e alguns usam `WebApplicationFactory`. Nenhum precisa de SQL Server, com **uma exceção**: `ConcorrenciaSqlServerIntegrationTests` (IT023) liga-se a `(localdb)\MSSQLLocalDB` e **requer SQL Server LocalDB instalado**. Sem LocalDB este teste falha ao criar a base de dados; os restantes não são afetados.
+- Os testes "de integração" usam SQLite em memória; a maioria instancia os controllers diretamente e alguns usam `WebApplicationFactory`. Nenhum precisa de SQL Server, com **uma exceção**: `ConcorrenciaSqlServerIntegrationTests` (IT023), que testa a concorrência otimista (`rowversion`, só existe em SQL Server). Lê a ligação ao servidor da variável de ambiente `CAMPUSCARPOOL_TESTES_SQLSERVER` (por exemplo `Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True;`; o teste cria e apaga uma base de dados própria). **Sem a variável, o teste é saltado** e os restantes não são afetados.
 - Os testes **não** usam o Azure SQL nem a connection string da aplicação: correr `dotnet test` não toca na base de dados partilhada.
-- O CI (`.github/workflows/backend-ci.yml`) executa: restore → build Release → `dotnet format whitespace --verify-no-changes` → testes com cobertura → mínimo de cobertura (10 %) → publish. Correr o `format` localmente antes de fazer push.
+- A pipeline oficial é o GitHub Actions (`.github/workflows/backend-ci.yml`; a antiga `.gitlab-ci.yml` foi retirada): restore → build Release → `dotnet format whitespace` e `style` com `--verify-no-changes` → pacotes vulneráveis → testes com cobertura (sem migrations) → cobertura mínima de **80 %** de linhas → publish. Correr os dois `format` localmente antes de fazer push. Descrição completa em `04.16-ci-cd/m3-descricao-pipeline-ci-cd-v01.md`.
 
 ## 9. Ambiente público (Azure)
 
@@ -268,24 +276,25 @@ https://campuscarpool-api-g15-ase2b6g6cbabf7d7.germanywestcentral-01.azurewebsit
 
 Encontrados ao preparar este manual; ficam registados para a equipa decidir (a correção está fora do âmbito da I064):
 
-1. **Valores por defeito no `appsettings.json`.** O ficheiro versionado traz uma `Jwt:Key` de exemplo, a connection string LocalDB e uma `Maps:ApiKey`. Servem apenas para desenvolvimento local e **nunca** devem ser usados em ambientes partilhados ou públicos. Recomenda-se que a equipa os retire do ficheiro e que as chaves de serviços externos sejam regeneradas e geridas apenas por User Secrets/variáveis de ambiente.
+1. **Valores por defeito no `appsettings.json`.** *Resolvido na I110:* a `Jwt:Key` e a `Maps:ApiKey` foram retiradas do ficheiro e a API recusa arrancar sem `Jwt:Key`. As chaves que estiveram no repositório (público) têm de ser regeneradas e nunca reutilizadas.
 2. **Partilha de credenciais.** Chaves e palavras-passe (Brevo, Azure SQL, contas de teste) não devem circular em canais de chat; usar um canal privado e, se já foram partilhadas, regenerá-las.
 3. **README desatualizado.** `CampusCarpool/README.md` e `database/scripts/README.md` referem `ConnectionStrings__CampusCarpool` e uma pasta de migrations (`Persistence/Migrations`) que já não correspondem ao código (`DefaultConnection`, `Infrastructure/Migrations`).
-4. **Chave `Frontend:ConfirmUrl` inconsistente** entre o `appsettings.json` (`/confirmar-email`) e o usado pela equipa (`/confirmar-conta`); deve coincidir com a rota do frontend.
+4. **Chave `Frontend:ConfirmUrl`.** *Resolvido na I110:* o `appsettings.json` usa `/confirmar-conta`, a rota da equipa.
 5. **`/health` não verifica a base de dados.**
-6. **Teste IT023** depende de LocalDB (secção 8).
-7. **Avisos de vulnerabilidade NuGet** (`Microsoft.OpenApi` 2.0.0, `System.Security.Cryptography.Pkcs` 9.0.11) no `dotnet restore/build`.
+6. **Teste IT023.** *Resolvido na I110:* é saltado quando `CAMPUSCARPOOL_TESTES_SQLSERVER` não está definida (secção 8).
+7. **Avisos de vulnerabilidade NuGet.** *Resolvido na I110:* `Microsoft.OpenApi` ≥ 2.12.2 e `System.Security.Cryptography.Pkcs` 10.0.14; a pipeline falha se voltar a haver pacotes vulneráveis.
 
 ## 11. Verificação dos procedimentos
 
-Verificado em Windows 11, .NET SDK 10.0.403, a partir de um clone na branch `docs/i064-manual-instalacao-backend`:
+Verificação inicial (02/11/2026, I064): Windows 11, .NET SDK 10.0.403, clone na branch `docs/i064-manual-instalacao-backend`. **Nova verificação a 04/11/2026** (preparação da entrega m3), no commit `ee689ee`, que é o backend entregue:
 
 | Procedimento | Resultado |
 | --- | --- |
-| `dotnet restore CampusCarpool.slnx` | OK |
-| `dotnet build CampusCarpool.slnx` | OK — 0 erros, 283 avisos |
-| `dotnet test CampusCarpool.slnx` | 346 passaram, **1 não passou** (total 347). O teste em causa é o IT023, que requer SQL Server LocalDB; a máquina de verificação não tem LocalDB (`sqllocaldb` indisponível) e o erro surgiu em `EnsureCreatedAsync`. Não foi possível confirmar o IT023 num ambiente com LocalDB |
-| Arranque da API (`dotnet run --project src/CampusCarpool.Api`, perfil `http`, sem User Secrets) | Escuta em `http://localhost:5100`, ambiente `Development`; `GET /health` → `Healthy` (200) e `GET /` → `{"service":"Campus Carpool API","status":"running"}` (200). Arranca com os valores de `appsettings.json` |
+| `dotnet restore CampusCarpool.slnx` | OK; `dotnet list package --vulnerable --include-transitive` sem pacotes vulneráveis |
+| `dotnet build CampusCarpool.slnx` | OK — 0 erros |
+| `dotnet test CampusCarpool.slnx -c Release --settings coverage.runsettings --collect:"XPlat Code Coverage"` | **375 aprovados, 0 falhados, 1 saltado** (total 376). O saltado é o IT023, porque a máquina não tem `CAMPUSCARPOOL_TESTES_SQLSERVER` definida. Cobertura de linhas sem migrations: **89,46 %** (2164/2419); ramos: 82,64 % (695/841) |
+| Arranque da API sem `Jwt:Key` | Termina com `InvalidOperationException: Definir Jwt:Key com pelo menos 32 bytes através de User Secrets ou variáveis de ambiente.` (comportamento esperado) |
+| Arranque da API com `Jwt__Key` aleatória de 48 caracteres (perfil `http`) | Escuta em `http://localhost:5100`, ambiente `Development`; `GET /health` → `Healthy` (200) e `GET /` → `{"service":"Campus Carpool API","status":"running"}` (200) |
 | Instância pública (`GET /health` e `GET /`) | `Healthy` / `running` (200) em 02/11/2026 |
 | Chaves de configuração da secção 6.2 | Confirmadas por leitura do código (`Program.cs`, `ServicoEmail`, `ServicoPush`, `MapasService`, `EstimativaCustoService`, `InfrastructureServiceRegistration`) |
 | Ligação ao Azure SQL, `dotnet ef database update`, envio de email Brevo, FCM, publicação Azure | **Não executados** neste ambiente (exigem credenciais/recursos da equipa). A sintaxe segue a documentação oficial e deve ser validada pelo revisor com credenciais reais antes de fechar a issue |
@@ -305,7 +314,7 @@ Verificado em Windows 11, .NET SDK 10.0.403, a partir de um clone na branch `doc
 | Endpoints de rotas/estimativa falham | `Maps:ApiKey` em falta ou inválida | Confirmar a chave OpenRouteService |
 | `401` com token válido | `Jwt:Key`, `Issuer` ou `Audience` diferentes dos usados ao emitir o token | Usar os mesmos valores em todo o ambiente |
 | `429 Too Many Requests` | Limite global de 60 pedidos/minuto por IP | Aguardar um minuto |
-| Teste IT023 falha | Sem SQL Server LocalDB (secção 8) | Instalar LocalDB ou ignorar esse teste localmente |
+| Teste IT023 aparece como saltado | `CAMPUSCARPOOL_TESTES_SQLSERVER` não definida (secção 8) | Definir a variável com a ligação a um SQL Server (LocalDB ou contentor) ou aceitar o teste saltado |
 
 ## 13. Referências
 
