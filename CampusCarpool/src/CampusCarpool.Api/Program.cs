@@ -7,7 +7,6 @@ using CampusCarpool.Application.DependencyInjection;
 using CampusCarpool.Application.Identidade;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Infrastructure.DependencyInjection;
-using CampusCarpool.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -28,21 +27,6 @@ builder.Services.AddSingleton<
     PedidosUserIdProvider>();
 builder.Services.Configure<OpcoesCustos>(builder.Configuration.GetSection(OpcoesCustos.Seccao));
 builder.Services.Configure<OpcoesEmailAcademico>(builder.Configuration.GetSection(OpcoesEmailAcademico.Seccao));
-// Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
-builder.Services.AddHttpClient();
-builder.Services.AddHttpClient<IServicoEmail, ServicoEmail>();
-builder.Services.AddHttpClient<IServicoPush, ServicoPush>();
-
-// O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
-builder.Services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    client.BaseAddress = new Uri(
-        config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
-        .TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(
-        config.GetValue("Maps:TimeoutSeconds", 10));
-});
 builder.Services.AddLimitesPedidos();
 // Erros não tratados → GlobalExceptionHandler → ProblemDetails (409 regra de negócio, 500 o resto).
 builder.Services.AddProblemDetails();

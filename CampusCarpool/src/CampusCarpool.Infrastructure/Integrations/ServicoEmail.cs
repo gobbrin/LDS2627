@@ -11,7 +11,7 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// Configuração: <c>Brevo:ApiKey</c>, <c>Brevo:FromEmail</c>, <c>Brevo:FromName</c> (opcional) e
 /// <c>Frontend:ConfirmUrl</c> (página <c>/confirmar-conta</c> do frontend, que recebe <c>?token=…</c> e chama
 /// <c>POST /api/v1/autenticacao/confirmar</c>).
-/// Registada no <c>Program.cs</c> com <c>AddHttpClient</c>.
+/// Registada em <c>AddInfrastructureServices</c> com <c>AddHttpClient</c>.
 /// </remarks>
 public sealed class ServicoEmail(
     IConfiguration configuration,

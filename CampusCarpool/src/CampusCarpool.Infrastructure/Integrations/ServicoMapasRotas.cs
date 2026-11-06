@@ -12,11 +12,12 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// <c>driving-car</c> (F008).
 /// </summary>
 /// <remarks>
-/// Configuração: <c>Maps:ApiKey</c> (obrigatória; sem ela <see cref="Configurado"/> é falso e os controllers
-/// respondem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> do <c>Program.cs</c>).
+/// Configuração: <c>Maps:ApiKey</c> (obrigatória; sem ela <see cref="Configurado"/> é falso e os serviços da
+/// Application devolvem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> registado em
+/// <c>AddInfrastructureServices</c>).
 /// Os URLs são absolutos e fixos, por isso <c>Maps:BaseUrl</c> e <c>Maps:Provider</c> não têm efeito (IN-04).
 /// Erros HTTP saem como <see cref="HttpRequestException"/> (<c>EnsureSuccessStatusCode</c>) e o tempo esgotado
-/// como <see cref="TaskCanceledException"/>; os controllers convertem-nos em 502 e 504.
+/// como <see cref="TaskCanceledException"/>; <c>ChamadaMapas</c>, na Application, converte-os em 502 e 504.
 /// </remarks>
 public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : IServicoMapasRotas
 {

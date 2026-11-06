@@ -1,6 +1,7 @@
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Infrastructure.BackgroundJobs;
+using CampusCarpool.Infrastructure.Integrations;
 using CampusCarpool.Infrastructure.Persistence;
 using CampusCarpool.Infrastructure.Repositories;
 using CampusCarpool.Infrastructure.Security;
@@ -10,11 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CampusCarpool.Infrastructure.DependencyInjection;
 
-/// <summary>Registo da camada Infrastructure: base de dados, repositórios, serviços e trabalhadores em segundo plano.</summary>
-/// <remarks>
-/// As integrações externas com <c>HttpClient</c> (<c>ServicoEmail</c>, <c>ServicoPush</c>,
-/// <c>ServicoMapasRotas</c>) são registadas no <c>Program.cs</c> da Api, não aqui.
-/// </remarks>
+/// <summary>
+/// Registo da camada Infrastructure: base de dados, repositórios, integrações externas e trabalhadores em segundo plano.
+/// </summary>
 public static class InfrastructureServiceRegistration
 {
     /// <summary>Regista os serviços e o acesso à base de dados.</summary>
@@ -47,6 +46,21 @@ public static class InfrastructureServiceRegistration
         // Palavras-passe e tokens de acesso.
         services.AddSingleton<IHashPalavraPasse, HashPalavraPasse>();
         services.AddSingleton<IGeradorTokens, GeradorTokensJwt>();
+
+        // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
+        services.AddHttpClient<IServicoEmail, ServicoEmail>();
+        services.AddHttpClient<IServicoPush, ServicoPush>();
+
+        // O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
+        services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            client.BaseAddress = new Uri(
+                config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
+                .TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(
+                config.GetValue("Maps:TimeoutSeconds", 10));
+        });
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
