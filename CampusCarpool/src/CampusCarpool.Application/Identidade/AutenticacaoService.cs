@@ -191,4 +191,7 @@ public sealed class AutenticacaoService(
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
     }
+
+    /// <inheritdoc />
+    public Task<bool> TokenRevogadoAsync(string jti, CancellationToken ct) => tokensRevogados.EstaRevogadoAsync(jti, ct);
 }

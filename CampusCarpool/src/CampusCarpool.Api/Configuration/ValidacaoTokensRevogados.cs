@@ -1,5 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
-using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace CampusCarpool.Api.Configuration;
@@ -28,9 +28,9 @@ public static class ValidacaoTokensRevogados
             return;
         }
 
-        var tokens = context.HttpContext.RequestServices.GetRequiredService<IRepositorioTokensRevogados>();
+        var autenticacao = context.HttpContext.RequestServices.GetRequiredService<IAutenticacaoService>();
 
-        if (await tokens.EstaRevogadoAsync(jti, context.HttpContext.RequestAborted))
+        if (await autenticacao.TokenRevogadoAsync(jti, context.HttpContext.RequestAborted))
             context.Fail("Token revogado.");
     }
 }

@@ -51,4 +51,11 @@ public interface IAutenticacaoService
         Guid? utilizadorId,
         string? tokenDispositivo,
         CancellationToken ct);
+
+    /// <summary>Indica se o token foi revogado pelo fim de sessão (RF-F001-12, DEF-BE-004).</summary>
+    /// <remarks>Chamado em cada pedido autenticado, antes de o pedido chegar ao controller ou ao hub.</remarks>
+    /// <param name="jti">Identificador do token.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns><see langword="true"/> se o token já não pode ser aceite.</returns>
+    Task<bool> TokenRevogadoAsync(string jti, CancellationToken ct);
 }
