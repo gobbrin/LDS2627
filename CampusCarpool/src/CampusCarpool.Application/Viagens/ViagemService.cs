@@ -43,7 +43,7 @@ public sealed class ViagemService(
         CancellationToken ct)
     {
         if (!await utilizadores.ContaConfirmadaAsync(condutorId, ct))
-            return Proibido;
+            return new Erro(TipoErro.Proibido, "Confirma a tua conta antes de criar uma viagem.");
 
         // RF-F002-04: o texto compara-se aqui; as coordenadas, depois de geocodificar.
         if (DadosDaViagemInvalidos(origem, destino, partidaEm, lugares))

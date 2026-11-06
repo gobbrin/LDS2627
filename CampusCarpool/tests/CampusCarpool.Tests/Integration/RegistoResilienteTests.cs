@@ -10,6 +10,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -58,6 +59,19 @@ public sealed class RegistoResilienteTests : IDisposable
     private sealed class EmailComFalha(Exception falha) : IServicoEmail
     {
         public Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct) => throw falha;
+    }
+
+    private sealed class EmailComInterruptor : IServicoEmail
+    {
+        public bool EmBaixo { get; set; }
+        public string? UltimoToken { get; private set; }
+
+        public Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct)
+        {
+            if (EmBaixo) throw new HttpRequestException("Brevo em baixo.");
+            UltimoToken = token;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class EmailSemFalha : IServicoEmail
@@ -164,6 +178,26 @@ public sealed class RegistoResilienteTests : IDisposable
     }
 
     [Fact]
+    public async Task I110_144_ReenvioComEmailEmBaixo_MantemALigacaoAnterior()
+    {
+        await using var db = Contexto();
+        var email = new EmailComInterruptor();
+        var controller = Controller(db, email);
+
+        await controller.Registar(new("Aluno", Endereco, "abcdefg1"), CancellationToken.None);
+        var ligacao = email.UltimoToken!;
+
+        foreach (var confirmacao in await db.ConfirmacoesConta.ToListAsync())
+            confirmacao.ExpiraEm -= TimeSpan.FromMinutes(2); // Passa o limite de um reenvio por minuto.
+        await db.SaveChangesAsync();
+
+        email.EmBaixo = true;
+        Assert.IsType<AcceptedResult>(await controller.ReenviarConfirmacaoEmail(new(Endereco), CancellationToken.None));
+
+        Assert.IsType<NoContentResult>(await controller.ConfirmarConta(new(ligacao), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task I110_127_LoginDeEmailInexistente_TambemCalculaUmHash()
     {
         await using var db = Contexto();
@@ -177,7 +211,8 @@ public sealed class RegistoResilienteTests : IDisposable
             new EmailSemFalha(),
             hash,
             new GeradorTokensJwt(new ConfigurationBuilder().Build()),
-            ServicosDeTeste.CriarValidadorEmail());
+            ServicosDeTeste.CriarValidadorEmail(),
+            NullLogger<AutenticacaoService>.Instance);
 
         var resultado = await servico.IniciarSessaoAsync("ninguem@estg.ipp.pt", "abcdefg1", CancellationToken.None);
 

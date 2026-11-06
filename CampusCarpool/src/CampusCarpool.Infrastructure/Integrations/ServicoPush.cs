@@ -85,6 +85,15 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
 
         return accessToken;
     }
+    private async Task<HttpResponseMessage> EnviarAoFcmAsync(string project, string accessToken, string conteudo, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"https://fcm.googleapis.com/v1/projects/{Uri.EscapeDataString(project)}/messages:send");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent(conteudo, Encoding.UTF8, "application/json");
+        return await http.SendAsync(request, ct);
+    }
+
     /// <inheritdoc />
     /// <remarks>
     /// Um pedido ao FCM por dispositivo ativo. Os tokens que o FCM declara inválidos (404 ou
@@ -106,10 +115,7 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post,
-                    $"https://fcm.googleapis.com/v1/projects/{Uri.EscapeDataString(project!)}/messages:send");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                request.Content = new StringContent(JsonSerializer.Serialize(new
+                var conteudo = JsonSerializer.Serialize(new
                 {
                     message = new
                     {
@@ -118,11 +124,24 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                         data = new Dictionary<string, string> { ["tipo"] = tipo },
                         android = new { priority = "HIGH" }
                     }
-                }), Encoding.UTF8, "application/json");
-                using var response = await http.SendAsync(request, ct);
+                });
+                var resposta = await EnviarAoFcmAsync(project!, accessToken, conteudo, ct);
+
+                // Token revogado antes do tempo: pede outro e tenta uma vez, para não perder a notificação.
+                if (resposta.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    cacheToken.Limpar();
+
+                    if (await ObterAccessTokenAsync(ct) is { } novo)
+                    {
+                        accessToken = novo;
+                        resposta.Dispose();
+                        resposta = await EnviarAoFcmAsync(project!, accessToken, conteudo, ct);
+                    }
+                }
+
+                using var response = resposta;
                 if (response.IsSuccessStatusCode) continue;
-                // Token revogado antes do tempo: o próximo envio pede outro.
-                if (response.StatusCode == HttpStatusCode.Unauthorized) cacheToken.Limpar();
                 var error = await response.Content.ReadAsStringAsync(ct);
                 // Desativar apenas tokens explicitamente inválidos/não registados.
                 if (response.StatusCode == HttpStatusCode.NotFound ||

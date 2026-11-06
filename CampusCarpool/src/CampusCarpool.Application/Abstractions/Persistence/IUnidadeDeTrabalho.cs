@@ -12,10 +12,11 @@ public interface IUnidadeDeTrabalho
     /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">Outro pedido alterou a mesma viagem ou participação entretanto.</exception>
     Task ConfirmarAsync(CancellationToken ct);
 
-    /// <summary>Grava como <see cref="ConfirmarAsync"/>, mas devolve <c>false</c> se a BD recusar, por exemplo por um índice único.</summary>
+    /// <summary>Grava como <see cref="ConfirmarAsync"/>, mas devolve a recusa da BD em vez de a lançar.</summary>
     /// <param name="ct">Cancelamento.</param>
+    /// <returns><c>null</c> se gravou; a causa se a BD recusou, por exemplo por um índice único.</returns>
     /// <exception cref="CampusCarpool.Domain.Exceptions.RegraDeNegocioException">Outro pedido alterou a mesma viagem ou participação entretanto.</exception>
-    Task<bool> TentarConfirmarAsync(CancellationToken ct);
+    Task<Exception?> TentarConfirmarAsync(CancellationToken ct);
 
     /// <summary>Esquece as alterações por gravar e as entidades rastreadas, para isolar uma operação da seguinte.</summary>
     void DescartarAlteracoes();

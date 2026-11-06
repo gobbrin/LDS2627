@@ -4,6 +4,7 @@ using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace CampusCarpool.Application.Identidade;
 
@@ -20,8 +21,12 @@ public sealed class AutenticacaoService(
     IServicoEmail servicoEmail,
     IHashPalavraPasse hashPalavraPasse,
     IGeradorTokens geradorTokens,
-    ValidadorEmailAcademico validadorEmail) : IAutenticacaoService
+    ValidadorEmailAcademico validadorEmail,
+    ILogger<AutenticacaoService> logger) : IAutenticacaoService
 {
+    private static readonly Action<ILogger, Exception?> LogFalhaEmail = LoggerMessage.Define(
+        LogLevel.Error, new EventId(3001, nameof(LogFalhaEmail)), "Falha no envio do email de confirmação");
+
     // P-02: validade da ligação de confirmação.
     private const int HorasDeValidadeConfirmacao = 24;
 
@@ -68,7 +73,7 @@ public sealed class AutenticacaoService(
         });
 
         // A conta fica gravada antes do envio: se o email falhar, o utilizador pode pedir o reenvio.
-        if (!await unidadeDeTrabalho.TentarConfirmarAsync(ct))
+        if (await unidadeDeTrabalho.TentarConfirmarAsync(ct) is { } recusa)
         {
             // Dois registos simultâneos passam ambos a verificação acima; o índice único recusa o segundo.
             unidadeDeTrabalho.DescartarAlteracoes();
@@ -76,7 +81,7 @@ public sealed class AutenticacaoService(
             if (await utilizadores.ExisteEmailAsync(normalizado, ct))
                 return new Erro(TipoErro.Conflito, "Email já registado.");
 
-            throw new InvalidOperationException("A base de dados recusou o registo.");
+            throw new InvalidOperationException("A base de dados recusou o registo.", recusa);
         }
 
         try
@@ -88,9 +93,12 @@ public sealed class AutenticacaoService(
             (ex is TaskCanceledException && !ct.IsCancellationRequested))
         {
             // Serviço de Email recusou, excedeu o tempo ou está por configurar. A conta fica por confirmar.
+            LogFalhaEmail(logger, ex);
+
+            // O reenvio só é aceite um minuto depois da última ligação.
             return new Erro(
                 TipoErro.ServicoIndisponivel,
-                "Conta criada, mas o envio do email falhou. Pede o reenvio da ligação de confirmação.");
+                "Conta criada, mas o envio do email falhou. Aguarda um minuto e pede o reenvio da ligação de confirmação.");
         }
 
         return Resultado.Sucesso;
@@ -120,15 +128,13 @@ public sealed class AutenticacaoService(
         if (ultimo.HasValue && ultimo.Value > agora.AddHours(HorasDeValidadeConfirmacao).AddMinutes(-1))
             return Resultado.Sucesso;
 
-        // Só a ligação mais recente serve: uma ligação antiga deixa de confirmar a conta.
-        await confirmacoes.RemoverPorUsarAsync(utilizador.Id, ct);
-
         var token = NovoToken();
+        var tokenHash = Sha256(token);
 
         confirmacoes.Adicionar(new ConfirmacaoConta
         {
             UtilizadorId = utilizador.Id,
-            TokenHash = Sha256(token),
+            TokenHash = tokenHash,
             ExpiraEm = agora.AddHours(HorasDeValidadeConfirmacao)
         });
 
@@ -138,11 +144,16 @@ public sealed class AutenticacaoService(
         {
             await servicoEmail.EnviarConfirmacaoAsync(normalizado, token, ct);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
-            // A falha não é revelada ao cliente (resposta neutra); só fica no Debug, não no log da aplicação.
-            System.Diagnostics.Debug.WriteLine("[SMTP ERRO] " + ex);
+            // A falha não é revelada ao cliente (resposta neutra) e a ligação anterior continua a servir.
+            LogFalhaEmail(logger, ex);
+            return Resultado.Sucesso;
         }
+
+        // Só a ligação mais recente serve; as anteriores só deixam de valer depois de a nova seguir.
+        await confirmacoes.InvalidarAnterioresAsync(utilizador.Id, tokenHash, agora, ct);
+        await unidadeDeTrabalho.ConfirmarAsync(ct);
 
         return Resultado.Sucesso;
     }

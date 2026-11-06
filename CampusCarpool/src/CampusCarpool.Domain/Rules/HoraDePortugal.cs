@@ -12,8 +12,12 @@ public static class HoraDePortugal
 
     /// <summary>Instante UTC em que começa o dia indicado em Portugal.</summary>
     /// <param name="dia">Dia em Portugal.</param>
-    public static DateTime InicioDoDiaEmUtc(DateOnly dia) =>
-        TimeZoneInfo.ConvertTimeToUtc(dia.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), Fuso);
+    /// <remarks>Usa o desvio do fuso e não uma conversão, que falharia num dia em que a meia-noite não existiu (mudança da hora).</remarks>
+    public static DateTime InicioDoDiaEmUtc(DateOnly dia)
+    {
+        var inicio = dia.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        return DateTime.SpecifyKind(inicio - Fuso.GetUtcOffset(inicio), DateTimeKind.Utc);
+    }
 
     /// <summary>Minutos desde a meia-noite em Portugal, de 0 a 1439.</summary>
     /// <param name="utc">Instante em UTC; um valor sem <c>Kind</c> é tratado como UTC.</param>

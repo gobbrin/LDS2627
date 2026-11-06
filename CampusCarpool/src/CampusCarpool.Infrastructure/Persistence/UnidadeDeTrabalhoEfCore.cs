@@ -31,16 +31,16 @@ public sealed class UnidadeDeTrabalhoEfCore(CampusCarpoolDbContext context) : IU
     }
 
     /// <inheritdoc />
-    public async Task<bool> TentarConfirmarAsync(CancellationToken ct)
+    public async Task<Exception?> TentarConfirmarAsync(CancellationToken ct)
     {
         try
         {
             await ConfirmarAsync(ct);
-            return true;
+            return null;
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
-            return false;
+            return ex;
         }
     }
 

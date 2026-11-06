@@ -45,7 +45,7 @@ public sealed class NotificacoesMesmaGravacaoTests : IAsyncLifetime, IDisposable
             await pedido.CancelAsync();
         }
 
-        public Task<bool> TentarConfirmarAsync(CancellationToken ct) => real.TentarConfirmarAsync(ct);
+        public Task<Exception?> TentarConfirmarAsync(CancellationToken ct) => real.TentarConfirmarAsync(ct);
 
         public void DescartarAlteracoes() => real.DescartarAlteracoes();
     }

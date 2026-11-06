@@ -115,10 +115,10 @@ public sealed class UnidadeDeTrabalhoFalsa : IUnidadeDeTrabalho
         return Task.CompletedTask;
     }
 
-    public async Task<bool> TentarConfirmarAsync(CancellationToken ct)
+    public async Task<Exception?> TentarConfirmarAsync(CancellationToken ct)
     {
         await ConfirmarAsync(ct);
-        return true;
+        return null;
     }
 
     public void DescartarAlteracoes()
@@ -233,7 +233,8 @@ public static class ServicosDeTeste
             email,
             new HashPalavraPasse(),
             new GeradorTokensJwt(configuracao),
-            CriarValidadorEmail()));
+            CriarValidadorEmail(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AutenticacaoService>.Instance));
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,

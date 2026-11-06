@@ -30,6 +30,10 @@ public sealed class ConfirmacaoConta
     /// <param name="agora">Momento de referência (UTC).</param>
     public bool EstaValida(DateTime agora) => ConsumidoEm is null && ExpiraEm > agora;
 
+    /// <summary>Faz a ligação expirar agora: deixou de ser a mais recente (RF-F001-21).</summary>
+    /// <param name="agora">Momento de referência (UTC).</param>
+    public void Invalidar(DateTime agora) => ExpiraEm = agora;
+
     /// <summary>Consome a ligação, que não volta a servir (RF-F001-08).</summary>
     /// <param name="agora">Momento de utilização (UTC).</param>
     /// <exception cref="RegraDeNegocioException">A ligação já foi usada ou expirou.</exception>

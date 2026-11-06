@@ -18,13 +18,14 @@ public sealed class RepositorioConfirmacoesConta(CampusCarpoolDbContext context)
     }
 
     /// <inheritdoc />
-    public async Task RemoverPorUsarAsync(Guid utilizadorId, CancellationToken ct)
+    public async Task InvalidarAnterioresAsync(Guid utilizadorId, string tokenHashAtual, DateTime agora, CancellationToken ct)
     {
-        var porUsar = await context.ConfirmacoesConta
-            .Where(c => c.UtilizadorId == utilizadorId && c.ConsumidoEm == null)
+        var anteriores = await context.ConfirmacoesConta
+            .Where(c => c.UtilizadorId == utilizadorId && c.ConsumidoEm == null && c.TokenHash != tokenHashAtual)
             .ToListAsync(ct);
 
-        context.ConfirmacoesConta.RemoveRange(porUsar);
+        foreach (var confirmacao in anteriores)
+            confirmacao.Invalidar(agora);
     }
 
     /// <inheritdoc />

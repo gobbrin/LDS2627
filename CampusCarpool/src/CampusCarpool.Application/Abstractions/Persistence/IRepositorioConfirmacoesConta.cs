@@ -14,10 +14,12 @@ public interface IRepositorioConfirmacoesConta
     /// <param name="ct">Cancelamento.</param>
     Task<ConfirmacaoConta?> ObterPorHashAsync(string tokenHash, CancellationToken ct);
 
-    /// <summary>Marca para apagar as ligações por usar do utilizador; só saem da BD com a unidade de trabalho.</summary>
+    /// <summary>Faz expirar as outras ligações por usar do utilizador; só fica gravado com a unidade de trabalho.</summary>
     /// <param name="utilizadorId">Utilizador.</param>
+    /// <param name="tokenHashAtual">Hash da ligação que continua válida.</param>
+    /// <param name="agora">Momento de referência (UTC).</param>
     /// <param name="ct">Cancelamento.</param>
-    Task RemoverPorUsarAsync(Guid utilizadorId, CancellationToken ct);
+    Task InvalidarAnterioresAsync(Guid utilizadorId, string tokenHashAtual, DateTime agora, CancellationToken ct);
 
     /// <summary>Data de expiração mais distante dos tokens do utilizador; <c>null</c> se não tiver nenhum.</summary>
     Task<DateTime?> ObterUltimaExpiracaoAsync(Guid utilizadorId, CancellationToken ct);

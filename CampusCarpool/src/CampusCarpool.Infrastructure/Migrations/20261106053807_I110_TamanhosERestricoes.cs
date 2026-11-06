@@ -19,6 +19,14 @@ namespace CampusCarpool.Infrastructure.Migrations
                 name: "IX_Participacoes_ViagemId_PassageiroId",
                 table: "Participacoes");
 
+            // A API aceitava 250 caracteres nestes campos; o modelo prevê 200.
+            migrationBuilder.Sql("""
+                UPDATE [Viagens] SET [Origem] = LEFT([Origem], 200) WHERE LEN([Origem]) > 200;
+                UPDATE [Viagens] SET [Destino] = LEFT([Destino], 200) WHERE LEN([Destino]) > 200;
+                UPDATE [Participacoes] SET [Recolha] = LEFT([Recolha], 200) WHERE LEN([Recolha]) > 200;
+                UPDATE [Participacoes] SET [Destino] = LEFT([Destino], 200) WHERE LEN([Destino]) > 200;
+                """);
+
             migrationBuilder.AlterColumn<string>(
                 name: "OrigemPesquisa",
                 table: "Viagens",
@@ -196,7 +204,8 @@ namespace CampusCarpool.Infrastructure.Migrations
                 oldType: "nvarchar(450)");
 
             // A I110_PesquisaSemAcentos deixou vazias as colunas de pesquisa das viagens já existentes. A conversão para a
-            // página de código 1253 retira os acentos, como TextoPesquisa.Normalizar faz para as viagens novas.
+            // página de código 1253 retira os acentos do português; um símbolo fora dela pode ficar diferente de
+            // TextoPesquisa.Normalizar, e o valor certo volta quando a viagem for gravada.
             migrationBuilder.Sql("""
                 EXEC(N'UPDATE [Viagens] SET
                     [OrigemPesquisa] = UPPER(CAST([Origem] COLLATE SQL_Latin1_General_CP1253_CI_AI AS varchar(200))),
@@ -204,6 +213,19 @@ namespace CampusCarpool.Infrastructure.Migrations
                     WHERE [OrigemPesquisa] = N'''' OR [DestinoPesquisa] = N'''';');
                 """);
 
+            // DC-40: os títulos guardados eram o nome do tipo.
+            migrationBuilder.Sql("""
+                UPDATE [Notificacoes] SET [Titulo] = CASE [Titulo]
+                    WHEN N'PedidoRecebido' THEN N'Pedido recebido'
+                    WHEN N'PedidoAceite' THEN N'Pedido aceite'
+                    WHEN N'PedidoRejeitado' THEN N'Pedido rejeitado'
+                    WHEN N'AlteracaoViagem' THEN N'Alteração da viagem'
+                    WHEN N'NovaMensagem' THEN N'Nova mensagem'
+                    ELSE [Titulo] END;
+                """);
+
+            // As restrições novas valem para o que se grave daqui em diante (WITH NOCHECK): uma linha antiga fora delas não
+            // pode impedir a migration.
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Viagens_Estado",
                 table: "Viagens",
@@ -221,55 +243,25 @@ namespace CampusCarpool.Infrastructure.Migrations
                 table: "Viagens",
                 columns: new[] { "Estado", "PartidaEm" });
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Viagens_Locais",
-                table: "Viagens",
-                sql: "NOT ([OrigemLatitude] = [DestinoLatitude] AND [OrigemLongitude] = [DestinoLongitude])");
+            migrationBuilder.Sql("ALTER TABLE [Viagens] WITH NOCHECK ADD CONSTRAINT [CK_Viagens_Locais] CHECK (NOT ([OrigemLatitude] = [DestinoLatitude] AND [OrigemLongitude] = [DestinoLongitude]));");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Viagens_Lugares",
-                table: "Viagens",
-                sql: "[LugaresOferecidos] BETWEEN 1 AND 8 AND [LugaresDisponiveis] BETWEEN 0 AND [LugaresOferecidos]");
+            migrationBuilder.Sql("ALTER TABLE [Viagens] WITH NOCHECK ADD CONSTRAINT [CK_Viagens_Lugares] CHECK ([LugaresOferecidos] BETWEEN 1 AND 8 AND [LugaresDisponiveis] BETWEEN 0 AND [LugaresOferecidos]);");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Viagens_Rota",
-                table: "Viagens",
-                sql: "[RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1");
+            migrationBuilder.Sql("ALTER TABLE [Viagens] WITH NOCHECK ADD CONSTRAINT [CK_Viagens_Rota] CHECK ([RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1);");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Participacoes_Estado",
-                table: "Participacoes",
-                sql: "[Estado] IN ('Pendente', 'Aceite', 'Rejeitada', 'Cancelada')");
+            migrationBuilder.Sql("ALTER TABLE [Participacoes] WITH NOCHECK ADD CONSTRAINT [CK_Participacoes_Estado] CHECK ([Estado] IN ('Pendente', 'Aceite', 'Rejeitada', 'Cancelada'));");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Participacoes_Locais",
-                table: "Participacoes",
-                sql: "NOT ([RecolhaLatitude] = [DestinoLatitude] AND [RecolhaLongitude] = [DestinoLongitude])");
+            migrationBuilder.Sql("ALTER TABLE [Participacoes] WITH NOCHECK ADD CONSTRAINT [CK_Participacoes_Locais] CHECK (NOT ([RecolhaLatitude] = [DestinoLatitude] AND [RecolhaLongitude] = [DestinoLongitude]));");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Notificacoes_Tipo",
-                table: "Notificacoes",
-                sql: "[Tipo] IN ('PedidoRecebido', 'PedidoAceite', 'PedidoRejeitado', 'AlteracaoViagem', 'Aviso', 'NovaMensagem')");
+            migrationBuilder.Sql("ALTER TABLE [Notificacoes] WITH NOCHECK ADD CONSTRAINT [CK_Notificacoes_Tipo] CHECK ([Tipo] IN ('PedidoRecebido', 'PedidoAceite', 'PedidoRejeitado', 'AlteracaoViagem', 'Aviso', 'NovaMensagem'));");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Mensagens_Conteudo",
-                table: "Mensagens",
-                sql: "[Conteudo] <> ''");
+            migrationBuilder.Sql("ALTER TABLE [Mensagens] WITH NOCHECK ADD CONSTRAINT [CK_Mensagens_Conteudo] CHECK ([Conteudo] <> '');");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Mensagens_Distintos",
-                table: "Mensagens",
-                sql: "[RemetenteId] <> [DestinatarioId]");
+            migrationBuilder.Sql("ALTER TABLE [Mensagens] WITH NOCHECK ADD CONSTRAINT [CK_Mensagens_Distintos] CHECK ([RemetenteId] <> [DestinatarioId]);");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Avaliacoes_Classificacao",
-                table: "Avaliacoes",
-                sql: "[Classificacao] BETWEEN 1 AND 5");
+            migrationBuilder.Sql("ALTER TABLE [Avaliacoes] WITH NOCHECK ADD CONSTRAINT [CK_Avaliacoes_Classificacao] CHECK ([Classificacao] BETWEEN 1 AND 5);");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Avaliacoes_Distintos",
-                table: "Avaliacoes",
-                sql: "[AvaliadorId] <> [AvaliadoId]");
+            migrationBuilder.Sql("ALTER TABLE [Avaliacoes] WITH NOCHECK ADD CONSTRAINT [CK_Avaliacoes_Distintos] CHECK ([AvaliadorId] <> [AvaliadoId]);");
         }
 
         /// <inheritdoc />

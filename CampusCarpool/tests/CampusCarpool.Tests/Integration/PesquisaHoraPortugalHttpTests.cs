@@ -101,6 +101,14 @@ public sealed class PesquisaHoraPortugalHttpTests : IDisposable
     }
 
     [Theory]
+    [InlineData("0001-01-01")]
+    [InlineData("1977-03-27")] // Em Lisboa, a hora mudou à meia-noite: as 00:00 deste dia não existiram.
+    public async Task I110_145_QualquerDia_NaoRebenta(string dia)
+    {
+        Assert.Equal(0, await TotalAsync($"data={dia}"));
+    }
+
+    [Theory]
     [InlineData(2030, 1, 15, 0)]
     [InlineData(2030, 7, 15, 60)]
     public void I110_122_MinutoDoDia_ContaODesvioDaEstacao(int ano, int mes, int dia, int desvio)

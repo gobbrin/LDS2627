@@ -171,4 +171,13 @@ public sealed class ProntoParaFrontendHttpTests
         Assert.Equal(1, pedidosOAuth);
         Assert.Equal(primeiro, segundo);
     }
+
+    [Fact]
+    public async Task I110_146_TokenFcmRecusado_PedeOutroENaoPerdeANotificacao()
+    {
+        var (pedidosOAuth, pedidosFcm) = await ServicoPushTests.EnviarComTokenRecusadoAsync();
+
+        Assert.Equal(2, pedidosOAuth);
+        Assert.Equal(2, pedidosFcm);
+    }
 }

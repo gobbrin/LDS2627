@@ -94,7 +94,7 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
         Assert.NotEqual(antigo, novo);
 
         using (var comAntigo = await ConfirmarAsync(cliente, antigo))
-            Assert.Contains("inválida", await ErroDe(comAntigo), StringComparison.Ordinal);
+            Assert.Contains("expirou", await ErroDe(comAntigo), StringComparison.Ordinal);
 
         using var comNovo = await ConfirmarAsync(cliente, novo);
 

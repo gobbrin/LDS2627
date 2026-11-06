@@ -329,6 +329,35 @@ public sealed class ServicoPushTests
         return (autorizacoes[0], autorizacoes[1], pedidosOAuth);
     }
 
+    /// <summary>O primeiro envio ao FCM responde 401 e o segundo aceita.</summary>
+    public static async Task<(int PedidosOAuth, int PedidosFcm)> EnviarComTokenRecusadoAsync()
+    {
+        var utilizadorId = Guid.NewGuid();
+        var repositorio = new RepositorioDispositivosFalso
+        {
+            Dispositivos = [new Dispositivo { UtilizadorId = utilizadorId, Token = "token-teste", Ativo = true }]
+        };
+
+        var pedidosOAuth = 0;
+        var pedidosFcm = 0;
+
+        using var http = new HttpClient(new HandlerHttpFalso((pedido, _) =>
+        {
+            if (pedido.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                pedidosOAuth++;
+                return Resposta(HttpStatusCode.OK, """{"access_token":"token-oauth-teste","expires_in":3600}""");
+            }
+
+            pedidosFcm++;
+            return Resposta(pedidosFcm == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK, "{}");
+        }));
+
+        await CriarServico(http, repositorio).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+
+        return (pedidosOAuth, pedidosFcm);
+    }
+
     private static ServicoPush CriarServico(HttpClient http, RepositorioDispositivosFalso repositorio, CacheTokenFcm? cache = null)
     {
         using var rsa = RSA.Create(2048);

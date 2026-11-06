@@ -54,7 +54,8 @@ public sealed class MigracoesSqlServerTests
 
     /// <summary>
     /// As migrations de 06/11 sobre uma BD com dados: preenchem as colunas de pesquisa das viagens que já existiam e as
-    /// alterações de colunas passam por cima do <c>CHECK</c> do estado e do índice filtrado dos pedidos.
+    /// alterações de colunas passam por cima do <c>CHECK</c> do estado e do índice filtrado dos pedidos. Uma viagem antiga
+    /// fora das regras novas (texto longo, mesmas coordenadas) não impede a migration, e os títulos antigos são corrigidos.
     /// </summary>
     [SqlServerFact]
     public async Task I110_133_MigrationsComDados_PreenchemAsColunasDePesquisa()
@@ -74,11 +75,21 @@ public sealed class MigracoesSqlServerTests
                 INSERT INTO Viagens (Id, CondutorId, Origem, Destino, OrigemLatitude, OrigemLongitude, DestinoLatitude,
                     DestinoLongitude, PartidaEm, LugaresOferecidos, LugaresDisponiveis, Estado)
                 VALUES (NEWID(), {condutor}, N'Famalicão', N'Açores', 41.4, -8.5, 37.7, -25.6, '2030-07-15T08:30:00', 3, 3, N'Ativa');
+
+                INSERT INTO Viagens (Id, CondutorId, Origem, Destino, OrigemLatitude, OrigemLongitude, DestinoLatitude,
+                    DestinoLongitude, PartidaEm, LugaresOferecidos, LugaresDisponiveis, Estado)
+                VALUES (NEWID(), {condutor}, {new string('a', 230)}, N'Porto', 41.1, -8.6, 41.1, -8.6, '2030-07-16T08:30:00', 3, 3, N'Ativa');
+
+                INSERT INTO Notificacoes (Id, UtilizadorId, Tipo, Titulo, Conteudo, CriadaEm)
+                VALUES (NEWID(), {condutor}, N'PedidoAceite', N'PedidoAceite', N'Conteúdo', SYSUTCDATETIME());
                 """);
 
             await db.Database.MigrateAsync();
 
-            var viagem = await db.Viagens.AsNoTracking().SingleAsync();
+            var viagens = await db.Viagens.AsNoTracking().OrderBy(v => v.PartidaEm).ToListAsync();
+            var viagem = viagens[0];
+            Assert.Equal(200, viagens[1].Origem.Length);
+            Assert.Equal("Pedido aceite", (await db.Notificacoes.AsNoTracking().SingleAsync()).Titulo);
             Assert.Equal("FAMALICAO", viagem.OrigemPesquisa);
             Assert.Equal("ACORES", viagem.DestinoPesquisa);
             Assert.Equal(9 * 60 + 30, viagem.PartidaMinutoDoDia);
