@@ -244,6 +244,7 @@ public sealed class MapasFalsos : HttpMessageHandler
     public int ChamadasGeocodificacao { get; private set; }
     public int ChamadasRotas { get; private set; }
     public bool SimularFalha { get; set; }
+    public bool SimularTempoEsgotado { get; set; }
     public double MetrosPorSegmento { get; set; } = 1000;
     public double SegundosPorSegmento { get; set; } = 120;
     public Func<int, int, double>? Duracao { get; set; }
@@ -266,6 +267,10 @@ public sealed class MapasFalsos : HttpMessageHandler
     {
         if (SimularFalha)
             return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
+
+        // Como o HttpClient faz quando esgota o Timeout: sem o cancelamento do pedido.
+        if (SimularTempoEsgotado)
+            throw new TaskCanceledException("Tempo esgotado simulado.");
 
         var caminho = request.RequestUri!.AbsolutePath;
 
