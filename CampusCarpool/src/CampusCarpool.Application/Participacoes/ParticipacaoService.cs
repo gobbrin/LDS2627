@@ -187,7 +187,8 @@ public sealed class ParticipacaoService(
         var notificacao = notificacaoService.Registar(
             viagem.CondutorId,
             TipoNotificacao.PedidoRecebido,
-            "Recebeste um novo pedido de participação numa viagem.");
+            "Recebeste um novo pedido de participação numa viagem.",
+            viagem.Id);
 
         // Grava o pedido e a notificação. Dois pedidos simultâneos podem passar a verificação acima; a BD recusa o segundo.
         if (!await repositorioParticipacoes.AdicionarPedidoAsync(pedido, ct))
@@ -342,10 +343,12 @@ public sealed class ParticipacaoService(
         var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
             TipoNotificacao.PedidoAceite,
-            "O teu pedido de participação na viagem foi aceite.");
+            "O teu pedido de participação na viagem foi aceite.",
+            viagem.Id);
 
         // RF-F006-14 / P-23: o novo passageiro recebe Pedido aceite e não Alteração da viagem pela sua entrada.
         notificacaoService.RegistarAlteracaoViagem(
+            viagem.Id,
             viagem.CondutorId,
             aceites.Select(p => p.PassageiroId),
             utilizadorId,
@@ -389,7 +392,8 @@ public sealed class ParticipacaoService(
         var notificacao = notificacaoService.Registar(
             participacao.PassageiroId,
             TipoNotificacao.PedidoRejeitado,
-            "O teu pedido de participação na viagem foi rejeitado.");
+            "O teu pedido de participação na viagem foi rejeitado.",
+            viagem.Id);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 
@@ -452,6 +456,7 @@ public sealed class ParticipacaoService(
             // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
             // P-21: cancelar um pedido pendente não gera notificação.
             notificacaoService.RegistarAlteracaoViagem(
+                viagem.Id,
                 viagem.CondutorId,
                 aceites.Where(p => p.Id != participacao.Id).Select(p => p.PassageiroId),
                 utilizadorId,

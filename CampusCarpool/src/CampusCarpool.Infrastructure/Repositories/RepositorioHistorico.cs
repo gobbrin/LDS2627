@@ -85,7 +85,9 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
                 p.Viagem.Destino,
                 p.Viagem.PartidaEm,
                 p.CriadoEm,
-                p.Estado
+                p.Estado,
+                PontoRecolha = p.Recolha,
+                PontoDestino = p.Destino
             })
             .ToListAsync(ct);
 
@@ -97,7 +99,9 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
                 p.Destino,
                 p.PartidaEm,
                 p.CriadoEm,
-                p.Estado.ToString()))
+                p.Estado.ToString(),
+                p.PontoRecolha,
+                p.PontoDestino))
             .ToList();
     }
 
@@ -116,7 +120,9 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
                 p.Viagem.Destino,
                 p.Viagem.PartidaEm,
                 p.CriadoEm,
-                p.Estado
+                p.Estado,
+                PontoRecolha = p.Recolha,
+                PontoDestino = p.Destino
             })
             .ToListAsync(ct);
 
@@ -128,7 +134,9 @@ public sealed class RepositorioHistorico(CampusCarpoolDbContext db) : IRepositor
                 p.Destino,
                 p.PartidaEm,
                 p.CriadoEm,
-                p.Estado.ToString()))
+                p.Estado.ToString(),
+                p.PontoRecolha,
+                p.PontoDestino))
             .ToList();
     }
 

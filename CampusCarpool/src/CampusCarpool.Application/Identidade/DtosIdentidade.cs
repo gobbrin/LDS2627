@@ -12,7 +12,9 @@ public sealed record PerfilProprio(
     string? Curso,
     string? Instituicao,
     DateTime CriadoEm,
-    IReadOnlyList<LigacaoPerfil> LigacoesExternas);
+    IReadOnlyList<LigacaoPerfil> LigacoesExternas,
+    decimal? ClassificacaoMedia,
+    int TotalAvaliacoes);
 
 /// <summary>Perfil do utilizador depois de alterado.</summary>
 public sealed record PerfilAtualizado(

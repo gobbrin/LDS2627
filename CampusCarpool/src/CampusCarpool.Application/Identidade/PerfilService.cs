@@ -28,6 +28,10 @@ public sealed class PerfilService(
         var utilizador = await utilizadores.ObterPorIdAsync(utilizadorId, ct);
         if (utilizador is null) return UtilizadorNaoEncontrado;
 
+        // RF-F007-10: o próprio perfil também apresenta a classificação.
+        var resumo = await avaliacoes.ConsultarAsync(utilizadorId, ct);
+        if (resumo.Erro is { } erro) return erro;
+
         return new PerfilProprio(
             utilizador.Id,
             utilizador.Nome,
@@ -36,7 +40,9 @@ public sealed class PerfilService(
             utilizador.Curso,
             utilizador.Instituicao,
             utilizador.CriadoEm,
-            await ListarLigacoesAsync(utilizadorId, ct));
+            await ListarLigacoesAsync(utilizadorId, ct),
+            resumo.Valor.Media,
+            resumo.Valor.Total);
     }
 
     /// <inheritdoc />

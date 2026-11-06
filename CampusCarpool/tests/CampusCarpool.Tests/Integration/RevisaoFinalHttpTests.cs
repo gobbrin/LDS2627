@@ -60,8 +60,33 @@ public sealed class RevisaoFinalHttpTests
         Assert.True(await repositorio.GuardarAsync(Avaliacao.Criar(viagemId, avaliador.Id, avaliado.Id, 5), CancellationToken.None));
         Assert.False(await repositorio.GuardarAsync(Avaliacao.Criar(viagemId, avaliador.Id, avaliado.Id, 4), CancellationToken.None));
 
+        // Ao alterar, o par existe sempre: uma recusa real não pode passar por conflito.
+        var existente = await db.Avaliacoes.SingleAsync(a => a.AvaliadorId == avaliador.Id);
+        db.Entry(existente).Property(a => a.Classificacao).CurrentValue = 9;
+        await Assert.ThrowsAsync<DbUpdateException>(() => repositorio.GuardarAsync(existente, CancellationToken.None));
+        db.ChangeTracker.Clear();
+
         // A viagem não existe: a chave estrangeira recusa, e isso não é um conflito.
         await Assert.ThrowsAsync<DbUpdateException>(() =>
             repositorio.GuardarAsync(Avaliacao.Criar(Guid.NewGuid(), avaliado.Id, avaliador.Id, 5), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task I110_154_PedidoLigaANotificacaoAViagem_MostraOsPontos_EOPerfilTemClassificacao()
+    {
+        using var app = new AplicacaoReal();
+        var aluno = app.CriarUtilizador("Passageiro");
+        using var condutor = app.ClienteDe(app.CriarUtilizador("Condutor"));
+        using var passageiro = app.ClienteDe(aluno);
+        var viagemId = await AplicacaoReal.CriarViagemAsync(condutor);
+        await AplicacaoReal.PedirParticipacaoAsync(passageiro, viagemId);
+
+        Assert.True(app.NaBaseDeDados(db => db.Notificacoes.Any(n => n.Tipo == TipoNotificacao.PedidoRecebido && n.ViagemId == viagemId)));
+
+        var historico = await passageiro.GetStringAsync("/api/v1/historico");
+        Assert.Contains("\"pontoRecolha\":\"Maia\"", historico, StringComparison.Ordinal);
+
+        var perfil = await passageiro.GetStringAsync("/api/v1/utilizadores/me");
+        Assert.Contains("\"totalAvaliacoes\":0", perfil, StringComparison.Ordinal);
     }
 }

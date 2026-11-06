@@ -263,6 +263,7 @@ public sealed class ViagemService(
 
         // Notifica os passageiros com participação aceite na viagem alterada.
         notificacoes.RegistarAlteracaoViagem(
+            viagem.Id,
             viagem.CondutorId,
             aceites.Select(p => p.PassageiroId),
             utilizadorId,
@@ -296,6 +297,7 @@ public sealed class ViagemService(
         // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou
         // participação aceite antes da indisponibilização; o condutor originou a alteração.
         notificacoes.RegistarAlteracaoViagem(
+            viagem.Id,
             viagem.CondutorId,
             afetadas.Select(p => p.PassageiroId),
             utilizadorId,

@@ -26,12 +26,12 @@ public sealed class NotificacaoService(
     };
 
     /// <inheritdoc />
-    /// <remarks>Só as notificações de aviso ficam ligadas à viagem (<see cref="RegistarAviso"/>).</remarks>
-    public Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem)
+    public Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem, Guid? viagemId = null)
     {
         var notificacao = new Notificacao
         {
             UtilizadorId = utilizadorId,
+            ViagemId = viagemId,
             Tipo = tipo,
             Titulo = Titulo(tipo),
             Conteudo = mensagem
@@ -43,7 +43,7 @@ public sealed class NotificacaoService(
     }
 
     /// <inheritdoc />
-    public void RegistarAlteracaoViagem(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
+    public void RegistarAlteracaoViagem(Guid viagemId, Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
     {
         var destinatarios = passageiros
             .Append(condutorId)
@@ -51,7 +51,7 @@ public sealed class NotificacaoService(
             .Distinct();
 
         foreach (var destinatario in destinatarios)
-            Registar(destinatario, TipoNotificacao.AlteracaoViagem, mensagem);
+            Registar(destinatario, TipoNotificacao.AlteracaoViagem, mensagem, viagemId);
     }
 
     /// <inheritdoc />

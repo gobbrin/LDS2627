@@ -28,6 +28,8 @@ public sealed record ViagemHistorico(
 /// <param name="PartidaEm">Partida da viagem (ordenação, RF-F009-06).</param>
 /// <param name="CriadoEm">Data do pedido.</param>
 /// <param name="Estado">Estado do pedido (nome de <c>EstadoParticipacao</c>).</param>
+/// <param name="PontoRecolha">Recolha proposta pelo passageiro; <c>null</c> se ficou a origem da viagem (AD-003 §6).</param>
+/// <param name="PontoDestino">Destino proposto pelo passageiro; <c>null</c> se ficou o destino da viagem.</param>
 public sealed record PedidoHistorico(
     Guid Id,
     Guid ViagemId,
@@ -35,7 +37,9 @@ public sealed record PedidoHistorico(
     string Destino,
     DateTime PartidaEm,
     DateTime CriadoEm,
-    string Estado
+    string Estado,
+    string? PontoRecolha,
+    string? PontoDestino
 );
 
 /// <summary>Notificação no histórico (RF-F009-05).</summary>

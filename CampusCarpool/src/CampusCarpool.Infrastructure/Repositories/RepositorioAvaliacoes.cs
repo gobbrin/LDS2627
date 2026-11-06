@@ -22,7 +22,8 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
     public async Task<bool> GuardarAsync(Avaliacao avaliacao, CancellationToken ct)
     {
         // Uma entidade "Detached" é nova; uma obtida por ObterPorParAsync já está rastreada e só é gravada.
-        if (db.Entry(avaliacao).State == EntityState.Detached) db.Avaliacoes.Add(avaliacao);
+        var nova = db.Entry(avaliacao).State == EntityState.Detached;
+        if (nova) db.Avaliacoes.Add(avaliacao);
 
         try
         {
@@ -33,7 +34,7 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
         {
             return false;
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException) when (nova)
         {
             // O índice único do par recusa o segundo de dois pedidos simultâneos. Qualquer outra recusa é uma falha real
             // e segue para o GlobalExceptionHandler.

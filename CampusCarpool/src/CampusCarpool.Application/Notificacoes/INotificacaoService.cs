@@ -18,7 +18,7 @@ public interface INotificacaoService
     /// <param name="tipo">Tipo; define o título apresentado (DC-40).</param>
     /// <param name="mensagem">Texto da notificação.</param>
     /// <returns>A notificação, para o push depois de gravar.</returns>
-    Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem);
+    Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem, Guid? viagemId = null);
 
     /// <summary>
     /// Regista a notificação Alteração da viagem para o condutor e os passageiros indicados, exceto quem originou
@@ -28,7 +28,7 @@ public interface INotificacaoService
     /// <param name="passageiros">Passageiros afetados: os aceites e, na indisponibilização, também os pendentes.</param>
     /// <param name="origemId">Quem originou a alteração; nunca é notificado.</param>
     /// <param name="mensagem">Texto da notificação; não pode revelar os pontos de outros passageiros (P-13).</param>
-    void RegistarAlteracaoViagem(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem);
+    void RegistarAlteracaoViagem(Guid viagemId, Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem);
 
     /// <summary>Regista uma notificação de aviso para cada passageiro aceite, ligada à viagem (RF-F006-05).</summary>
     /// <param name="viagemId">Viagem do aviso.</param>

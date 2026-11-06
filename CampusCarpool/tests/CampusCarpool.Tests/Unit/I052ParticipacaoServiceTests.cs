@@ -166,12 +166,12 @@ public sealed class I052ParticipacaoServiceTests
     private sealed class NotificacoesFake : INotificacaoService
     {
         public List<(Guid id, TipoNotificacao tipo)> Enviadas { get; } = new();
-        public Notificacao Registar(Guid id, TipoNotificacao tipo, string mensagem)
+        public Notificacao Registar(Guid id, TipoNotificacao tipo, string mensagem, Guid? viagemId = null)
         {
             Enviadas.Add((id, tipo));
             return new Notificacao { UtilizadorId = id, Tipo = tipo, Conteudo = mensagem };
         }
-        public void RegistarAlteracaoViagem(Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
+        public void RegistarAlteracaoViagem(Guid viagemId, Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
         {
             foreach (var id in passageiros.Append(condutorId).Where(id => id != origemId).Distinct())
                 Registar(id, TipoNotificacao.AlteracaoViagem, mensagem);
