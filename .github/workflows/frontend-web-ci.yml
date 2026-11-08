@@ -1,0 +1,43 @@
+name: CampusCarpool Frontend Web CI
+
+on:
+  push:
+    paths:
+      - 'projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01/**'
+      - '.github/workflows/frontend-web-ci.yml'
+  pull_request:
+    paths:
+      - 'projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01/**'
+      - '.github/workflows/frontend-web-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: i069-frontend-web-${{ github.sha }}
+          path: |
+            projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01/coverage
+            projeto/04-artefactos-tecnicos/04.14-frontend-web/m4-v01/dist
+          if-no-files-found: warn

@@ -1,0 +1,398 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #173c33;
+  background: #f7f8f2;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+a {
+  color: #205e4c;
+  text-underline-offset: 4px;
+}
+button,
+input {
+  font: inherit;
+}
+button,
+.button {
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid #bac9bd;
+  padding: 12px 18px;
+  background: #fff;
+  color: #173c33;
+  font-weight: 650;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+:focus-visible {
+  outline: 3px solid #527f19;
+  outline-offset: 4px;
+}
+header {
+  padding: 28px 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #dce3d6;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #173c33;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+}
+.brand-mark {
+  border-radius: 11px;
+  background: #173c33;
+  color: #e6f096;
+  padding: 7px 11px;
+  letter-spacing: -2px;
+}
+.brand-light {
+  font-weight: 400;
+}
+.header-note {
+  font-size: 13px;
+  color: #5c6f63;
+}
+.app-layout {
+  max-width: 1500px;
+  margin: auto;
+  min-height: calc(100vh - 185px);
+}
+main {
+  min-width: 0;
+  padding: 40px 5vw 55px;
+}
+h1 {
+  font-size: clamp(34px, 4vw, 60px);
+  font-weight: 550;
+  line-height: 1.12;
+  letter-spacing: -2px;
+  margin: 18px 0 26px;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 650;
+}
+p {
+  line-height: 1.65;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 750;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 7%;
+  align-items: center;
+  padding: 35px 0 65px;
+}
+.hero em {
+  font-style: normal;
+  color: #627c39;
+}
+.lead {
+  font-size: 17px;
+  max-width: 410px;
+  color: #5c6f63;
+  margin-bottom: 30px;
+}
+.primary {
+  color: #f8faf2;
+  background: #173c33;
+  border-color: #173c33;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  text-decoration: none;
+}
+.journey {
+  background: #e9eddb;
+  border: 1px solid #dbe2cb;
+  border-radius: 24px;
+  padding: 36px;
+  transform: rotate(2deg);
+}
+.journey-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 36px;
+  color: #536849;
+}
+.route-point {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  font-weight: 650;
+}
+.route-point > span {
+  font-size: 28px;
+}
+.route-point small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 6px;
+  color: #607051;
+}
+.route-line {
+  height: 65px;
+  border-left: 2px dashed #8b9e6c;
+  margin: 5px 13px;
+}
+.journey-footer {
+  border-top: 1px solid #c9d3b5;
+  margin-top: 30px;
+  padding-top: 18px;
+  font-size: 13px;
+}
+.principles {
+  border-top: 1px solid #dce3d6;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  padding-top: 25px;
+}
+.principles span {
+  color: #667d44;
+  font-size: 12px;
+}
+.principles p {
+  color: #5c6f63;
+  font-size: 14px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 5vw;
+  color: #5c6f63;
+  font-size: 12px;
+  border-top: 1px solid #dce3d6;
+}
+.auth-card {
+  max-width: 470px;
+  margin: 20px auto;
+  padding: 30px;
+  background: white;
+  border: 1px solid #dce3d6;
+  border-radius: 16px;
+}
+.auth-card h1 {
+  font-size: 36px;
+  letter-spacing: -1px;
+}
+.muted {
+  color: #5c6f63;
+  font-size: 14px;
+}
+form {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+label {
+  font-size: 14px;
+  font-weight: 650;
+}
+input {
+  border: 1px solid #aab9ac;
+  padding: 12px;
+  border-radius: 6px;
+  width: 100%;
+  min-width: 0;
+}
+input[aria-invalid='true'] {
+  border-color: #ad3434;
+}
+.field-error {
+  color: #9b2727;
+  font-size: 13px;
+  padding-left: 0;
+  list-style: none;
+  margin: 0 0 8px;
+}
+.notice {
+  border: 1px solid #aac39d;
+  background: #edf4e4;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+.notice.error {
+  color: #8b2929;
+  border-color: #ddbbbb;
+  background: #fff1ef;
+}
+.notice button {
+  padding: 3px 9px;
+  background: transparent;
+  border: 0;
+  font-size: 22px;
+}
+.signed-in {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+}
+.sidebar {
+  padding: 36px 24px;
+  border-right: 1px solid #dce3d6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sidebar a {
+  padding: 12px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.sidebar .active {
+  background: #e2eacb;
+  font-weight: 650;
+}
+.sidebar button {
+  margin-top: 24px;
+}
+.signed-in .hero {
+  grid-template-columns: 1fr;
+}
+.signed-in .journey {
+  display: none;
+}
+.panel {
+  max-width: 780px;
+  background: #fff;
+  border: 1px solid #dce3d6;
+  padding: 32px;
+  border-radius: 16px;
+}
+.panel h1 {
+  font-size: 38px;
+}
+.profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.profile-heading h2,
+.profile-heading p {
+  margin: 4px 0;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: #e2eacb;
+  border-radius: 50%;
+  font-size: 24px;
+}
+dl > div {
+  padding: 18px 0;
+  border-top: 1px solid #e5e9df;
+}
+dt {
+  font-size: 12px;
+  color: #5c6f63;
+  margin-bottom: 7px;
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.skip-link {
+  position: absolute;
+  left: 10px;
+  top: -100px;
+  background: white;
+  padding: 12px;
+  z-index: 10;
+}
+.skip-link:focus {
+  top: 10px;
+}
+@media (max-width: 760px) {
+  .header-note {
+    display: none;
+  }
+  header {
+    padding: 22px;
+  }
+  main {
+    padding: 25px 22px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 12px;
+    gap: 30px;
+  }
+  .journey {
+    transform: none;
+    padding: 25px;
+  }
+  .principles {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .signed-in {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid #dce3d6;
+    padding: 14px 22px;
+    align-items: center;
+  }
+  .sidebar .eyebrow {
+    display: none;
+  }
+  .sidebar button {
+    margin-top: 0;
+  }
+  .auth-card,
+  .panel {
+    padding: 23px;
+  }
+  footer {
+    padding: 20px 22px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    letter-spacing: -1px;
+  }
+}
