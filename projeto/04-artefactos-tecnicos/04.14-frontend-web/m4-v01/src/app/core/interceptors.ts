@@ -5,7 +5,7 @@ import { catchError, throwError } from 'rxjs';
 import { CONFIGURACAO, pertenceApi } from './configuracao';
 import { SessaoService } from './sessao.service';
 import { NotificacaoUiService } from './notificacao-ui.service';
-import { normalizarErro } from './erro-api';
+import { ERRO_NA_PAGINA, normalizarErro } from './erro-api';
 
 export const autenticacaoInterceptor: HttpInterceptorFn = (pedido, seguinte) => {
   const config = inject(CONFIGURACAO);
@@ -30,15 +30,17 @@ export const erroInterceptor: HttpInterceptorFn = (pedido, seguinte) => {
       if (!pertenceApi(pedido.url, config) || !(resposta instanceof HttpErrorResponse))
         return throwError(() => resposta);
       const erro = normalizarErro(resposta);
-      // Uma resposta atrasada de uma sessão antiga não termina uma sessão mais recente.
-      if (
-        resposta.status === 401 &&
-        pedido.headers.get('Authorization') === `Bearer ${sessao.obterToken()}`
-      ) {
-        sessao.terminar();
-        void router.navigate(['/entrar']);
+      const autorizacao = pedido.headers.get('Authorization');
+      if (resposta.status === 401 && autorizacao) {
+        // Uma resposta atrasada de uma sessão antiga não afeta uma sessão mais recente.
+        if (autorizacao === `Bearer ${sessao.obterToken()}`) {
+          sessao.terminar();
+          ui.erro(erro.message, { manterAoNavegar: true });
+          void router.navigate(['/entrar']);
+        }
+      } else if (!pedido.context.get(ERRO_NA_PAGINA)) {
+        ui.erro(erro.message);
       }
-      ui.erro(erro.message);
       return throwError(() => erro);
     }),
   );

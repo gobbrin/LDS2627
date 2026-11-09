@@ -75,8 +75,13 @@ explicitamente essa limitação. Fechar o separador elimina o armazenamento da
 sessão, mas não constitui uma chamada de revogação ao servidor.
 
 São normalizados `CorpoErro` (`{ erro: "mensagem" }`), `ProblemDetails` e o formato
-histórico `{ erro: { mensagem, campos } }`. Os detalhes internos de erros `5xx` não
-são apresentados. Os erros de campo são apresentados junto aos inputs.
+histórico `{ erro: { mensagem, campos } }`. Mostra-se a mensagem da API nos `4xx` e
+em `502`, `503` e `504`; os restantes `5xx` ficam com um texto genérico, sem detalhes
+internos. Os erros de campo são apresentados junto aos inputs.
+
+Por omissão, um erro da API aparece na notificação global, que desaparece ao navegar.
+Uma página que o mostre no próprio formulário passa `{ erroNaPagina: true }` ao
+`ApiClient`, para não o apresentar duas vezes.
 
 ## Estrutura e extensão nas próximas tarefas
 

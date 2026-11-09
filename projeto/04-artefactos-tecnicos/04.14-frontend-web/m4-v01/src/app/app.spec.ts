@@ -107,10 +107,30 @@ describe('I069 — interface', () => {
         accessToken: `a.${btoa(JSON.stringify({ sub: 'aluno-1', exp: Math.floor(Date.now() / 1000) + 3600 }))}.c`,
         expiresIn: 3600,
       });
-      http.expectOne(base + '/autenticacao/me').flush({ id: 'aluno-1' });
       await h.fixture.whenStable();
       expect(TestBed.inject(Router).url).toBe('/inicio');
       expect(JSON.stringify(sessionStorage)).not.toContain('segredo-de-teste');
+    });
+    it('limpa a notificação ao navegar, exceto a que antecede um redirecionamento', async () => {
+      const ui = TestBed.inject(NotificacaoUiService),
+        router = TestBed.inject(Router);
+      ui.erro('Antiga');
+      await router.navigateByUrl('/entrar');
+      expect(ui.mensagem()).toBeNull();
+      ui.sucesso('Sessão terminada.', { manterAoNavegar: true });
+      await router.navigateByUrl('/');
+      expect(ui.mensagem()?.texto).toBe('Sessão terminada.');
+      await router.navigateByUrl('/entrar');
+      expect(ui.mensagem()).toBeNull();
+    });
+    it('o atalho de acessibilidade foca o conteúdo sem sair da página', async () => {
+      const f = TestBed.createComponent(App);
+      f.detectChanges();
+      await TestBed.inject(Router).navigateByUrl('/entrar');
+      await f.whenStable();
+      f.nativeElement.querySelector('.skip-link').click();
+      expect(document.activeElement?.id).toBe('conteudo');
+      expect(TestBed.inject(Router).url).toBe('/entrar');
     });
     it('apresenta carregamento, perfil e estados sem dados opcionais', async () => {
       iniciar();

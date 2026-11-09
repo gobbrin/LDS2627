@@ -32,6 +32,8 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm test
+        env:
+          KARMA_NO_SANDBOX: '1'
       - run: npm run build
       - uses: actions/upload-artifact@v5
         if: always()

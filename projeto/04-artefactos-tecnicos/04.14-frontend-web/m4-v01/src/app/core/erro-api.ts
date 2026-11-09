@@ -1,4 +1,8 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpContextToken, HttpErrorResponse } from '@angular/common/http';
+
+/** Marca um pedido cujo erro é apresentado pela própria página, junto do formulário. */
+export const ERRO_NA_PAGINA = new HttpContextToken<boolean>(() => false);
+
 export class ErroApi extends Error {
   constructor(
     readonly status: number,
@@ -23,8 +27,11 @@ export function normalizarErro(resposta: HttpErrorResponse): ErroApi {
   let mensagem =
     alternativas[resposta.status] ?? 'Ocorreu um erro no servidor. Tenta novamente mais tarde.';
   const campos: Record<string, string[]> = {};
-  // Só mensagens de erros previstos; respostas 5xx nunca expõem detalhes internos.
-  if (resposta.status >= 400 && resposta.status < 500 && corpo && typeof corpo === 'object') {
+  // A API tem mensagens próprias nos 4xx e nas falhas de serviços externos (502, 503, 504).
+  // Os restantes 5xx ficam com o texto genérico, para nunca exporem detalhes internos.
+  const previsto =
+    (resposta.status >= 400 && resposta.status < 500) || [502, 503, 504].includes(resposta.status);
+  if (previsto && corpo && typeof corpo === 'object') {
     const erro = corpo.erro;
     const texto = typeof erro === 'string' ? erro : (erro?.mensagem ?? corpo.detail);
     if (typeof texto === 'string' && texto.trim()) mensagem = texto.slice(0, 500);

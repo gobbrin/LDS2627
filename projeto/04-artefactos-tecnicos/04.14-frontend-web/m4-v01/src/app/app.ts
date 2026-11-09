@@ -8,7 +8,9 @@ import { AutenticacaoApiService } from './features/autenticacao/autenticacao-api
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `<a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
+  template: `<a class="skip-link" href="#conteudo" (click)="saltarParaConteudo($event)"
+      >Saltar para o conteúdo</a
+    >
     <header>
       <a
         class="brand"
@@ -68,6 +70,11 @@ export class App {
             /* O interceptor trata o erro; só 401 invalida a sessão. */
           },
         });
+  }
+  saltarParaConteudo(evento: Event) {
+    // Com <base href="/">, seguir "#conteudo" sairia da página atual.
+    evento.preventDefault();
+    document.getElementById('conteudo')?.focus();
   }
   sair() {
     if (this.aSair()) return;

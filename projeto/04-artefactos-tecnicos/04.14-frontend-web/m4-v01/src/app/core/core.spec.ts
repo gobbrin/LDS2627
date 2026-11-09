@@ -181,7 +181,7 @@ describe('I069 — núcleo', () => {
       expect(() => api.get('https://externo.test')).toThrow();
       expect(() => api.get('../segredo')).toThrow();
     });
-    it('faz login com o contrato atual e valida a identidade no servidor', async () => {
+    it('faz login com o contrato atual e inicia a sessão com a resposta do servidor', async () => {
       const auth = TestBed.inject(AutenticacaoApiService),
         http = TestBed.inject(HttpTestingController),
         jwt = token();
@@ -190,20 +190,15 @@ describe('I069 — núcleo', () => {
       expect(login.request.body).toEqual({ email: 'ana@alunos.test', password: 'teste' });
       expect(login.request.headers.has('Authorization')).toBeFalse();
       login.flush({ accessToken: jwt, expiresIn: 3600 });
-      const me = http.expectOne(config.apiBaseUrl + '/autenticacao/me');
-      expect(me.request.headers.get('Authorization')).toBe('Bearer ' + jwt);
-      me.flush({ id: 'aluno-1' });
-      expect((await p).id).toBe('aluno-1');
+      await p;
+      expect(TestBed.inject(SessaoService).obterToken()).toBe(jwt);
     });
-    it('limpa a sessão se a identidade do servidor for diferente', async () => {
-      const p = firstValueFrom(
-        TestBed.inject(AutenticacaoApiService).login({ email: 'a@b.test', password: 'x' }),
-      );
-      const http = TestBed.inject(HttpTestingController);
-      http
-        .expectOne(config.apiBaseUrl + '/autenticacao/login')
-        .flush({ accessToken: token(), expiresIn: 3600 });
-      http.expectOne(config.apiBaseUrl + '/autenticacao/me').flush({ id: 'outro' });
+    it('limpa a sessão restaurada se a identidade do servidor for diferente', async () => {
+      TestBed.inject(SessaoService).iniciar({ accessToken: token(), expiresIn: 3600 });
+      const p = firstValueFrom(TestBed.inject(AutenticacaoApiService).validar());
+      TestBed.inject(HttpTestingController)
+        .expectOne(config.apiBaseUrl + '/autenticacao/me')
+        .flush({ id: 'outro' });
       await expectAsync(p).toBeRejectedWithError(
         'Não foi possível validar a sessão. Inicia sessão novamente.',
       );
@@ -216,10 +211,22 @@ describe('I069 — núcleo', () => {
       TestBed.inject(HttpTestingController)
         .expectOne(config.apiBaseUrl + '/autenticacao/login')
         .flush({ accessToken: 'invalid', expiresIn: 3600 });
-      await expectAsync(p).toBeRejected();
-      expect(TestBed.inject(NotificacaoUiService).mensagem()?.texto).toContain(
-        'Não foi possível guardar a sessão',
-      );
+      await expectAsync(p).toBeRejectedWithError(/Não foi possível guardar a sessão/);
+      expect(TestBed.inject(SessaoService).autenticado()).toBeFalse();
+    });
+    it('só a página apresenta o erro de um pedido marcado com erroNaPagina', async () => {
+      const api = TestBed.inject(ApiClient),
+        http = TestBed.inject(HttpTestingController),
+        ui = TestBed.inject(NotificacaoUiService),
+        conflito = { status: 409, statusText: 'Conflict' };
+      const naPagina = firstValueFrom(api.post('viagens', {}, { erroNaPagina: true }));
+      http.expectOne(config.apiBaseUrl + '/viagens').flush({ erro: 'Conflito.' }, conflito);
+      await expectAsync(naPagina).toBeRejectedWithError('Conflito.');
+      expect(ui.mensagem()).toBeNull();
+      const global = firstValueFrom(api.post('viagens', {}));
+      http.expectOne(config.apiBaseUrl + '/viagens').flush({ erro: 'Conflito.' }, conflito);
+      await expectAsync(global).toBeRejectedWithError('Conflito.');
+      expect(ui.mensagem()?.texto).toBe('Conflito.');
     });
     it('apresenta credenciais inválidas sem redirecionar repetidamente', async () => {
       const navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -231,6 +238,7 @@ describe('I069 — núcleo', () => {
         .flush({ erro: 'Credenciais inválidas.' }, { status: 401, statusText: 'Unauthorized' });
       await expectAsync(p).toBeRejectedWithError('Credenciais inválidas.');
       expect(navegar).not.toHaveBeenCalled();
+      expect(TestBed.inject(NotificacaoUiService).mensagem()).toBeNull();
     });
     it('em 401 protegido remove a sessão e envia para entrar', async () => {
       const s = TestBed.inject(SessaoService);
@@ -255,6 +263,7 @@ describe('I069 — núcleo', () => {
       req.flush(null, { status: 401, statusText: 'Unauthorized' });
       await expectAsync(p).toBeRejected();
       expect(s.autenticado()).toBeTrue();
+      expect(TestBed.inject(NotificacaoUiService).mensagem()).toBeNull();
     });
     it('não aplica tratamento de sessão a pedidos externos', async () => {
       const s = TestBed.inject(SessaoService);
@@ -349,10 +358,25 @@ describe('I069 — núcleo', () => {
         ).message,
       ).not.toContain('stacktrace');
     });
-    it('permite apenas destinos internos implementados após login', () => {
-      expect(destinoInterno('/perfil')).toBe('/perfil');
-      expect(destinoInterno('/inicio')).toBe('/inicio');
-      for (const destino of [null, '//evil.test', 'https://evil.test', '/entrar', '/inexistente'])
+    it('mostra a mensagem da API nas falhas de serviços externos', () => {
+      for (const status of [502, 503, 504])
+        expect(
+          normalizarErro(new HttpErrorResponse({ status, error: { erro: 'Conta criada.' } }))
+            .message,
+        ).toBe('Conta criada.');
+    });
+    it('aceita apenas destinos internos após login', () => {
+      for (const destino of ['/perfil', '/inicio', '/utilizadores/1?origem=viagem'])
+        expect(destinoInterno(destino)).toBe(destino);
+      for (const destino of [
+        null,
+        '',
+        '//evil.test',
+        '/\\evil.test',
+        'https://evil.test',
+        '/entrar',
+        '/entrar?regresso=%2Fperfil',
+      ])
         expect(destinoInterno(destino)).toBe('/inicio');
     });
     it('permite limpar uma notificação', () => {

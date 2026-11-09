@@ -3,8 +3,9 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SessaoService } from './sessao.service';
 
 export function destinoInterno(valor: string | null): string {
-  // Apenas destinos implementados: impede redirecionamentos externos e ciclos no login.
-  return valor === '/perfil' || valor === '/inicio' ? valor : '/inicio';
+  // Só caminhos internos: impede redirecionamentos externos e ciclos no login.
+  const interno = valor !== null && /^\/(?![/\\])/.test(valor);
+  return interno && !/^\/entrar([/?#]|$)/.test(valor) ? valor : '/inicio';
 }
 export const autenticadoGuard: CanActivateFn = (_route, state) => {
   return inject(SessaoService).obterToken()

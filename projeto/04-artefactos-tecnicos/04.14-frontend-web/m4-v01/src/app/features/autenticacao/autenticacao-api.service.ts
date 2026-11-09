@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { catchError, finalize, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, finalize, of, tap, throwError } from 'rxjs';
 import { ApiClient } from '../../core/api-client';
 import { SessaoService } from '../../core/sessao.service';
 import { NotificacaoUiService } from '../../core/notificacao-ui.service';
@@ -12,9 +12,8 @@ export class AutenticacaoApiService {
   private readonly sessao = inject(SessaoService);
   private readonly ui = inject(NotificacaoUiService);
   login(dados: Credenciais) {
-    return this.api.post<TokenAcesso>('autenticacao/login', dados).pipe(
+    return this.api.post<TokenAcesso>('autenticacao/login', dados, { erroNaPagina: true }).pipe(
       tap((token) => this.sessao.iniciar(token)),
-      switchMap(() => this.validar()),
       catchError((erro: unknown) => {
         this.sessao.terminar();
         const falha =
@@ -24,7 +23,6 @@ export class AutenticacaoApiService {
                 0,
                 'Não foi possível guardar a sessão. Verifica se o armazenamento do browser está disponível e tenta novamente.',
               );
-        this.ui.erro(falha.message);
         return throwError(() => falha);
       }),
     );
@@ -41,13 +39,14 @@ export class AutenticacaoApiService {
   }
   logout() {
     return this.api.post<void>('autenticacao/logout').pipe(
-      tap(() => this.ui.sucesso('Sessão terminada.')),
+      tap(() => this.ui.sucesso('Sessão terminada.', { manterAoNavegar: true })),
       catchError((erro: unknown) => {
         if (erro instanceof ErroApi && erro.status === 401)
-          this.ui.sucesso('A sessão já não estava ativa.');
+          this.ui.sucesso('A sessão já não estava ativa.', { manterAoNavegar: true });
         else
           this.ui.erro(
             'A sessão foi terminada neste browser, mas o servidor não confirmou a revogação.',
+            { manterAoNavegar: true },
           );
         return of(undefined);
       }),
