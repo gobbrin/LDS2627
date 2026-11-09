@@ -8,15 +8,21 @@ import { SessaoService } from '../../core/sessao.service';
       <div>
         <p class="eyebrow">CAMPUS CARPOOL</p>
         <h1>O caminho para o campus<br /><em>faz-se em companhia.</em></h1>
-        <p class="lead">Uma comunidade académica mais próxima, uma viagem de cada vez.</p>
+        <p class="lead">
+          Partilha viagens com outros estudantes do ensino superior: oferece os lugares livres do
+          teu carro ou encontra quem faça o mesmo percurso.
+        </p>
         @if (sessao.autenticado()) {
           <a class="button primary" routerLink="/perfil"
             >Consultar o meu perfil <span aria-hidden="true">↗</span></a
           >
         } @else {
-          <a class="button primary" routerLink="/entrar"
-            >Entrar na comunidade <span aria-hidden="true">↗</span></a
-          >
+          <div class="hero-actions">
+            <a class="button primary" routerLink="/registo"
+              >Criar conta <span aria-hidden="true">↗</span></a
+            >
+            <a class="button" routerLink="/entrar">Entrar na comunidade</a>
+          </div>
         }
       </div>
       <div class="journey" aria-hidden="true">

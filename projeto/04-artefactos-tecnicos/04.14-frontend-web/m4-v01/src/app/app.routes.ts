@@ -15,6 +15,28 @@ export const routes: Routes = [
     title: 'Entrar · Campus Carpool',
   },
   {
+    path: 'registo',
+    canActivate: [visitanteGuard],
+    loadComponent: () => import('./features/autenticacao/registo.page').then((m) => m.RegistoPage),
+    title: 'Criar conta · Campus Carpool',
+  },
+  {
+    // Sem guarda: a ligação do email tem de funcionar mesmo com uma sessão aberta neste browser.
+    path: 'confirmar-conta',
+    loadComponent: () =>
+      import('./features/autenticacao/confirmacao.page').then((m) => m.ConfirmacaoPage),
+    title: 'Confirmar conta · Campus Carpool',
+  },
+  {
+    path: 'reenviar-confirmacao',
+    canActivate: [visitanteGuard],
+    loadComponent: () =>
+      import('./features/autenticacao/reenvio-confirmacao.page').then(
+        (m) => m.ReenvioConfirmacaoPage,
+      ),
+    title: 'Nova ligação de confirmação · Campus Carpool',
+  },
+  {
     path: 'inicio',
     canActivate: [autenticadoGuard],
     loadComponent: () => import('./features/inicio/inicio.page').then((m) => m.InicioPage),
@@ -25,6 +47,14 @@ export const routes: Routes = [
     canActivate: [autenticadoGuard],
     loadComponent: () => import('./features/perfil/perfil.page').then((m) => m.PerfilPage),
     title: 'Perfil · Campus Carpool',
+  },
+  {
+    // Fora de /perfil para o menu não assinalar «Perfil» ao consultar outra pessoa.
+    path: 'utilizadores/:id',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/perfil/perfil-publico.page').then((m) => m.PerfilPublicoPage),
+    title: 'Perfil de utilizador · Campus Carpool',
   },
   {
     path: '**',

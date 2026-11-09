@@ -1,9 +1,11 @@
 # Campus Carpool — frontend web
 
-Grupo G15 · LDS2627 · M4 / Sprint 07 · I069 · versão 0.1.0.
+Grupo G15 · LDS2627 · M4 / Sprint 07 · I069 e I070 · versão 0.1.0.
 
 Base Angular/TypeScript com configuração em execução, cliente HTTP, sessão JWT,
 interceptores, guardas, páginas carregadas de forma diferida e interface pt-PT.
+Inclui F001: registo, confirmação da conta, início e fim de sessão, perfil próprio
+e consulta do perfil de outros utilizadores.
 
 ## Instalar e executar
 
@@ -52,12 +54,18 @@ não deve chamar uma API HTTP.
 
 ## Sessão e contratos utilizados
 
-| Operação                   | Contrato atual do backend                                                               |
-| -------------------------- | --------------------------------------------------------------------------------------- |
-| Entrar                     | `POST /api/v1/autenticacao/login`, `{ email, password }` → `{ accessToken, expiresIn }` |
-| Validar sessão             | `GET /api/v1/autenticacao/me` → `{ id }`                                                |
-| Consultar o próprio perfil | `GET /api/v1/utilizadores/me`                                                           |
-| Terminar sessão            | `POST /api/v1/autenticacao/logout`, sem corpo → `204`                                   |
+| Operação                   | Contrato atual do backend                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Registar conta             | `POST /api/v1/autenticacao/registo`, `{ nome, email, password }` → `202`; `503` com a conta já criada |
+| Confirmar conta            | `POST /api/v1/autenticacao/confirmar`, `{ token }` → `204`                                            |
+| Pedir nova ligação         | `POST /api/v1/autenticacao/reenviar-confirmacao`, `{ email }` → `202`, igual exista ou não a conta    |
+| Entrar                     | `POST /api/v1/autenticacao/login`, `{ email, password }` → `{ accessToken, expiresIn }`               |
+| Validar sessão             | `GET /api/v1/autenticacao/me` → `{ id }`                                                              |
+| Consultar o próprio perfil | `GET /api/v1/utilizadores/me`                                                                         |
+| Alterar o próprio perfil   | `PUT /api/v1/utilizadores/me`, `{ nome, curso, instituicao }`                                         |
+| Gerir ligações externas    | `POST /api/v1/utilizadores/me/ligacoes`, `DELETE /api/v1/utilizadores/me/ligacoes/{id}`               |
+| Consultar outro utilizador | `GET /api/v1/utilizadores/{id}`, só com os campos de P-10                                             |
+| Terminar sessão            | `POST /api/v1/autenticacao/logout`, sem corpo → `204`                                                 |
 
 O JWT fica em `sessionStorage`, separado por endereço de backend. A palavra-passe
 não é persistida. A validade é limitada por `expiresIn` e pela claim `exp`; ler
@@ -89,19 +97,22 @@ Uma página que o mostre no próprio formulário passa `{ erroNaPagina: true }` 
 | ------------------------------- | --------------------------------------------------------------------------------- |
 | `src/app/core`                  | Configuração, `ApiClient`, `SessaoService`, interceptores, guardas e notificações |
 | `src/app/shared`                | Modelos, erros de formulário e página 404                                         |
-| `src/app/features/autenticacao` | Serviço de login/logout e `LoginPage`                                             |
+| `src/app/features/autenticacao` | Serviço de autenticação, registo, confirmação, reenvio e entrada                  |
 | `src/app/features/inicio`       | `InicioPage` pública e autenticada                                                |
-| `src/app/features/perfil`       | Serviço e consulta mínima de `PerfilPage`                                         |
+| `src/app/features/perfil`       | Serviço, perfil próprio com edição e ligações, e perfil de outro utilizador       |
 
-`/` e `/entrar` são rotas de visitante. `/inicio` e `/perfil` exigem sessão. Rotas
+`/`, `/entrar`, `/registo` e `/reenviar-confirmacao` são rotas de visitante.
+`/confirmar-conta` fica aberta, porque a ligação do email tem de funcionar mesmo com
+uma sessão iniciada. `/inicio`, `/perfil` e `/utilizadores/:id` exigem sessão. Rotas
 inexistentes apresentam uma página 404. Os componentes são standalone; a divisão
 por `core`, `shared` e `features` é a modularização funcional prevista no modelo.
 
-A I070 pode ampliar os serviços e páginas existentes com registo, confirmação,
-reenvio, edição de perfil e consulta de outros utilizadores. As I071–I076 acrescentam
-as suas pastas em `features/` e rotas lazy com `autenticadoGuard`. As páginas devem
-usar os serviços e `ApiClient`; parâmetros de pesquisa usam `HttpParams`.
-Não adicionar os endereços da API diretamente aos componentes.
+As I071–I076 acrescentam as suas pastas em `features/` e rotas lazy com
+`autenticadoGuard`. O perfil de outro utilizador abre-se em `/utilizadores/{id}`:
+quem mostrar um nome (pesquisa, viagem, conversa, pedido) liga a essa rota, como
+pede o UC-F001-10. As páginas devem usar os serviços e `ApiClient`; parâmetros de
+pesquisa usam `HttpParams`. Não adicionar os endereços da API diretamente aos
+componentes.
 
 As funcionalidades de viagens, pesquisa, pedidos, mensagens, notificações,
 avaliações, histórico e SignalR pertencem às tarefas funcionais seguintes e ainda
@@ -155,13 +166,14 @@ npm run build
 
 Publicar o conteúdo de `dist/campus-carpool-web/browser/` num servidor de ficheiros
 estáticos. Configurar fallback das rotas da aplicação para `index.html`, permitindo
-recarregar diretamente `/entrar`, `/inicio` e `/perfil`. Preservar `config.json`
+recarregar diretamente qualquer rota e abrir a ligação `/confirmar-conta` do email. Preservar `config.json`
 como JSON, servi-lo sem cache e configurar HTTPS e CORS antes da publicação.
 A compilação usa a raiz `/`; alojamento sob um subcaminho requer um `base-href`
 correspondente e uma configuração equivalente no servidor.
 
 ## Rastreabilidade e estado
 
-Consultar [a evidência da I069](docs/m4-s07-i069-evidencias-v01.md) para fontes,
-diferenças face ao modelo, verificações executadas e limitações. A implementação
+Consultar as evidências da [I069](docs/m4-s07-i069-evidencias-v01.md) e da
+[I070](docs/m4-s07-i070-evidencias-v01.md) para fontes, diferenças face ao modelo,
+verificações executadas e limitações. A implementação
 não constitui aprovação do Revisor ou do Auditor nem encerra a Issue.

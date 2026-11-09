@@ -33,6 +33,16 @@ describe('I069 — interface', () => {
       expiresIn: 3600,
     });
   }
+  async function appComSessao() {
+    iniciar();
+    const f = TestBed.createComponent(App);
+    f.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(base + '/autenticacao/me').flush({ id: 'aluno-1' });
+    await TestBed.inject(Router).navigateByUrl('/inicio');
+    await f.whenStable();
+    return { f, http };
+  }
   beforeEach(() => {
     sessionStorage.clear();
     TestBed.configureTestingModule({
@@ -70,8 +80,8 @@ describe('I069 — interface', () => {
       const page = await h.navigateByUrl('/entrar', LoginPage);
       page.entrar();
       h.detectChanges();
-      expect(h.routeNativeElement?.textContent).toContain('Introduz um email válido');
-      expect(h.routeNativeElement?.textContent).toContain('Introduz a palavra-passe');
+      expect(h.routeNativeElement?.textContent).toContain('Indica o teu email académico');
+      expect(h.routeNativeElement?.textContent).toContain('Indica a tua palavra-passe');
       TestBed.inject(HttpTestingController).expectNone(base + '/autenticacao/login');
     });
     it('mostra os erros de validação da API e limpa a palavra-passe', async () => {
@@ -159,7 +169,7 @@ describe('I069 — interface', () => {
         .expectOne(base + '/utilizadores/me')
         .flush({ ...perfil, curso: 'Informática', instituicao: 'IPCA', classificacaoMedia: 4.5 });
       h.detectChanges();
-      expect(h.routeNativeElement?.textContent).toContain('4.5 / 5');
+      expect(h.routeNativeElement?.textContent).toContain('4,5 / 5');
     });
     it('apresenta navegação pública e notificações acessíveis', async () => {
       const f = TestBed.createComponent(App);
@@ -192,7 +202,53 @@ describe('I069 — interface', () => {
       f.detectChanges();
       await f.whenStable();
       expect(TestBed.inject(SessaoService).autenticado()).toBeFalse();
+      expect(TestBed.inject(Router).url).toBe('/');
+      expect(TestBed.inject(NotificacaoUiService).mensagem()?.texto).toBe('Sessão terminada.');
+    });
+    it('sem ligação ao servidor termina localmente e mostra a página inicial (UC-F001-05 E1)', async () => {
+      const { f, http } = await appComSessao();
+      f.componentInstance.sair();
+      http.expectOne(base + '/autenticacao/logout').error(new ProgressEvent('error'));
+      f.detectChanges();
+      await f.whenStable();
+      expect(TestBed.inject(SessaoService).autenticado()).toBeFalse();
+      expect(TestBed.inject(Router).url).toBe('/');
+      expect(TestBed.inject(NotificacaoUiService).mensagem()?.texto).toContain(
+        'não confirmou a revogação',
+      );
+    });
+    it('se o servidor já não reconhecia a sessão mostra a entrada (UC-F001-05 A1)', async () => {
+      const { f, http } = await appComSessao();
+      f.componentInstance.sair();
+      http
+        .expectOne(base + '/autenticacao/logout')
+        .flush(null, { status: 401, statusText: 'Unauthorized' });
+      f.detectChanges();
+      await f.whenStable();
+      expect(TestBed.inject(SessaoService).autenticado()).toBeFalse();
       expect(TestBed.inject(Router).url).toBe('/entrar');
+      expect(TestBed.inject(NotificacaoUiService).mensagem()?.texto).toBe(
+        'A sessão já não estava ativa.',
+      );
+    });
+    it('depois de sair, uma nova sessão que expira volta a mostrar a entrada', async () => {
+      const { f, http } = await appComSessao();
+      const router = TestBed.inject(Router);
+      f.componentInstance.sair();
+      http
+        .expectOne(base + '/autenticacao/logout')
+        .flush(null, { status: 204, statusText: 'No Content' });
+      f.detectChanges();
+      await f.whenStable();
+      expect(router.url).toBe('/');
+      iniciar();
+      f.detectChanges();
+      await router.navigateByUrl('/inicio');
+      await f.whenStable();
+      TestBed.inject(SessaoService).terminar();
+      f.detectChanges();
+      await f.whenStable();
+      expect(router.url).toBe('/entrar');
     });
     it('remove a página protegida quando a sessão é terminada', async () => {
       iniciar();
