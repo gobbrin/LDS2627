@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:14:19.162Z" hostname="DESKTOP-2HLC904" time="0.031">
+  <properties/>
+  <testcase name="naoOfereceMenosDoQueOsOcupadosRfF00208" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.003"/>
+  <testcase name="camposObrigatorios" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.001"/>
+  <testcase name="partidaTemDeSerFuturaRfF00202" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.007"/>
+  <testcase name="locaisAte200Caracteres" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.002"/>
+  <testcase name="datasEHorasMalFormadas" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.004"/>
+  <testcase name="dadosValidosNaoTemErros" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.001"/>
+  <testcase name="mesmoLocalIgnoraMaiusculasEEspacosRfF00204" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.001"/>
+  <testcase name="lugaresEntre1E8P11" classname="pt.ipca.g15.campuscarpool.ValidacaoViagemTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

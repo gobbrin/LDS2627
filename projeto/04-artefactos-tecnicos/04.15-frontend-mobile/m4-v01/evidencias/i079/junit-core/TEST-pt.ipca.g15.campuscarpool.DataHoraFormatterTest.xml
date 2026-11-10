@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:14:18.573Z" hostname="DESKTOP-2HLC904" time="0.06">
+  <properties/>
+  <testcase name="calendarioUsaMeiaNoiteUtc" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.022"/>
+  <testcase name="textoDaRota" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.014"/>
+  <testcase name="horaComDoisDigitos" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.006"/>
+  <testcase name="partidaIlegivelMostraOTextoRecebido" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.006"/>
+  <testcase name="fusoDoTelemovelNaoMudaAHoraMostrada" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.003"/>
+  <testcase name="partidaEmHoraDePortugalSegueEmUtc" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.003"/>
+  <testcase name="zonaPodeSerIndicada" classname="pt.ipca.g15.campuscarpool.DataHoraFormatterTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

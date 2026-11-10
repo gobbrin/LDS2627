@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:14:19.126Z" hostname="DESKTOP-2HLC904" time="0.025">
+  <properties/>
+  <testcase name="nomeObrigatorioEAte100" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.014"/>
+  <testcase name="limitesDasLigacoes" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.009"/>
+  <testcase name="registoValidoNaoTemErros" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.0"/>
+  <testcase name="formatoDoEmail" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.001"/>
+  <testcase name="limitesDoPerfilP26" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.0"/>
+  <testcase name="regraDaPalavraPasseP08" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.0"/>
+  <testcase name="confirmacaoDaPalavraPasse" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.0"/>
+  <testcase name="enderecosDasLigacoes" classname="pt.ipca.g15.campuscarpool.ValidacaoFormulariosTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

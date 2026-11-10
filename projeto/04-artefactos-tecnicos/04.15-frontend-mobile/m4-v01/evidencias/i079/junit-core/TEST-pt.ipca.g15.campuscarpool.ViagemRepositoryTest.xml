@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:14:19.206Z" hostname="DESKTOP-2HLC904" time="0.233">
+  <properties/>
+  <testcase name="alterarAceitaRespostaSemCorpo" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.098"/>
+  <testcase name="detalheComCamposANull" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.028"/>
+  <testcase name="falhaDoServicoDeMapasTrazAMensagemDaApiRfF00217" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.026"/>
+  <testcase name="indisponibilizarSemCorpoNemEliminacao" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.02"/>
+  <testcase name="listaAsViagensAtivas" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.022"/>
+  <testcase name="conflitoTrazOEstado" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.019"/>
+  <testcase name="criarEnviaOContratoDaApi" classname="pt.ipca.g15.campuscarpool.ViagemRepositoryTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
