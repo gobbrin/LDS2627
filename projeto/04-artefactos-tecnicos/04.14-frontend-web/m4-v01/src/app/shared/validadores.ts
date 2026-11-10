@@ -16,6 +16,20 @@ export function urlHttp(controlo: AbstractControl<string>): ValidationErrors | n
   return valida ? null : { urlHttp: true };
 }
 
+/** RF-F002-04: texto diferente do de outro campo, sem distinguir maiúsculas nem espaços nas pontas. */
+export function diferenteDe(campo: string): ValidatorFn {
+  return (controlo) => {
+    const normalizar = (valor: unknown) =>
+      String(valor ?? '')
+        .trim()
+        .toLowerCase();
+    const valor = normalizar(controlo.value);
+    return valor && valor === normalizar(controlo.parent?.get(campo)?.value)
+      ? { diferente: true }
+      : null;
+  };
+}
+
 /** Compara com outro campo do mesmo formulário, como a confirmação da palavra-passe. */
 export function igualA(campo: string): ValidatorFn {
   return (controlo) => {
