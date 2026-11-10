@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A sessão cifrada não sai do dispositivo: a chave fica no Android Keystore deste aparelho. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="sessao_cifrada.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="sessao_cifrada.xml" />
+    </device-transfer>
+</data-extraction-rules>

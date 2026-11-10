@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone provisório: um carro simples, dentro da zona segura do ícone adaptativo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,50l4,-11c0.6,-1.8 2.2,-3 4.1,-3h11.8c1.9,0 3.5,1.2 4.1,3l4,11c2.8,0.4 5,2.8 5,5.8V70c0,1.1 -0.9,2 -2,2h-3c-1.1,0 -2,-0.9 -2,-2v-2H42v2c0,1.1 -0.9,2 -2,2h-3c-1.1,0 -2,-0.9 -2,-2V55.8c0,-3 2.2,-5.4 5,-5.8zM45,50h18l-3,-9H48zM42,62a3,3 0,1 0,0 -6a3,3 0,1 0,0 6zM66,62a3,3 0,1 0,0 -6a3,3 0,1 0,0 6z" />
+</vector>
