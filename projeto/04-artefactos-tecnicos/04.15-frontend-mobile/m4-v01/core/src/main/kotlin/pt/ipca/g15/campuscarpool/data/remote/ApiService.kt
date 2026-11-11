@@ -2,6 +2,8 @@ package pt.ipca.g15.campuscarpool.data.remote
 import pt.ipca.g15.campuscarpool.domain.model.AtualizarPerfilPedido
 import pt.ipca.g15.campuscarpool.domain.model.ConfirmarPedido
 import pt.ipca.g15.campuscarpool.domain.model.Credenciais
+import pt.ipca.g15.campuscarpool.domain.model.DadosViagem
+import pt.ipca.g15.campuscarpool.domain.model.DetalhesViagem
 import pt.ipca.g15.campuscarpool.domain.model.LigacaoPerfil
 import pt.ipca.g15.campuscarpool.domain.model.MensagemResposta
 import pt.ipca.g15.campuscarpool.domain.model.NovaLigacaoPedido
@@ -13,6 +15,8 @@ import pt.ipca.g15.campuscarpool.domain.model.RegistoPedido
 import pt.ipca.g15.campuscarpool.domain.model.SessaoAtual
 import pt.ipca.g15.campuscarpool.domain.model.TerminarSessaoPedido
 import pt.ipca.g15.campuscarpool.domain.model.TokenAcesso
+import pt.ipca.g15.campuscarpool.domain.model.ViagemCriada
+import pt.ipca.g15.campuscarpool.domain.model.ViagemDoCondutor
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -55,4 +59,19 @@ interface ApiService {
 
     @GET("utilizadores/{id}")
     suspend fun perfilPublico(@Path("id") id: String): Response<PerfilPublico>
+
+    @POST("viagens")
+    suspend fun criarViagem(@Body dados: DadosViagem): Response<ViagemCriada>
+
+    @GET("viagens/minhas")
+    suspend fun minhasViagens(): Response<List<ViagemDoCondutor>>
+
+    @GET("viagens/{id}")
+    suspend fun viagem(@Path("id") id: String): Response<DetalhesViagem>
+
+    @PUT("viagens/{id}")
+    suspend fun alterarViagem(@Path("id") id: String, @Body dados: DadosViagem): Response<Unit>
+
+    @POST("viagens/{id}/indisponibilizar")
+    suspend fun indisponibilizarViagem(@Path("id") id: String): Response<Unit>
 }

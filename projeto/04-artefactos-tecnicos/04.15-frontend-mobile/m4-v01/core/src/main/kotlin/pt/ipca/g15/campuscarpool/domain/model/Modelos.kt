@@ -45,6 +45,63 @@ data class PerfilAtualizado(
 data class AtualizarPerfilPedido(val nome: String, val curso: String?, val instituicao: String?)
 data class NovaLigacaoPedido(val url: String, val descricao: String?)
 data class TerminarSessaoPedido(val tokenDispositivo: String? = null)
+
+/** Corpo de `POST /viagens` e de `PUT /viagens/{id}`. `partidaEm` em UTC, com `Z`. */
+data class DadosViagem(
+    val origem: String,
+    val destino: String,
+    val partidaEm: String,
+    val lugares: Int
+)
+data class ViagemCriada(
+    val id: String,
+    val origem: String,
+    val destino: String,
+    val partidaEm: String,
+    val lugaresDisponiveis: Int,
+    val distanciaKm: Double?,
+    val duracaoMinutos: Int?
+)
+
+/** Viagem de `GET /viagens/minhas`, que só devolve as viagens ativas do condutor. */
+data class ViagemDoCondutor(
+    val id: String,
+    val origem: String,
+    val destino: String,
+    val partidaEm: String,
+    val lugaresOferecidos: Int,
+    val lugaresDisponiveis: Int
+)
+
+/** Campos usados de `GET /viagens/{id}`, que não devolve os lugares oferecidos. */
+data class DetalhesViagem(
+    val id: String,
+    val origem: String,
+    val destino: String,
+    val partidaEm: String,
+    val lugaresDisponiveis: Int,
+    val estado: String,
+    val distanciaKm: Double?,
+    val duracaoMinutos: Int?,
+    val condutorId: String
+)
+
+/** Estados de uma viagem (P-04), com os nomes devolvidos pela API. */
+object EstadosViagem {
+    const val ATIVA = "Ativa"
+    const val INDISPONIBILIZADA = "Indisponibilizada"
+    const val CONCLUIDA = "Concluida"
+}
+
+/** O formulário tal como foi preenchido, antes de validado. */
+data class CamposViagem(
+    val origem: String = "",
+    val destino: String = "",
+    val data: String = "",
+    val hora: String = "",
+    val lugares: String = "1"
+)
+data class CamposPartida(val data: String, val hora: String)
 sealed interface Resultado<out T> {
     data class Sucesso<T>(val valor: T) : Resultado<T>
     data class Falha(

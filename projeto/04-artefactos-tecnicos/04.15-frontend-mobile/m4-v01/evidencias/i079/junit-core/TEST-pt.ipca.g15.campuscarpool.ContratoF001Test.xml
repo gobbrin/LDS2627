@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ContratoF001Test" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:14:18.395Z" hostname="DESKTOP-2HLC904" time="0.17">
+  <properties/>
+  <testcase name="registoEPublicoESemToken" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.029"/>
+  <testcase name="perfilProprioTrazLigacoes" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.018"/>
+  <testcase name="atualizarPerfilOmiteCamposVazios" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.024"/>
+  <testcase name="errosDoRegistoGuardamAOrigem" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.014"/>
+  <testcase name="confirmarEReenviar" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.024"/>
+  <testcase name="ligacoesDoPerfil" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.033"/>
+  <testcase name="perfilPublicoNaoTemEmail" classname="pt.ipca.g15.campuscarpool.ContratoF001Test" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

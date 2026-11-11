@@ -19,6 +19,7 @@ import pt.ipca.g15.campuscarpool.R
     entrar: () -> Unit,
     registar: () -> Unit,
     perfil: () -> Unit,
+    viagens: () -> Unit,
     sair: () -> Unit,
     ocupado: Boolean
 ) {
@@ -31,6 +32,7 @@ import pt.ipca.g15.campuscarpool.R
         Text(stringResource(R.string.descricao_inicio))
         if (autenticado) {
             Button(onClick = perfil) { Text(stringResource(R.string.perfil)) }
+            Button(onClick = viagens) { Text(stringResource(R.string.minhas_viagens)) }
             TextButton(onClick = sair, enabled = !ocupado) {
                 Text(stringResource(if (ocupado) R.string.a_terminar else R.string.sair))
             }

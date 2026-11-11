@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.RegistoViewModelTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:32:20.182Z" hostname="DESKTOP-2HLC904" time="0.404">
+  <properties/>
+  <testcase name="repetirSemLigacaoNaoFazNada" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.065"/>
+  <testcase name="ligacaoRecusadaMostraOMotivoSemRepetir" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.117"/>
+  <testcase name="servicoDeEmailEmBaixoOfereceNovaLigacao" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.085"/>
+  <testcase name="emailRegistadoOfereceEntradaENovaLigacao" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.011"/>
+  <testcase name="reenvioValidaOEmailAntesDeChamar" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.004"/>
+  <testcase name="reenvioRecusadoMostraErro" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.011"/>
+  <testcase name="registoConcluidoMostraAMensagemDaApi" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.007"/>
+  <testcase name="dominioRecusadoMostraAMensagemDaApi" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.007"/>
+  <testcase name="dadosInvalidosNaoChamamAApi" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.03"/>
+  <testcase name="servidorIndisponivelNaoDizQueAContaFoiCriada" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.009"/>
+  <testcase name="semRedePermiteRepetirComAMesmaLigacao" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.004"/>
+  <testcase name="confirmacaoComLigacaoColada" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.017"/>
+  <testcase name="contaConfirmadaNaoVoltaAChamarAApi" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.005"/>
+  <testcase name="reenvioMostraARespostaNeutra" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.005"/>
+  <testcase name="textoIlegivelNaoChamaAApi" classname="pt.ipca.g15.campuscarpool.RegistoViewModelTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

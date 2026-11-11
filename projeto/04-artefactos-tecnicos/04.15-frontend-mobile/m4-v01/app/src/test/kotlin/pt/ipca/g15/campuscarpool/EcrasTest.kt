@@ -76,7 +76,7 @@ class EcrasTest {
     @Test fun inicioDoVisitanteOfereceRegistoEEntrada() {
         var entrou = false
         var registou = false
-        mostrar { InicioScreen(false, { entrou = true }, { registou = true }, {}, {}, false) }
+        mostrar { InicioScreen(false, { entrou = true }, { registou = true }, {}, {}, {}, false) }
         clicar("Entrar")
         clicar("Criar conta")
         assertEquals(true, entrou)
@@ -86,7 +86,7 @@ class EcrasTest {
     @Test fun inicioComSessaoOferecePerfilESaida() {
         var perfil = false
         var saiu = false
-        mostrar { InicioScreen(true, {}, {}, { perfil = true }, { saiu = true }, false) }
+        mostrar { InicioScreen(true, {}, {}, { perfil = true }, {}, { saiu = true }, false) }
         clicar("Perfil")
         clicar("Terminar sessão")
         assertEquals(true, perfil)
@@ -94,7 +94,7 @@ class EcrasTest {
     }
 
     @Test fun inicioOcupadoIndicaSaidaEmCurso() {
-        mostrar { InicioScreen(true, {}, {}, {}, {}, true) }
+        mostrar { InicioScreen(true, {}, {}, {}, {}, {}, true) }
         compose.onNodeWithText("A terminar sessão…").assertIsNotEnabled()
     }
 

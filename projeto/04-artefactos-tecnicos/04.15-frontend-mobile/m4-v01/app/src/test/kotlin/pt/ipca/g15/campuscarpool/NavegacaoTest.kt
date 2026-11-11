@@ -60,6 +60,28 @@ class NavegacaoTest {
         esperar("Perfil")
     }
 
+    @Test fun condutorCriaAViagemEVoltaALista() {
+        val c = cenario(sessao())
+        esperar("As minhas viagens")
+        clicar("As minhas viagens")
+        esperar("Barcelos → Braga")
+        val pedidos = c.api.pedidosMinhasViagens
+        compose.onNodeWithTag("viagens-criar").performScrollTo().performClick()
+        listOf(
+            "viagem-origem" to "Barcelos",
+            "viagem-destino" to "Porto",
+            "viagem-data" to "25/12/2099",
+            "viagem-hora" to "09:30"
+        ).forEach { (etiqueta, texto) ->
+            compose.onNodeWithTag(etiqueta).performScrollTo().performTextInput(texto)
+        }
+        compose.onNodeWithTag("viagem-guardar").performScrollTo().performClick()
+        esperar("Viagem criada. Rota: 21,5 km · cerca de 25 min.")
+        esperar("Barcelos → Braga")
+        assertEquals(pedidos + 1, c.api.pedidosMinhasViagens)
+        assertEquals("Porto", c.api.dadosViagemEnviados?.destino)
+    }
+
     @Test fun visitanteEntraConsultaPerfilETermina() {
         val c = cenario()
         entrar()

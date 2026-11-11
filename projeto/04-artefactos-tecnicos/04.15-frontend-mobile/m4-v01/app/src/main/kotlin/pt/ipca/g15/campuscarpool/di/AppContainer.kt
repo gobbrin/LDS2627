@@ -8,6 +8,7 @@ import pt.ipca.g15.campuscarpool.data.remote.ApiFactory
 import pt.ipca.g15.campuscarpool.data.remote.ConnectivityMonitor
 import pt.ipca.g15.campuscarpool.data.repository.AutenticacaoRepository
 import pt.ipca.g15.campuscarpool.data.repository.PerfilRepository
+import pt.ipca.g15.campuscarpool.data.repository.ViagemRepository
 import pt.ipca.g15.campuscarpool.data.session.AndroidSessionStore
 import pt.ipca.g15.campuscarpool.data.session.SessaoManager
 class AppContainer(context: Context) {
@@ -17,5 +18,6 @@ class AppContainer(context: Context) {
     private val api = ApiFactory.criar(url, sessao)
     val autenticacao = AutenticacaoRepository(api, sessao)
     val perfil = PerfilRepository(api)
+    val viagens = ViagemRepository(api)
     val conectividade = ConnectivityMonitor(context)
 }
