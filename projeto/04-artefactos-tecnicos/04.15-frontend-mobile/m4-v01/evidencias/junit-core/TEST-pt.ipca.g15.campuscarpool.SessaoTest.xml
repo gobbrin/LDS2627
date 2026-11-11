@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.SessaoTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:34:26.785Z" hostname="DESKTOP-2HLC904" time="0.122">
+  <properties/>
+  <testcase name="expiraNaConsultaMesmoSemTemporizador" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.048"/>
+  <testcase name="rejeitaEstadoPersistidoIncoerente" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.016"/>
+  <testcase name="expiraAutomaticamente" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.01"/>
+  <testcase name="persisteERestauraSessaoValida" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.014"/>
+  <testcase name="expiresInLimitaJwt" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.007"/>
+  <testcase name="rejeitaSessaoDeOutroBackend" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.006"/>
+  <testcase name="respostaAntigaNaoTerminaSessaoNova" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.007"/>
+  <testcase name="rejeitaTokensInvalidos" classname="pt.ipca.g15.campuscarpool.SessaoTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

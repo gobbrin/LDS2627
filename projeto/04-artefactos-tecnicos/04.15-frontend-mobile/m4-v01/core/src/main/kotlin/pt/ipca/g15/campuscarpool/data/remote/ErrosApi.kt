@@ -60,7 +60,8 @@ object ErrosApi {
                     it.isNotBlank()
                 }?.take(500) ?: alternativa,
                 status,
-                campos
+                campos,
+                daApi = !texto.isNullOrBlank()
             )
         }.getOrElse { Resultado.Falha(alternativa, status) }
     }

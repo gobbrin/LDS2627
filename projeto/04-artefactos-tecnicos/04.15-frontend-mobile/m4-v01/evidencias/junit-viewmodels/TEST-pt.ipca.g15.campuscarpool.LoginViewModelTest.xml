@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.LoginViewModelTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:50:49.236Z" hostname="DESKTOP-2HLC904" time="0.191">
+  <properties/>
+  <testcase name="avisosPodemSerMostradosEFechados" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.126"/>
+  <testcase name="limparErroEntradaRemoveOsDadosDaTentativa" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.004"/>
+  <testcase name="terminarSessaoConfirmaEFicaNoInicio" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.01"/>
+  <testcase name="contaPorConfirmarGuardaOEmailParaPedirLigacao" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="novaSessaoDepoisDeSairVoltaAAvisarSeExpirar" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.004"/>
+  <testcase name="credenciaisErradasFicamJuntoDoFormularioSemSessao" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="terminarSemRedeAvisaQueNaoHouveRevogacao" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="validacaoFalhadaAvisaEMantemASessao" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="sessaoExpiradaAvisaEAbreAEntrada" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.004"/>
+  <testcase name="identidadeDivergenteTerminaSessaoComAviso" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.006"/>
+  <testcase name="sessaoRestauradaEValidadaUmaVez" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="loginCorretoAbreSessaoComUmaSoValidacao" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.005"/>
+  <testcase name="ligacaoFicaPendenteAteSerConsumida" classname="pt.ipca.g15.campuscarpool.LoginViewModelTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

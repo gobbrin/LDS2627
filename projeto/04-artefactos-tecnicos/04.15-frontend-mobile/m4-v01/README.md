@@ -2,7 +2,7 @@
 
 G15 · LDS2627 · M4 · Sprint07 · v01 · 08-11-2026
 
-Projeto Android nativo em Kotlin e Jetpack Compose, mínimo Android10/API29. Esta entrega estabelece a base de I077: ecrã inicial, login de conta já confirmada, sessão persistida de forma cifrada, navegação protegida, consulta básica do perfil próprio, cliente da API e tratamento de erros. Não é a implementação completa de F001–F009. Registo/confirmação/edição completa do perfil e restantes funcionalidades pertencem aos incrementos seguintes.
+Projeto Android nativo em Kotlin e Jetpack Compose, mínimo Android10/API29. Esta entrega estabelece a base de I077: ecrã inicial, login de conta já confirmada, sessão persistida de forma cifrada, navegação protegida, consulta básica do perfil próprio, cliente da API e tratamento de erros. A I078 acrescenta F001 completa: registo, confirmação da conta, nova ligação de confirmação, início e fim de sessão, consulta e edição do próprio perfil, ligações externas e perfil público de outros utilizadores. Não é a implementação completa de F002–F009, que pertencem aos incrementos seguintes.
 
 A implementação está preparada para revisão; a aceitação final depende das verificações Android e das pendências registadas em `VALIDACAO.md`. Não existe aprovação de revisor/auditor nem publicação remota implícita neste pacote.
 
@@ -29,7 +29,7 @@ Abrir **esta pasta** no Android Studio compatível com AGP8.13.2. Instalar os co
 ./gradlew :app:installDebug
 ```
 
-Selecionar emulador/dispositivo API29 ou superior. Abrir Campus Carpool. Usar credenciais de uma conta académica **já confirmada** no backend selecionado; não existem credenciais embutidas nem contas de demonstração automáticas. Após entrar, abrir Perfil. Terminar sessão elimina o estado local e chama a revogação no servidor. Não há refresh token; após expiração é necessário novo login.
+Selecionar emulador/dispositivo API29 ou superior. Abrir Campus Carpool. Criar conta com um email académico do backend selecionado e confirmá-la (secção seguinte), ou usar uma conta já confirmada; não existem credenciais embutidas nem contas de demonstração automáticas. Após entrar, abrir Perfil. Terminar sessão elimina o estado local e chama a revogação no servidor. Não há refresh token; após expiração é necessário novo login.
 
 ### Escolher o backend sem alterar código
 
@@ -54,14 +54,33 @@ A URL deve terminar exatamente em `/api/v1/`, sem query, fragmento ou credenciai
 
 Produz a variante release não assinada para distribuição; a assinatura de distribuição é uma configuração posterior, fora deste incremento. Não incluir chaves de assinatura no repositório.
 
+### Confirmar a conta na aplicação
+
+A API envia por email a ligação `Frontend:ConfirmUrl?token=…`, que por omissão aponta para a página web. Na aplicação, a confirmação faz-se de duas formas:
+
+1. No ecrã **Confirmar conta** (botão «Já tenho a ligação»), colando a ligação completa ou só o código.
+2. Pela ligação `campuscarpool://confirmar-conta?token=…`, que a aplicação abre diretamente. Para o email a usar, configurar `Frontend:ConfirmUrl=campuscarpool://confirmar-conta` no backend (a página web deixa então de receber a ligação, porque o valor é único).
+
+Uma ligação `https` não abre a aplicação diretamente: as App Links exigem um domínio publicado com `assetlinks.json`, que o projeto ainda não tem.
+
+Sem Serviço de Email configurado, o registo devolve 503 e a conta fica criada; a confirmação usa então o token da base de dados ou a API local de teste.
+
+Para abrir o perfil público de outro utilizador num dispositivo de teste:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "campuscarpool://utilizadores/<id>"
+```
+
 ## Estrutura e relação com o modelo de classes
 
 | Pasta/classe | Responsabilidade |
 | --- | --- |
 | `app/src/main/.../ui/inicio` | Descrição e entradas na aplicação |
-| `app/src/main/.../ui/autenticacao` | Formulário de login, estado ocupado e mensagens por campo |
-| `app/src/main/.../ui/perfil` | Perfil próprio básico de leitura; não inclui ainda edição/ligações externas |
-| `ui/AppNavigation`, `ui/AppViewModel` | Navegação Compose e estado observável com StateFlow; UI observa ciclo de vida |
+| `app/src/main/.../ui/autenticacao` | `RegistoScreen`, `ConfirmacaoScreen`, `ReenvioScreen`, `LoginScreen`; `RegistoViewModel` e `LoginViewModel` |
+| `app/src/main/.../ui/perfil` | `PerfilScreen`, `EditarPerfilScreen`, `PerfilPublicoScreen`, `DadosPerfil`; `PerfilViewModel` |
+| `ui/AppNavigation`, `ui/FabricaViewModels` | Navegação Compose. `LoginViewModel` tem o âmbito da atividade; os outros, o de cada destino |
+| `core/.../domain/ValidacaoFormularios` | Validação no cliente (P-08, P-26, P-27, RF-F001-16); quem decide é o backend |
+| `core/.../domain/model/LigacaoApp` | Interpreta as ligações `campuscarpool://` e o texto colado na confirmação |
 | `core/.../data/remote/ApiService` | Contrato HTTP realmente utilizado neste incremento |
 | `core/.../data/remote/ApiFactory` | URL validada, timeouts e cliente sem seguir redirecionamentos |
 | `AuthInterceptor`, `ErroInterceptor`, `ErrosApi` | Bearer só na API autorizada;401 encerra sessão correspondente; normalização de erros |
@@ -81,9 +100,15 @@ O módulo `core` permite testar a parte independente do Android sem SDK; `app` c
 
 | Operação | Endpoint relativo | Dados/resposta |
 | --- | --- | --- |
-| Login | `POST autenticacao/login` | `{email,password}` → `{accessToken,expiresIn}` |
+| Registo | `POST autenticacao/registo` | `{nome,email,password}` →202 `{mensagem}`; 400, 409; 503 com a conta criada |
+| Confirmação | `POST autenticacao/confirmar` | `{token}` →204; 400, 404 |
+| Nova ligação | `POST autenticacao/reenviar-confirmacao` | `{email}` →202 `{mensagem}`, igual exista ou não a conta |
+| Login | `POST autenticacao/login` | `{email,password}` → `{accessToken,expiresIn}`; 401; 403 por confirmar |
 | Validar identidade | `GET autenticacao/me` | Bearer → `{id}` |
-| Perfil próprio | `GET utilizadores/me` | Bearer → dados do próprio perfil |
+| Perfil próprio | `GET utilizadores/me` | Bearer → dados do próprio perfil, com `ligacoesExternas` |
+| Alterar perfil | `PUT utilizadores/me` | `{nome,curso?,instituicao?}` →200 |
+| Ligações | `POST utilizadores/me/ligacoes`, `DELETE .../{ligacaoId}` | `{url,descricao?}` →201; 204; 400; 404 |
+| Perfil público | `GET utilizadores/{id}` | Bearer → campos de P-10, sem email; 404 |
 | Logout | `POST autenticacao/logout` | Bearer; corpo opcional `{tokenDispositivo}` →204 |
 
 A base foi conciliada com o backend `develop` no commit `069764e07b12301bc88f1a79ad6fbfe7a54ff56e`. Algumas versões históricas do modelo usavam `/auth/` ou sessão com perfil embutido; o contrato vigente usa `/autenticacao/` e consulta separada.
