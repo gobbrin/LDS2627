@@ -28,6 +28,8 @@ coverage/
 *.snk
 # Logs / OS
 *.log
+# Os registos das evidências são versionados de propósito
+!docs/frontend-*/evidencias/**/*.log
 .DS_Store
 Thumbs.db
 # Publish / artifacts
@@ -44,11 +46,11 @@ publish/
 !.env.example
 
 # Custom
-CampusCarpool/docs/.local-context/
+docs/.local-context/
 CLAUDE.md
 .claude/
 
 # Notas locais (apenas minhas)
-CampusCarpool/docs/qualidade/revisoes/
-CampusCarpool/docs/qualidade/divida-tecnica/
-CampusCarpool/docs/qualidade/auditorias/
+docs/qualidade/revisoes/
+docs/qualidade/divida-tecnica/
+docs/qualidade/auditorias/

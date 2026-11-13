@@ -3,11 +3,11 @@ name: CampusCarpool Frontend Mobile CI
 on:
   push:
     paths:
-      - 'projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01/**'
+      - 'frontend-mobile/**'
       - '.github/workflows/frontend-mobile-ci.yml'
   pull_request:
     paths:
-      - 'projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01/**'
+      - 'frontend-mobile/**'
       - '.github/workflows/frontend-mobile-ci.yml'
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01
+        working-directory: frontend-mobile
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -38,7 +38,7 @@ jobs:
         with:
           name: i077-frontend-mobile-${{ github.sha }}
           path: |
-            projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01/core/build/reports
-            projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01/app/build/reports
-            projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01/app/build/outputs/apk/debug
+            frontend-mobile/core/build/reports
+            frontend-mobile/app/build/reports
+            frontend-mobile/app/build/outputs/apk/debug
           if-no-files-found: warn
