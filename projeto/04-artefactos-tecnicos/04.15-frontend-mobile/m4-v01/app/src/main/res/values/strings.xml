@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Campus Carpool</string>
+    <string name="perfil">Perfil</string>
+    <string name="entrar">Entrar</string>
+    <string name="sair">Terminar sessão</string>
+    <string name="titulo_inicio">O caminho para o campus faz-se em companhia.</string>
+    <string name="descricao_inicio">Uma comunidade académica de partilha de viagens entre estudantes.</string>
+    <string name="email">Email académico</string>
+    <string name="password">Palavra-passe</string>
+    <string name="conta_confirmada">Usa uma conta académica já confirmada.</string>
+    <string name="a_entrar">A entrar…</string>
+    <string name="a_carregar">A carregar…</string>
+    <string name="a_terminar">A terminar sessão…</string>
+    <string name="sem_rede">Sem ligação à Internet. Verifica a rede e tenta novamente.</string>
+    <string name="tentar">Tentar novamente</string>
+    <string name="fechar">Fechar mensagem</string>
+    <string name="voltar">Voltar</string>
+    <string name="sem_perfil">Não foi possível carregar o perfil.</string>
+    <string name="nao_indicado">Não indicado</string>
+    <string name="sem_avaliacoes">Sem avaliações</string>
+    <string name="curso">Curso: %1$s</string>
+    <string name="instituicao">Instituição: %1$s</string>
+    <string name="avaliacao">Classificação: %1$.1f / 5</string>
+</resources>

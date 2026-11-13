@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ErrosTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:05:21.888Z" hostname="DESKTOP-2HLC904" time="0.219">
+  <properties/>
+  <testcase name="toleraCorposInvalidosEStatusConhecidos" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.002"/>
+  <testcase name="semCorpoPropagaErroDaApi" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.178"/>
+  <testcase name="formatoInvalido" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.007"/>
+  <testcase name="semCorpoAceita204" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.006"/>
+  <testcase name="interpretaErroDaApi" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.0"/>
+  <testcase name="interpretaCamposProblemDetails" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.005"/>
+  <testcase name="mostraMensagemDaApiNasFalhasDeServicosExternos" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.001"/>
+  <testcase name="naoExibeDetalhesInternos" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.0"/>
+  <testcase name="respeitaCancelamento" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.005"/>
+  <testcase name="erroHttpERede" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.006"/>
+  <testcase name="sucessoEVazio" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.006"/>
+  <testcase name="interpretaFormatoHistorico" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.001"/>
+  <testcase name="limitaMensagens" classname="pt.ipca.g15.campuscarpool.ErrosTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+*.jks
+*.keystore
+
+# Evidence logs are intentionally versioned; runtime logs stay ignored.
+!evidencias/*.log

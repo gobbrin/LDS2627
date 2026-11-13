@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.RepositoryTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:05:22.110Z" hostname="DESKTOP-2HLC904" time="0.074">
+  <properties/>
+  <testcase name="validacaoRecusadaEliminaSessao" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.009"/>
+  <testcase name="logout401TerminaComSucesso" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.004"/>
+  <testcase name="consultaPerfil" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.005"/>
+  <testcase name="loginGuardaSessaoEConfirmaIdentidade" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.005"/>
+  <testcase name="identidadeDivergenteEliminaSessao" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.006"/>
+  <testcase name="logoutRevogaELimpaComTokenDispositivo" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.007"/>
+  <testcase name="tokenInvalidoNaoAbreSessao" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.004"/>
+  <testcase name="logoutSemRedeTerminaLocalmente" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.006"/>
+  <testcase name="falhaLoginNaoGuardaSessao" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.006"/>
+  <testcase name="naoEnviaCredenciaisVazias" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.013"/>
+  <testcase name="logoutComErroTerminaLocalmente" classname="pt.ipca.g15.campuscarpool.RepositoryTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
