@@ -54,11 +54,16 @@ export class App {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly aSair = signal(false);
+  private saidaPedida = false;
   constructor() {
     let tinhaSessao = this.sessao.autenticado();
     effect(() => {
       const temSessao = this.sessao.autenticado();
-      if (tinhaSessao && !temSessao) void this.router.navigate(['/entrar']);
+      if (tinhaSessao && !temSessao) {
+        // A saída pedida escolhe o destino em sair(); a que expira ou é revogada vai para a entrada.
+        if (!this.saidaPedida) void this.router.navigate(['/entrar']);
+        this.saidaPedida = false;
+      }
       tinhaSessao = temSessao;
     });
     if (this.sessao.obterToken())
@@ -79,15 +84,14 @@ export class App {
   sair() {
     if (this.aSair()) return;
     this.aSair.set(true);
+    this.saidaPedida = true;
     this.auth
       .logout()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => {
-          this.aSair.set(false);
-          void this.router.navigate(['/entrar']);
-        }),
+        finalize(() => this.aSair.set(false)),
       )
-      .subscribe();
+      // UC-F001-05: ecrã inicial; se a sessão já tinha acabado (A1), ecrã de início de sessão.
+      .subscribe((estavaAtiva) => void this.router.navigate([estavaAtiva ? '/' : '/entrar']));
   }
 }

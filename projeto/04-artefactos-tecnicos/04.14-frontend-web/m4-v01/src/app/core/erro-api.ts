@@ -8,6 +8,8 @@ export class ErroApi extends Error {
     readonly status: number,
     mensagem: string,
     readonly campos: Record<string, string[]> = {},
+    /** Verdadeiro quando o texto veio da API; falso quando é a alternativa do cliente. */
+    readonly mensagemDaApi = false,
   ) {
     super(mensagem);
   }
@@ -26,6 +28,7 @@ export function normalizarErro(resposta: HttpErrorResponse): ErroApi {
   const corpo = resposta.error;
   let mensagem =
     alternativas[resposta.status] ?? 'Ocorreu um erro no servidor. Tenta novamente mais tarde.';
+  let mensagemDaApi = false;
   const campos: Record<string, string[]> = {};
   // A API tem mensagens próprias nos 4xx e nas falhas de serviços externos (502, 503, 504).
   // Os restantes 5xx ficam com o texto genérico, para nunca exporem detalhes internos.
@@ -34,7 +37,10 @@ export function normalizarErro(resposta: HttpErrorResponse): ErroApi {
   if (previsto && corpo && typeof corpo === 'object') {
     const erro = corpo.erro;
     const texto = typeof erro === 'string' ? erro : (erro?.mensagem ?? corpo.detail);
-    if (typeof texto === 'string' && texto.trim()) mensagem = texto.slice(0, 500);
+    if (typeof texto === 'string' && texto.trim()) {
+      mensagem = texto.slice(0, 500);
+      mensagemDaApi = true;
+    }
     const origem = erro?.campos ?? corpo.errors;
     if (origem && typeof origem === 'object') {
       for (const [campo, valor] of Object.entries(origem)) {
@@ -48,5 +54,5 @@ export function normalizarErro(resposta: HttpErrorResponse): ErroApi {
       }
     }
   }
-  return new ErroApi(resposta.status, mensagem, campos);
+  return new ErroApi(resposta.status, mensagem, campos, mensagemDaApi);
 }

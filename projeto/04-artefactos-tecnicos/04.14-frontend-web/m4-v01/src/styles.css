@@ -132,6 +132,11 @@ p {
   gap: 24px;
   text-decoration: none;
 }
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .journey {
   background: #e9eddb;
   border: 1px solid #dbe2cb;
@@ -332,6 +337,43 @@ dt {
 dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.perigo {
+  color: #8b2929;
+  border-color: #ddbbbb;
+}
+.ligacoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+dd .ligacoes li + li {
+  margin-top: 10px;
+}
+.ligacoes small {
+  display: block;
+  margin-top: 4px;
+}
+.gestao-ligacoes {
+  border-top: 1px solid #e5e9df;
+  margin: 28px 0;
+  padding-top: 8px;
+}
+.gestao-ligacoes .ligacoes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #e5e9df;
 }
 .skip-link {
   position: absolute;

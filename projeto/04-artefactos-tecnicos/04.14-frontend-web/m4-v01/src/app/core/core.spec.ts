@@ -365,6 +365,12 @@ describe('I069 — núcleo', () => {
             .message,
         ).toBe('Conta criada.');
     });
+    it('indica se a mensagem veio da API ou é a alternativa do cliente', () => {
+      const daApi = new HttpErrorResponse({ status: 503, error: { erro: 'Conta criada.' } });
+      const semCorpo = new HttpErrorResponse({ status: 503, error: '<html></html>' });
+      expect(normalizarErro(daApi).mensagemDaApi).toBeTrue();
+      expect(normalizarErro(semCorpo).mensagemDaApi).toBeFalse();
+    });
     it('aceita apenas destinos internos após login', () => {
       for (const destino of ['/perfil', '/inicio', '/utilizadores/1?origem=viagem'])
         expect(destinoInterno(destino)).toBe(destino);
