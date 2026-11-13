@@ -27,6 +27,7 @@ import pt.ipca.g15.campuscarpool.data.session.SessionStore
 import pt.ipca.g15.campuscarpool.domain.model.AtualizarPerfilPedido
 import pt.ipca.g15.campuscarpool.domain.model.ConfirmarPedido
 import pt.ipca.g15.campuscarpool.domain.model.Credenciais
+import pt.ipca.g15.campuscarpool.domain.model.DadosViagem
 import pt.ipca.g15.campuscarpool.domain.model.NovaLigacaoPedido
 import pt.ipca.g15.campuscarpool.domain.model.PerfilProprio
 import pt.ipca.g15.campuscarpool.domain.model.ReenviarConfirmacaoPedido
@@ -83,7 +84,12 @@ internal class ApiFalsa : ApiService {
     override suspend fun adicionarLigacao(dados: NovaLigacaoPedido) = naoUsado()
     override suspend fun removerLigacao(ligacaoId: String) = naoUsado()
     override suspend fun perfilPublico(id: String) = naoUsado()
-    private fun naoUsado(): Nothing = error("Coberto em F001Test.")
+    override suspend fun criarViagem(dados: DadosViagem) = naoUsado()
+    override suspend fun minhasViagens() = naoUsado()
+    override suspend fun viagem(id: String) = naoUsado()
+    override suspend fun alterarViagem(id: String, dados: DadosViagem) = naoUsado()
+    override suspend fun indisponibilizarViagem(id: String) = naoUsado()
+    private fun naoUsado(): Nothing = error("Coberto em F001Test e F002Test.")
 }
 internal fun <T> erro(status: Int): Response<T> = Response.error(
     status,

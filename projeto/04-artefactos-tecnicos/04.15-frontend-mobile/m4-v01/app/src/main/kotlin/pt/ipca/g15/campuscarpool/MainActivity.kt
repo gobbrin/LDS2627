@@ -19,7 +19,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val container = (application as CampusCarpoolApplication).container
-        val fabrica = FabricaViewModels(container.sessao, container.autenticacao, container.perfil)
+        val fabrica = FabricaViewModels(
+            container.sessao,
+            container.autenticacao,
+            container.perfil,
+            container.viagens
+        )
         login = ViewModelProvider(this, fabrica)[LoginViewModel::class.java]
         // Ao recriar a atividade, a ligação recebida já foi tratada.
         if (savedInstanceState == null) abrirLigacao(intent)

@@ -45,6 +45,11 @@ import pt.ipca.g15.campuscarpool.ui.perfil.EditarPerfilScreen
 import pt.ipca.g15.campuscarpool.ui.perfil.PerfilPublicoScreen
 import pt.ipca.g15.campuscarpool.ui.perfil.PerfilScreen
 import pt.ipca.g15.campuscarpool.ui.perfil.PerfilViewModel
+import pt.ipca.g15.campuscarpool.ui.viagens.CriarViagemScreen
+import pt.ipca.g15.campuscarpool.ui.viagens.GerirViagemScreen
+import pt.ipca.g15.campuscarpool.ui.viagens.MinhasViagensScreen
+import pt.ipca.g15.campuscarpool.ui.viagens.MinhasViagensViewModel
+import pt.ipca.g15.campuscarpool.ui.viagens.ViagemFormViewModel
 
 private const val INICIO = "inicio"
 private const val ENTRADA = "login"
@@ -54,6 +59,8 @@ private const val REENVIO = "reenvio"
 private const val PERFIL = "perfil"
 private const val EDITAR_PERFIL = "perfil/editar"
 private const val UTILIZADOR = "utilizador"
+private const val VIAGENS = "viagens"
+private const val NOVA_VIAGEM = "viagens/nova"
 
 private fun NavController.abrirReenvio(email: String = "") =
     navigate("$REENVIO?email=${Uri.encode(email)}")
@@ -116,6 +123,7 @@ private fun NavController.abrirEntrada() = navigate(ENTRADA) {
                             { nav.navigate(ENTRADA) },
                             { nav.navigate(REGISTO) },
                             { nav.navigate(PERFIL) },
+                            { nav.navigate(VIAGENS) },
                             login::terminarSessao,
                             estado.ocupado
                         )
@@ -125,6 +133,7 @@ private fun NavController.abrirEntrada() = navigate(ENTRADA) {
                         rotasDeVisitante(nav, fabrica, login)
                     } else {
                         rotasDePerfil(nav, fabrica, login)
+                        rotasDeViagens(nav, fabrica, login)
                     }
                 }
                 // Dentro da mesma composição do NavHost: o grafo já existe quando isto corre.
@@ -292,5 +301,64 @@ private fun NavGraphBuilder.rotasDePerfil(
         val id = entrada.arguments?.getString("id").orEmpty()
         LaunchedEffect(id) { vm.carregarPublico(id) }
         PerfilPublicoScreen(estado, { vm.carregarPublico(id) }, { nav.popBackStack() })
+    }
+}
+
+private fun NavGraphBuilder.rotasDeViagens(
+    nav: NavHostController,
+    fabrica: ViewModelProvider.Factory,
+    login: LoginViewModel
+) {
+    composable(VIAGENS) {
+        val vm = viewModel<MinhasViagensViewModel>(factory = fabrica)
+        val estado by vm.estado.collectAsStateWithLifecycle()
+        // Corre sempre que se volta aqui: o estado e os lugares vêm do servidor.
+        LaunchedEffect(Unit) { vm.carregar() }
+        MinhasViagensScreen(
+            estado,
+            vm::carregar,
+            { nav.navigate(NOVA_VIAGEM) },
+            { nav.navigate("$VIAGENS/$it/editar") },
+            { nav.popBackStack() }
+        )
+    }
+    composable(NOVA_VIAGEM) {
+        val vm = viewModel<ViagemFormViewModel>(factory = fabrica)
+        val estado by vm.estado.collectAsStateWithLifecycle()
+        LaunchedEffect(estado.aviso) {
+            estado.aviso?.let {
+                vm.consumirAviso()
+                login.mostrarAviso(it)
+            }
+        }
+        LaunchedEffect(estado.criada) {
+            if (estado.criada) {
+                vm.consumirCriada()
+                nav.popBackStack()
+            }
+        }
+        CriarViagemScreen(estado, vm::criar) { nav.popBackStack() }
+    }
+    composable(
+        "$VIAGENS/{id}/editar",
+        arguments = listOf(navArgument("id") { type = NavType.StringType })
+    ) { entrada ->
+        val vm = viewModel<ViagemFormViewModel>(factory = fabrica)
+        val estado by vm.estado.collectAsStateWithLifecycle()
+        val id = entrada.arguments?.getString("id").orEmpty()
+        LaunchedEffect(id) { vm.abrir(id) }
+        LaunchedEffect(estado.aviso) {
+            estado.aviso?.let {
+                vm.consumirAviso()
+                login.mostrarAviso(it)
+            }
+        }
+        GerirViagemScreen(
+            estado,
+            { vm.carregar(id) },
+            { vm.alterar(id, it) },
+            { vm.indisponibilizar(id) },
+            { nav.popBackStack() }
+        )
     }
 }

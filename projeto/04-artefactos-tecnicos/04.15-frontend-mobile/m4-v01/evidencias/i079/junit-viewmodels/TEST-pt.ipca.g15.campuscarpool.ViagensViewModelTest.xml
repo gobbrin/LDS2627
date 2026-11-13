@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ViagensViewModelTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:32:20.593Z" hostname="DESKTOP-2HLC904" time="0.347">
+  <properties/>
+  <testcase name="falhaNaListaPermiteRepetir" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.012"/>
+  <testcase name="listaVaziaDistingueDeAindaACarregar" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.006"/>
+  <testcase name="viagemIndisponibilizadaNaoEAlteravel" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.044"/>
+  <testcase name="viagemInexistenteNaoOfereceRepeticao" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.023"/>
+  <testcase name="camposIniciaisEmHoraDePortugal" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.016"/>
+  <testcase name="indisponibilizarAtualizaOEstado" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.01"/>
+  <testcase name="mapasEmBaixoMantemOsDadosEMostraAMensagemRfF00217" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.015"/>
+  <testcase name="viagemQueJaPartiuNaoEAlteravel" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.008"/>
+  <testcase name="abrirLeUmaSoVez" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.006"/>
+  <testcase name="criarEnviaPartidaEmUtc" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.01"/>
+  <testcase name="listaComEstadoELugares" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.005"/>
+  <testcase name="avisoECriadaConsomemSe" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.007"/>
+  <testcase name="partidaPassadaNaoChamaAApi" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.007"/>
+  <testcase name="falhaAoLerPermiteRepetir" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.008"/>
+  <testcase name="criarInvalidoNaoChamaAApi" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.006"/>
+  <testcase name="naoOfereceMenosLugaresDoQueOsOcupados" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.008"/>
+  <testcase name="falhaNaListaAoAbrirPermiteRepetir" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.007"/>
+  <testcase name="recusaDaApiNaoRelê" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.012"/>
+  <testcase name="conflitoAoAlterarMostraOMotivoEODadosAtuais" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.013"/>
+  <testcase name="condutorComparaSemDistinguirMaiusculas" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.073"/>
+  <testcase name="outraFalhaAoIndisponibilizarFicaNaZona" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.011"/>
+  <testcase name="conflitoAoIndisponibilizarReleEExplica" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.007"/>
+  <testcase name="alterarVoltaALerDoServidor" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.009"/>
+  <testcase name="viagemDeOutroCondutorNaoSeGere" classname="pt.ipca.g15.campuscarpool.ViagensViewModelTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

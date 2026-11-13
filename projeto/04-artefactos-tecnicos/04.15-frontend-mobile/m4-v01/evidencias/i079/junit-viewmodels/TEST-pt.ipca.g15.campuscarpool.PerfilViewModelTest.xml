@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.PerfilViewModelTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-11-09T23:32:19.656Z" hostname="DESKTOP-2HLC904" time="0.514">
+  <properties/>
+  <testcase name="falhaAoCarregarPermiteRepetir" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.038"/>
+  <testcase name="carregaOProprioPerfil" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.017"/>
+  <testcase name="guardarValidoAtualizaOPerfil" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.059"/>
+  <testcase name="perfilPublicoDeOutroUtilizador" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.034"/>
+  <testcase name="outraFalhaAoRemoverMantemALista" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.011"/>
+  <testcase name="nomeVazioNaoChamaAApi" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.006"/>
+  <testcase name="perfilPublicoInexistente" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.007"/>
+  <testcase name="adicionarLigacaoAcrescentaALista" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.032"/>
+  <testcase name="recusaDaApiMantemOPerfil" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.144"/>
+  <testcase name="enderecoInvalidoNaoChamaAApi" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.009"/>
+  <testcase name="ligacaoJaRemovidaAvisaEMostraOPerfilAtual" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.042"/>
+  <testcase name="maximoAtingidoNoutroDispositivoReleALista" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.089"/>
+  <testcase name="perfilPublicoComFalhaDoServico" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.007"/>
+  <testcase name="removerLigacaoTiraDaLista" classname="pt.ipca.g15.campuscarpool.PerfilViewModelTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

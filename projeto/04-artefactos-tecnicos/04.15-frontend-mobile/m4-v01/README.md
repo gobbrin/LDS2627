@@ -2,7 +2,7 @@
 
 G15 · LDS2627 · M4 · Sprint07 · v01 · 08-11-2026
 
-Projeto Android nativo em Kotlin e Jetpack Compose, mínimo Android10/API29. Esta entrega estabelece a base de I077: ecrã inicial, login de conta já confirmada, sessão persistida de forma cifrada, navegação protegida, consulta básica do perfil próprio, cliente da API e tratamento de erros. A I078 acrescenta F001 completa: registo, confirmação da conta, nova ligação de confirmação, início e fim de sessão, consulta e edição do próprio perfil, ligações externas e perfil público de outros utilizadores. Não é a implementação completa de F002–F009, que pertencem aos incrementos seguintes.
+Projeto Android nativo em Kotlin e Jetpack Compose, mínimo Android10/API29. Esta entrega estabelece a base de I077: ecrã inicial, login de conta já confirmada, sessão persistida de forma cifrada, navegação protegida, consulta básica do perfil próprio, cliente da API e tratamento de erros. A I078 acrescenta F001 completa: registo, confirmação da conta, nova ligação de confirmação, início e fim de sessão, consulta e edição do próprio perfil, ligações externas e perfil público de outros utilizadores. A I079 acrescenta F002: criar, consultar, alterar e indisponibilizar as próprias viagens, com o estado e os lugares disponíveis. Não é a implementação completa de F003–F009, que pertencem aos incrementos seguintes.
 
 A implementação está preparada para revisão; a aceitação final depende das verificações Android e das pendências registadas em `VALIDACAO.md`. Não existe aprovação de revisor/auditor nem publicação remota implícita neste pacote.
 
@@ -79,7 +79,10 @@ adb shell am start -a android.intent.action.VIEW -d "campuscarpool://utilizadore
 | `app/src/main/.../ui/autenticacao` | `RegistoScreen`, `ConfirmacaoScreen`, `ReenvioScreen`, `LoginScreen`; `RegistoViewModel` e `LoginViewModel` |
 | `app/src/main/.../ui/perfil` | `PerfilScreen`, `EditarPerfilScreen`, `PerfilPublicoScreen`, `DadosPerfil`; `PerfilViewModel` |
 | `ui/AppNavigation`, `ui/FabricaViewModels` | Navegação Compose. `LoginViewModel` tem o âmbito da atividade; os outros, o de cada destino |
-| `core/.../domain/ValidacaoFormularios` | Validação no cliente (P-08, P-26, P-27, RF-F001-16); quem decide é o backend |
+| `core/.../domain/ValidacaoFormularios` | Validação no cliente (P-08, P-26, P-27, RF-F001-16, RF-F002-02, 03, 04, 08 e 16); quem decide é o backend |
+| `core/.../domain/DataHoraFormatter` | Converte entre UTC e a hora de Portugal (RNF-FIA-03) e formata a rota |
+| `core/.../data/repository/ViagemRepository` | Chamadas de F002 à API |
+| `app/src/main/.../ui/viagens` | F002: lista das viagens ativas, criação e gestão (RF-F002-01, 07, 09, 15, 17) |
 | `core/.../domain/model/LigacaoApp` | Interpreta as ligações `campuscarpool://` e o texto colado na confirmação |
 | `core/.../data/remote/ApiService` | Contrato HTTP realmente utilizado neste incremento |
 | `core/.../data/remote/ApiFactory` | URL validada, timeouts e cliente sem seguir redirecionamentos |
