@@ -375,6 +375,55 @@ dd .ligacoes li + li {
   padding: 12px 0;
   border-top: 1px solid #e5e9df;
 }
+.viagens {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+.viagens li {
+  padding: 18px 0;
+  border-top: 1px solid #e5e9df;
+  overflow-wrap: anywhere;
+}
+.viagens h2,
+.viagens p {
+  margin: 0;
+}
+.viagens p {
+  margin: 6px 0 10px;
+}
+.viagem-rota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+.estado {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eceee7;
+  font-size: 12px;
+  font-weight: 650;
+}
+.estado-ativa {
+  background: #e2eacb;
+}
+.campos-partida {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.campos-partida label {
+  display: block;
+  margin-bottom: 10px;
+}
+.zona-indisponibilizar {
+  border-top: 1px solid #e5e9df;
+  margin: 28px 0;
+  padding-top: 8px;
+}
 .skip-link {
   position: absolute;
   left: 10px;
@@ -411,6 +460,10 @@ dd .ligacoes li + li {
   }
   .signed-in {
     grid-template-columns: 1fr;
+  }
+  .campos-partida {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
   .sidebar {
     flex-direction: row;

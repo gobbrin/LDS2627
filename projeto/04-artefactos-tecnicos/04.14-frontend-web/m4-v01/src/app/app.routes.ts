@@ -49,6 +49,27 @@ export const routes: Routes = [
     title: 'Perfil · Campus Carpool',
   },
   {
+    path: 'viagens',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/viagens/minhas-viagens.page').then((m) => m.MinhasViagensPage),
+    title: 'As minhas viagens · Campus Carpool',
+  },
+  {
+    path: 'viagens/nova',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/viagens/criar-viagem.page').then((m) => m.CriarViagemPage),
+    title: 'Criar viagem · Campus Carpool',
+  },
+  {
+    path: 'viagens/:id/editar',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/viagens/editar-viagem.page').then((m) => m.EditarViagemPage),
+    title: 'Gerir viagem · Campus Carpool',
+  },
+  {
     // Fora de /perfil para o menu não assinalar «Perfil» ao consultar outra pessoa.
     path: 'utilizadores/:id',
     canActivate: [autenticadoGuard],

@@ -1,11 +1,12 @@
 # Campus Carpool — frontend web
 
-Grupo G15 · LDS2627 · M4 / Sprint 07 · I069 e I070 · versão 0.1.0.
+Grupo G15 · LDS2627 · M4 / Sprint 07 · I069, I070 e I071 · versão 0.1.0.
 
 Base Angular/TypeScript com configuração em execução, cliente HTTP, sessão JWT,
 interceptores, guardas, páginas carregadas de forma diferida e interface pt-PT.
 Inclui F001: registo, confirmação da conta, início e fim de sessão, perfil próprio
-e consulta do perfil de outros utilizadores.
+e consulta do perfil de outros utilizadores. Inclui F002: criação, consulta, alteração
+e indisponibilização das próprias viagens.
 
 ## Instalar e executar
 
@@ -66,6 +67,11 @@ não deve chamar uma API HTTP.
 | Gerir ligações externas    | `POST /api/v1/utilizadores/me/ligacoes`, `DELETE /api/v1/utilizadores/me/ligacoes/{id}`               |
 | Consultar outro utilizador | `GET /api/v1/utilizadores/{id}`, só com os campos de P-10                                             |
 | Terminar sessão            | `POST /api/v1/autenticacao/logout`, sem corpo → `204`                                                 |
+| Criar viagem               | `POST /api/v1/viagens`, `{ origem, destino, partidaEm, lugares }` → `201`                             |
+| Listar as próprias viagens | `GET /api/v1/viagens/minhas`, só as ativas                                                            |
+| Consultar viagem           | `GET /api/v1/viagens/{id}`, com o estado                                                              |
+| Alterar viagem             | `PUT /api/v1/viagens/{id}`, `{ origem, destino, partidaEm, lugares }` → `204`                         |
+| Indisponibilizar viagem    | `POST /api/v1/viagens/{id}/indisponibilizar`, sem corpo → `204`                                       |
 
 O JWT fica em `sessionStorage`, separado por endereço de backend. A palavra-passe
 não é persistida. A validade é limitada por `expiresIn` e pela claim `exp`; ler
@@ -91,30 +97,38 @@ Por omissão, um erro da API aparece na notificação global, que desaparece ao 
 Uma página que o mostre no próprio formulário passa `{ erroNaPagina: true }` ao
 `ApiClient`, para não o apresentar duas vezes.
 
+`partidaEm` segue sempre em UTC com `Z`; os campos de data e hora e as datas
+apresentadas usam a hora de Portugal (RNF-FIA-04), seja qual for o fuso do browser.
+`GET /viagens/{id}` não devolve os lugares
+oferecidos e `GET /viagens/minhas` não devolve o estado, por isso a página de gestão
+lê os dois. Não existe `DELETE` de viagens: a viagem é apenas indisponibilizada.
+
 ## Estrutura e extensão nas próximas tarefas
 
 | Pasta                           | Responsabilidade                                                                  |
 | ------------------------------- | --------------------------------------------------------------------------------- |
 | `src/app/core`                  | Configuração, `ApiClient`, `SessaoService`, interceptores, guardas e notificações |
-| `src/app/shared`                | Modelos, erros de formulário e página 404                                         |
+| `src/app/shared`                | Modelos, erros de formulário, estado e página 404                                 |
 | `src/app/features/autenticacao` | Serviço de autenticação, registo, confirmação, reenvio e entrada                  |
 | `src/app/features/inicio`       | `InicioPage` pública e autenticada                                                |
 | `src/app/features/perfil`       | Serviço, perfil próprio com edição e ligações, e perfil de outro utilizador       |
+| `src/app/features/viagens`      | Serviço, lista, criação e gestão das próprias viagens                             |
 
 `/`, `/entrar`, `/registo` e `/reenviar-confirmacao` são rotas de visitante.
 `/confirmar-conta` fica aberta, porque a ligação do email tem de funcionar mesmo com
-uma sessão iniciada. `/inicio`, `/perfil` e `/utilizadores/:id` exigem sessão. Rotas
+uma sessão iniciada. `/inicio`, `/viagens`, `/viagens/nova`, `/viagens/:id/editar`,
+`/perfil` e `/utilizadores/:id` exigem sessão. Rotas
 inexistentes apresentam uma página 404. Os componentes são standalone; a divisão
 por `core`, `shared` e `features` é a modularização funcional prevista no modelo.
 
-As I071–I076 acrescentam as suas pastas em `features/` e rotas lazy com
+As I072–I076 acrescentam as suas pastas em `features/` e rotas lazy com
 `autenticadoGuard`. O perfil de outro utilizador abre-se em `/utilizadores/{id}`:
 quem mostrar um nome (pesquisa, viagem, conversa, pedido) liga a essa rota, como
 pede o UC-F001-10. As páginas devem usar os serviços e `ApiClient`; parâmetros de
 pesquisa usam `HttpParams`. Não adicionar os endereços da API diretamente aos
 componentes.
 
-As funcionalidades de viagens, pesquisa, pedidos, mensagens, notificações,
+As funcionalidades de pesquisa, pedidos, mensagens, notificações,
 avaliações, histórico e SignalR pertencem às tarefas funcionais seguintes e ainda
 não são disponibilizadas nesta base. O menu apresenta apenas destinos existentes.
 Não existem resultados fictícios apresentados como dados reais.
