@@ -20,6 +20,7 @@ Descreve o código da branch `feat/29-i110-…` depois das melhorias e da revis�
 10. [Limitações conhecidas](#10-limitações-conhecidas)
 11. [Como correr](#11-como-correr)
 12. [Como testar](#12-como-testar)
+13. [Frontend mobile](#13-frontend-mobile)
 
 ## 1. Mapa do código
 
@@ -599,3 +600,23 @@ O pipeline oficial é o GitHub Actions (`.github/workflows/backend-ci.yml`), e c
 7. Publicação.
 
 Antes de enviar, correr pelo menos `pwsh scripts/testes-completos.ps1`, que repete os passos de build, formato e testes.
+
+## 13. Frontend mobile
+
+O cliente Android (I077, F001 na I078) está em `projeto/04-artefactos-tecnicos/04.15-frontend-mobile/m4-v01`, em Kotlin e Jetpack Compose, para Android 10 ou superior. Os comandos e o estado das verificações estão no `README.md` e no `VALIDACAO.md` dessa pasta.
+
+Dois módulos Gradle:
+
+| Módulo | Conteúdo | Testes |
+| --- | --- | --- |
+| `core` | JVM puro: `data/remote` (Retrofit, interceptores, `ErrosApi`), `data/repository`, `data/session` (`SessaoManager`, `SessionStore`), `domain` (modelos, `ValidacaoFormularios`, `LigacaoApp`) | JUnit e MockWebServer |
+| `app` | Android: `ui/<área>` (ecrãs e ViewModels), `AppNavigation`, `FabricaViewModels`, `di/AppContainer`, `AndroidSessionStore`, `ConnectivityMonitor` | Robolectric em JVM; o Keystore só em dispositivo |
+
+Como encaixa com a API:
+
+- **Sessão:** `POST autenticacao/login` devolve o JWT; `SessaoManager` lê `sub` e `exp` sem validar a assinatura e confirma a identidade em `GET autenticacao/me`. O token fica cifrado com AES-GCM e chave no Android Keystore.
+- **Pedidos:** `AuthInterceptor` só envia o Bearer para a origem configurada. `ErroInterceptor` termina a sessão num 401, se o token do pedido ainda for o atual. Não há refresh: ao fim de 60 minutos volta-se a entrar.
+- **Erros:** tudo passa por `ErrosApi`, que lê `{ erro }` e devolve `Resultado`. Os ecrãs nunca veem exceções. Para respostas 202 e 204, usar `ErrosApi.executarSemCorpo`.
+- **Endereço:** propriedade Gradle `campusApiUrl` ou variável `CAMPUS_API_URL`, fixado na compilação. Tem de terminar em `/api/v1/`. HTTP só em debug e para `10.0.2.2`, `127.0.0.1` ou `localhost`.
+
+Para acrescentar uma funcionalidade: método em `ApiService`, repositório em `data/repository`, ViewModel e ecrã em `ui/<área>`, rota em `AppNavigation`, o ViewModel em `FabricaViewModels` e as dependências em `AppContainer`. Nenhum ecrã chama a API diretamente.

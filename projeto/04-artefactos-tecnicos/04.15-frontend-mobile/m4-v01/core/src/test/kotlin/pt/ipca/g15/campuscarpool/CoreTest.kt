@@ -24,8 +24,13 @@ import pt.ipca.g15.campuscarpool.data.repository.AutenticacaoRepository
 import pt.ipca.g15.campuscarpool.data.repository.PerfilRepository
 import pt.ipca.g15.campuscarpool.data.session.SessaoManager
 import pt.ipca.g15.campuscarpool.data.session.SessionStore
+import pt.ipca.g15.campuscarpool.domain.model.AtualizarPerfilPedido
+import pt.ipca.g15.campuscarpool.domain.model.ConfirmarPedido
 import pt.ipca.g15.campuscarpool.domain.model.Credenciais
+import pt.ipca.g15.campuscarpool.domain.model.NovaLigacaoPedido
 import pt.ipca.g15.campuscarpool.domain.model.PerfilProprio
+import pt.ipca.g15.campuscarpool.domain.model.ReenviarConfirmacaoPedido
+import pt.ipca.g15.campuscarpool.domain.model.RegistoPedido
 import pt.ipca.g15.campuscarpool.domain.model.Resultado
 import pt.ipca.g15.campuscarpool.domain.model.Sessao
 import pt.ipca.g15.campuscarpool.domain.model.SessaoAtual
@@ -71,6 +76,14 @@ internal class ApiFalsa : ApiService {
     }
     override suspend fun perfilProprio() =
         Response.success(PerfilProprio("A", "Ana", "ana@exemplo.test", null, null, null, 0))
+    override suspend fun registar(dados: RegistoPedido) = naoUsado()
+    override suspend fun confirmar(dados: ConfirmarPedido) = naoUsado()
+    override suspend fun reenviarConfirmacao(dados: ReenviarConfirmacaoPedido) = naoUsado()
+    override suspend fun atualizarPerfil(dados: AtualizarPerfilPedido) = naoUsado()
+    override suspend fun adicionarLigacao(dados: NovaLigacaoPedido) = naoUsado()
+    override suspend fun removerLigacao(ligacaoId: String) = naoUsado()
+    override suspend fun perfilPublico(id: String) = naoUsado()
+    private fun naoUsado(): Nothing = error("Coberto em F001Test.")
 }
 internal fun <T> erro(status: Int): Response<T> = Response.error(
     status,

@@ -1,14 +1,7 @@
 package pt.ipca.g15.campuscarpool.ui.autenticacao
-import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,69 +15,83 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import pt.ipca.g15.campuscarpool.R
+import pt.ipca.g15.campuscarpool.ui.CampoTexto
+import pt.ipca.g15.campuscarpool.ui.EcraDeslocavel
+import pt.ipca.g15.campuscarpool.ui.MensagemErro
+import pt.ipca.g15.campuscarpool.ui.Titulo
+
 @Composable fun LoginScreen(
-    ocupado: Boolean,
-    campos: Map<String, List<String>>,
+    estado: EstadoLogin,
     entrar: (String, String) -> Unit,
-    voltar: () -> Unit
+    voltar: () -> Unit,
+    criarConta: () -> Unit,
+    pedirLigacao: (String) -> Unit,
+    confirmarConta: () -> Unit
 ) {
     // O email sobrevive à rotação; a palavra-passe fica de fora do estado restaurável.
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var submeteu by remember { mutableStateOf(false) }
+    val ocupado = estado.ocupado
     LaunchedEffect(ocupado) { if (!ocupado && submeteu) password = "" }
-    Column(
-        Modifier.verticalScroll(rememberScrollState()).imePadding().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(stringResource(R.string.conta_confirmada))
-        OutlinedTextField(
+    EcraDeslocavel {
+        Titulo(stringResource(R.string.entrar))
+        estado.emailPorConfirmar?.let { porConfirmar ->
+            Column {
+                MensagemErro(estado.erro)
+                Text(stringResource(R.string.conta_por_confirmar))
+                Button(onClick = { pedirLigacao(porConfirmar) }, enabled = !ocupado) {
+                    Text(stringResource(R.string.pedir_nova_ligacao))
+                }
+                TextButton(onClick = confirmarConta, enabled = !ocupado) {
+                    Text(stringResource(R.string.ja_tenho_ligacao))
+                }
+            }
+        }
+        CampoTexto(
             email,
-            {
-                email = it
-            },
-            Modifier.fillMaxWidth().testTag("login-email"),
-            label = {
-                Text(stringResource(R.string.email))
-            },
-            singleLine = true,
-            enabled = !ocupado,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email
-            )
+            { email = it },
+            stringResource(R.string.email),
+            "login-email",
+            !ocupado,
+            estado.campoErro("email"),
+            KeyboardType.Email
         )
-        (campos["email"] ?: campos["Email"]).orEmpty().forEach { Text(it) }
-        OutlinedTextField(
+        CampoTexto(
             password,
-            {
-                password = it
-            },
-            Modifier.fillMaxWidth().testTag("login-password"),
-            label = {
-                Text(stringResource(R.string.password))
-            },
-            singleLine = true,
-            enabled = !ocupado,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password
-            )
+            { password = it },
+            stringResource(R.string.password),
+            "login-password",
+            !ocupado,
+            estado.campoErro("password"),
+            KeyboardType.Password,
+            oculto = true
         )
-        (campos["password"] ?: campos["Password"]).orEmpty().forEach { Text(it) }
+        if (estado.emailPorConfirmar == null) MensagemErro(estado.erro)
         Button(
             onClick = {
                 submeteu = true
                 entrar(email, password)
             },
-            enabled =
-            !ocupado && email.isNotBlank() && password.isNotBlank(),
+            enabled = !ocupado && email.isNotBlank() && password.isNotBlank(),
             modifier = Modifier.testTag("login-submit")
         ) {
             Text(stringResource(if (ocupado) R.string.a_entrar else R.string.entrar))
         }
+        TextButton(onClick = criarConta, enabled = !ocupado) {
+            Text(stringResource(R.string.criar_conta))
+        }
+        if (estado.emailPorConfirmar == null) {
+            TextButton(onClick = { pedirLigacao(email) }, enabled = !ocupado) {
+                Text(stringResource(R.string.pedir_nova_ligacao))
+            }
+        }
         TextButton(onClick = voltar, enabled = !ocupado) { Text(stringResource(R.string.voltar)) }
     }
+}
+
+private fun EstadoLogin.campoErro(nome: String): String? {
+    val maiuscula = nome.replaceFirstChar(Char::uppercase)
+    return (campos[nome] ?: campos[maiuscula])?.joinToString(" ")
 }

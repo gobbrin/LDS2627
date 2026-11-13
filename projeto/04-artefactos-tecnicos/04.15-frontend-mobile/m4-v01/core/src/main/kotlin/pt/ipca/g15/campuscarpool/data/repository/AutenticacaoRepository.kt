@@ -4,11 +4,32 @@ import kotlinx.coroutines.CancellationException
 import pt.ipca.g15.campuscarpool.data.remote.ApiService
 import pt.ipca.g15.campuscarpool.data.remote.ErrosApi
 import pt.ipca.g15.campuscarpool.data.session.SessaoManager
+import pt.ipca.g15.campuscarpool.domain.model.ConfirmarPedido
 import pt.ipca.g15.campuscarpool.domain.model.Credenciais
+import pt.ipca.g15.campuscarpool.domain.model.MensagemResposta
+import pt.ipca.g15.campuscarpool.domain.model.ReenviarConfirmacaoPedido
+import pt.ipca.g15.campuscarpool.domain.model.RegistoPedido
 import pt.ipca.g15.campuscarpool.domain.model.Resultado
 import pt.ipca.g15.campuscarpool.domain.model.TerminarSessaoPedido
 
 class AutenticacaoRepository(private val api: ApiService, private val sessao: SessaoManager) {
+    suspend fun registar(nome: String, email: String, password: String): Resultado<String> =
+        ErrosApi.executar {
+            api.registar(RegistoPedido(nome.trim(), email.trim(), password))
+        }.soMensagem()
+
+    suspend fun confirmar(token: String): Resultado<Unit> =
+        ErrosApi.executarSemCorpo { api.confirmar(ConfirmarPedido(token)) }
+
+    suspend fun reenviarConfirmacao(email: String): Resultado<String> = ErrosApi.executar {
+        api.reenviarConfirmacao(ReenviarConfirmacaoPedido(email.trim()))
+    }.soMensagem()
+
+    private fun Resultado<MensagemResposta>.soMensagem(): Resultado<String> = when (this) {
+        is Resultado.Falha -> this
+        is Resultado.Sucesso -> Resultado.Sucesso(valor.mensagem)
+    }
+
     suspend fun login(email: String, password: String): Resultado<Unit> {
         if (email.isBlank() ||
             password.isBlank()

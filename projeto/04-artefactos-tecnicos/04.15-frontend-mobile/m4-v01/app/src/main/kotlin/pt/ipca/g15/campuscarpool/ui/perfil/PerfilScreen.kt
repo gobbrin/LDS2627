@@ -1,55 +1,42 @@
 package pt.ipca.g15.campuscarpool.ui.perfil
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import pt.ipca.g15.campuscarpool.R
-import pt.ipca.g15.campuscarpool.domain.model.PerfilProprio
+import pt.ipca.g15.campuscarpool.ui.EcraDeslocavel
+import pt.ipca.g15.campuscarpool.ui.MensagemErro
+import pt.ipca.g15.campuscarpool.ui.Titulo
+
 @Composable fun PerfilScreen(
-    perfil: PerfilProprio?,
-    carregando: Boolean,
+    estado: EstadoPerfil,
     repetir: () -> Unit,
+    editar: () -> Unit,
+    verPublico: (String) -> Unit,
     voltar: () -> Unit
 ) {
-    Column(
-        Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(stringResource(R.string.perfil))
+    val perfil = estado.perfil
+    EcraDeslocavel {
+        Titulo(stringResource(R.string.perfil))
+        MensagemErro(estado.erro)
         when {
-            carregando -> Text(stringResource(R.string.a_carregar))
             perfil != null -> {
-                val media = perfil.classificacaoMedia
-                Text(perfil.nome)
+                DadosPerfil(
+                    perfil.nome,
+                    perfil.curso,
+                    perfil.instituicao,
+                    perfil.ligacoesExternas,
+                    perfil.classificacaoMedia
+                )
                 Text(perfil.email)
-                Text(
-                    stringResource(
-                        R.string.curso,
-                        perfil.curso ?: stringResource(R.string.nao_indicado)
-                    )
-                )
-                Text(
-                    stringResource(
-                        R.string.instituicao,
-                        perfil.instituicao ?: stringResource(R.string.nao_indicado)
-                    )
-                )
-                Text(
-                    if (media == null) {
-                        stringResource(R.string.sem_avaliacoes)
-                    } else {
-                        stringResource(R.string.avaliacao, media)
-                    }
-                )
+                Button(onClick = editar) { Text(stringResource(R.string.editar_perfil)) }
+                TextButton(onClick = { verPublico(perfil.id) }) {
+                    Text(stringResource(R.string.ver_perfil_publico))
+                }
             }
+            estado.aCarregar -> Text(stringResource(R.string.a_carregar))
             else -> {
                 Text(stringResource(R.string.sem_perfil))
                 Button(onClick = repetir) { Text(stringResource(R.string.tentar)) }

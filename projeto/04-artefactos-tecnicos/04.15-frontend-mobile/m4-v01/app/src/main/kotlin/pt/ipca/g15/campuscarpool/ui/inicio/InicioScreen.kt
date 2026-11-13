@@ -17,6 +17,7 @@ import pt.ipca.g15.campuscarpool.R
 @Composable fun InicioScreen(
     autenticado: Boolean,
     entrar: () -> Unit,
+    registar: () -> Unit,
     perfil: () -> Unit,
     sair: () -> Unit,
     ocupado: Boolean
@@ -34,7 +35,8 @@ import pt.ipca.g15.campuscarpool.R
                 Text(stringResource(if (ocupado) R.string.a_terminar else R.string.sair))
             }
         } else {
-            Button(onClick = entrar) { Text(stringResource(R.string.entrar)) }
+            Button(onClick = registar) { Text(stringResource(R.string.criar_conta)) }
+            TextButton(onClick = entrar) { Text(stringResource(R.string.entrar)) }
         }
     }
 }

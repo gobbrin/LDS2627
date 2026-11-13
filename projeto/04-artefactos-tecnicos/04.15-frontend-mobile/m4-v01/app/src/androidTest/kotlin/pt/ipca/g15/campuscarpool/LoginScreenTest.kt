@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import pt.ipca.g15.campuscarpool.ui.autenticacao.EstadoLogin
 import pt.ipca.g15.campuscarpool.ui.autenticacao.LoginScreen
 class LoginScreenTest {
     @get:Rule val compose = createComposeRule()
@@ -15,7 +16,7 @@ class LoginScreenTest {
     @Test fun credenciaisVaziasNaoSubmetem() {
         compose.setContent {
             MaterialTheme {
-                LoginScreen(false, emptyMap(), { _, _ -> error("Não deve submeter") }, {})
+                LoginScreen(EstadoLogin(), { _, _ -> error("Não deve submeter") }, {}, {}, {}, {})
             }
         }
         compose.onNodeWithTag("login-submit").assertIsNotEnabled()
@@ -25,10 +26,7 @@ class LoginScreenTest {
         var recebidas: Pair<String, String>? = null
         compose.setContent {
             MaterialTheme {
-                LoginScreen(false, emptyMap(), { e, p ->
-                    recebidas =
-                        e to p
-                }, {})
+                LoginScreen(EstadoLogin(), { e, p -> recebidas = e to p }, {}, {}, {}, {})
             }
         }
         compose.onNodeWithTag("login-email").performTextInput("aluno@example.test")

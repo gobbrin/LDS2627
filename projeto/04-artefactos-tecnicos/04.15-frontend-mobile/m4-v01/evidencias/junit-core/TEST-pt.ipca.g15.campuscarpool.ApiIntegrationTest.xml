@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pt.ipca.g15.campuscarpool.ApiIntegrationTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:34:22.656Z" hostname="DESKTOP-2HLC904" time="3.281">
+  <properties/>
+  <testcase name="naoEnviaTokenParaOutraOrigem" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="2.459"/>
+  <testcase name="naoSegueRedirecionamentoComCredenciais" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.586"/>
+  <testcase name="loginPublicoEPerfilPrivadoUsamContratoReal" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.153"/>
+  <testcase name="resposta401LimpaSessaoEnviada" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.018"/>
+  <testcase name="naoEnviaTokenForaDaBase" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.009"/>
+  <testcase name="logoutAceita204SemCorpo" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.02"/>
+  <testcase name="semSessaoNaoAcrescentaBearer" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.015"/>
+  <testcase name="erro403MantemSessao" classname="pt.ipca.g15.campuscarpool.ApiIntegrationTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
