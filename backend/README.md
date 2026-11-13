@@ -1,0 +1,25 @@
+# Campus Carpool — .NET 10 — Base de desenvolvimento
+
+Projetos: Api, Application, Domain, Infrastructure e Tests. Documentação em [`docs/`](../docs/backend/README.md); limitações em [`IMPLEMENTACAO-STATUS.md`](../docs/backend/IMPLEMENTACAO-STATUS.md) (desatualizado, validar no código).
+
+## Configuração local (Visual Studio / .NET 10)
+
+1. Configurar uma instância SQL Server acessível.
+2. Definir a connection string `ConnectionStrings__DefaultConnection` por variável de ambiente ou User Secrets.
+3. Definir `Jwt__Key` com chave aleatória de pelo menos 32 bytes **fora do Git** (por exemplo, User Secrets).
+4. Gerar e aplicar migrations apenas depois de rever o modelo e o script (`database/scripts/README.md`).
+5. Executar `dotnet restore CampusCarpool.slnx`, `dotnet build CampusCarpool.slnx`, `dotnet test CampusCarpool.slnx`.
+6. Executar `dotnet run --project src/CampusCarpool.Api`.
+
+Sem configuração de JWT, a aplicação falha ao arrancar intencionalmente para evitar configuração insegura. Sem base de dados configurada, endpoints que usam DbContext não funcionam.
+
+Não enviar segredos para o repositório. Verificar `docs/backend/IMPLEMENTACAO-STATUS.md` antes de apresentar qualquer funcionalidade como concluída.
+
+## Documentação
+
+| Pasta | Conteúdo |
+|---|---|
+| `docs/entregas/` | Documentos de entrega por item (I029–I044) |
+| `docs/testes/` | Especificações, evidências, relatórios e coleções Postman |
+| `docs/operacao/` | Pipeline CI/CD e manual de instalação |
+| `docs/qualidade/` | Análise estática, revisões e dívida técnica |
