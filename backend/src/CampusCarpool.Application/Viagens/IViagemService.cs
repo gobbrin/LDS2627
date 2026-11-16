@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Participacoes;
+using CampusCarpool.Application.Rotas;
 
 namespace CampusCarpool.Application.Viagens;
 
@@ -18,7 +19,7 @@ public interface IViagemService
     /// </remarks>
     /// <returns>
     /// A viagem; erro 400 com dados inválidos (vazios, mais de 200 caracteres, origem e destino no mesmo local, data
-    /// passada ou não UTC, lugares fora de 1 a 8); 403 com a conta por confirmar; 422 se um local ou a rota não forem
+    /// passada ou não UTC, lugares fora de 1 a 8); 422 se um local ou a rota não forem
     /// encontrados; 502/503/504 com problemas no Serviço de Mapas.
     /// </returns>
     Task<Resultado<ViagemCriada>> CriarAsync(
@@ -71,6 +72,27 @@ public interface IViagemService
         Guid utilizadorId,
         DateTime partidaEm,
         int lugares,
+        string? origem,
+        string? destino,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Mostra ao condutor a rota, a distância, a duração e o custo que a viagem teria com a origem e o destino
+    /// indicados, sem gravar nada (ecrã de edição; RF-F002-07, RF-F008-05, RF-F008-10).
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="origem"/> e <paramref name="destino"/> a <c>null</c> mantêm o valor atual, como em
+    /// <see cref="EditarAsync"/>. A rota inclui as paragens dos passageiros aceites, como a que o PUT grava. Com os
+    /// mesmos locais devolve a rota guardada sem chamar os mapas. Nunca pede a linha à HERE.
+    /// </remarks>
+    /// <returns>
+    /// A rota simulada, no formato de <c>GET /rotas/viagens/{id}</c>; erro 400 com locais inválidos (vazios, mais de
+    /// 200 caracteres ou no mesmo local); 403 se não for o condutor; 404 se a viagem não existir; 409 se a viagem não
+    /// for editável; 422 se um local ou a rota não forem encontrados; 502/503/504 com problemas no Serviço de Mapas.
+    /// </returns>
+    Task<Resultado<RotaDaViagem>> SimularAlteracaoAsync(
+        Guid viagemId,
+        Guid utilizadorId,
         string? origem,
         string? destino,
         CancellationToken ct);

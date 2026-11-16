@@ -275,21 +275,6 @@ public sealed class PedidosParticipacaoIntegrationTests
     }
 
     [Fact]
-    public async Task ContaNaoConfirmada_Devolve403()
-    {
-        using var f = new Fixture();
-
-        var passageiro = await f.CriarUtilizador(false);
-        var controller = CriarController(f.Db, passageiro.Id);
-
-        var resultado = await controller.Criar(
-            new(Guid.NewGuid(), null, null),
-            default);
-
-        RespostaEsperada.Proibido(resultado);
-    }
-
-    [Fact]
     public async Task ViagemInexistente_Devolve404()
     {
         using var f = new Fixture();
@@ -298,10 +283,10 @@ public sealed class PedidosParticipacaoIntegrationTests
         var controller = CriarController(f.Db, passageiro.Id);
 
         var resultado = await controller.Criar(
-            new(Guid.NewGuid(), null, null),
+            new(Guid.NewGuid(), "Maia", null),
             default);
 
-        Assert.IsType<NotFoundObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -319,10 +304,10 @@ public sealed class PedidosParticipacaoIntegrationTests
         var controller = CriarController(f.Db, passageiro.Id);
 
         var resultado = await controller.Criar(
-            new(viagem.Id, null, null),
+            new(viagem.Id, "Maia", null),
             default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "Viagem indisponível.");
     }
 
     [Fact]
@@ -340,10 +325,10 @@ public sealed class PedidosParticipacaoIntegrationTests
         var controller = CriarController(f.Db, passageiro.Id);
 
         var resultado = await controller.Criar(
-            new(viagem.Id, null, null),
+            new(viagem.Id, "Maia", null),
             default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "Viagem indisponível.");
     }
 
     [Fact]
@@ -357,10 +342,10 @@ public sealed class PedidosParticipacaoIntegrationTests
         var controller = CriarController(f.Db, condutor.Id);
 
         var resultado = await controller.Criar(
-            new(viagem.Id, null, null),
+            new(viagem.Id, "Maia", null),
             default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "Não podes pedir participação na tua própria viagem.");
     }
 
     [Fact]
@@ -384,10 +369,10 @@ public sealed class PedidosParticipacaoIntegrationTests
         var controller = CriarController(f.Db, passageiro.Id);
 
         var resultado = await controller.Criar(
-            new(viagem.Id, null, null),
+            new(viagem.Id, "Maia", null),
             default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "Já existe um pedido ou participação ativa nesta viagem.");
         Assert.Single(f.Db.Participacoes);
     }
 
@@ -411,15 +396,18 @@ public sealed class PedidosParticipacaoIntegrationTests
             Estado = EstadoParticipacao.Aceite
         });
 
+        // A aceitação ocupa o lugar na viagem: a capacidade lê-se de LugaresDisponiveis (BE-16).
+        viagem.OcuparLugar();
+
         await f.Db.SaveChangesAsync();
 
         var controller = CriarController(f.Db, passageiro.Id);
 
         var resultado = await controller.Criar(
-            new(viagem.Id, null, null),
+            new(viagem.Id, "Maia", null),
             default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "Não existem lugares disponíveis nesta viagem.");
         Assert.Single(f.Db.Participacoes);
     }
 
@@ -438,8 +426,30 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, "   ", "Braga"),
             default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "O ponto de recolha está vazio.");
         Assert.Empty(f.Db.Participacoes);
+    }
+
+    [Fact]
+    /// <summary>
+    /// P-19 e BE-03: uma recolha com o texto da origem da viagem usa as coordenadas guardadas; sem pontos novos, o
+    /// pedido não depende do Serviço de Mapas (aqui em falha).
+    /// </summary>
+    public async Task I112_18_RecolhaIgualAOrigem_NaoChamaOsMapas()
+    {
+        using var f = new Fixture();
+
+        var condutor = await f.CriarUtilizador();
+        var passageiro = await f.CriarUtilizador();
+        var viagem = await f.CriarViagem(condutor.Id);
+
+        var resultado = await CriarController(f.Db, passageiro.Id, new MapasSimulados(HttpStatusCode.ServiceUnavailable))
+            .Criar(new(viagem.Id, " porto ", null), default);
+
+        Assert.Equal(201, Assert.IsType<ObjectResult>(resultado).StatusCode);
+        var pedido = Assert.Single(f.Db.Participacoes);
+        Assert.Equal("porto", pedido.Recolha);
+        Assert.Equal(viagem.OrigemLatitude, pedido.RecolhaLatitude);
     }
 
     [Fact]
@@ -458,17 +468,17 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, null, null),
             default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "Indica um ponto de recolha ou de destino.");
         Assert.Empty(f.Db.Participacoes);
     }
 
     [Theory]
-    [InlineData(" braga ", null)]            // RF-F004-18 e RF-F004-20: recolha no destino da viagem (texto).
-    [InlineData(null, "PORTO")]              // RF-F004-18 e RF-F004-21: destino na origem da viagem (texto).
-    [InlineData("Maia", "maia")]             // RF-F004-18: recolha e destino com o mesmo texto.
-    [InlineData("Maia", "Mesmo sítio da Maia")] // RF-F004-18: textos diferentes, coordenadas iguais.
-    /// <summary>DEF-BE-015: recusa pontos no mesmo local, pelo texto e pelas coordenadas (D-008).</summary>
-    public async Task I110_27_PontosNoMesmoLocal_Devolve400(string? recolha, string? destino)
+    [InlineData(" braga ", null, "A recolha não pode ser o destino da viagem.")]     // RF-F004-20 (texto).
+    [InlineData(null, "PORTO", "O destino não pode ser a origem da viagem.")]        // RF-F004-21 (texto).
+    [InlineData("Maia", "maia", "A recolha e o destino não podem ser o mesmo local.")] // RF-F004-18 (texto).
+    [InlineData("Maia", "Mesmo sítio da Maia", "A recolha e o destino não podem ser o mesmo local.")] // RF-F004-18: coordenadas iguais.
+    /// <summary>DEF-BE-015: recusa pontos no mesmo local, pelo texto e pelas coordenadas (D-008), com uma mensagem por regra (BE-15).</summary>
+    public async Task I110_27_PontosNoMesmoLocal_Devolve400(string? recolha, string? destino, string mensagem)
     {
         using var f = new Fixture();
 
@@ -479,7 +489,7 @@ public sealed class PedidosParticipacaoIntegrationTests
         var resultado = await CriarController(f.Db, passageiro.Id, new MapasSimulados())
             .Criar(new(viagem.Id, recolha, destino), default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, mensagem);
         Assert.Empty(f.Db.Participacoes);
     }
 
@@ -520,10 +530,7 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, "Local inexistente", null),
             default);
 
-        Assert.Equal(
-            422,
-            Assert.IsType<UnprocessableEntityObjectResult>(resultado)
-                .StatusCode);
+        RespostasDeErro.AssertErro(resultado, 422, "Ponto de recolha não encontrado.");
 
         Assert.Empty(f.Db.Participacoes);
     }

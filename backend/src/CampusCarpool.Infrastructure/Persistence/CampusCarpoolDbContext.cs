@@ -132,9 +132,11 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         modelBuilder.Entity<Avaliacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.AvaliadoId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.RemetenteId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Mensagem>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.DestinatarioId).OnDelete(DeleteBehavior.NoAction);
-        modelBuilder.Entity<Mensagem>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        // Conversa paginada por cursor (BE-13, BE-33): filtra pelo par e ordena pela data de envio.
+        modelBuilder.Entity<Mensagem>()
+            .HasIndex(x => new { x.RemetenteId, x.DestinatarioId, x.EnviadoEm })
+            .HasDatabaseName("IX_Mensagens_RemetenteId_DestinatarioId_EnviadoEm");
         modelBuilder.Entity<Aviso>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
-        modelBuilder.Entity<Aviso>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.CondutorId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Notificacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Notificacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
         // RF-F007-04 (I048): uma só avaliação por par, seja qual for a viagem.

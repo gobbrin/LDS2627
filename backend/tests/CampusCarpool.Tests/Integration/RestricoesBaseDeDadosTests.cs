@@ -80,7 +80,7 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
             lugares = 3
         });
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A origem tem no máximo 200 caracteres.");
     }
 
     [Fact]
@@ -91,6 +91,6 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
         using var resposta = await passageiro.PostAsJsonAsync(
             "/api/v1/dispositivos", new { token = new string('a', 501) });
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Token FCM inválido.");
     }
 }

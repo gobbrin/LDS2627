@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Exceptions;
 using CampusCarpool.Domain.Rules;
@@ -14,8 +15,13 @@ namespace CampusCarpool.Application.Rotas;
 /// <see cref="Viagem.RotaPontos"/>; a consulta lê-a sem chamar o Serviço de Mapas. <c>RotaPontos</c> a <c>null</c>
 /// significa «por recalcular»: acontece quando um cancelamento não conseguiu recalcular (P-19), e a rota é
 /// recalculada na consulta seguinte em que o serviço responda.
+/// <para>A linha do mapa (DEF-BE-054) junta-se só quando a rota é guardada (<see cref="GuardarAsync"/>): vem da HERE
+/// (<see cref="IServicoGeometriaRotas"/>) e reutiliza-se enquanto os pontos não mudarem. A simulação não a pede.</para>
 /// </remarks>
-public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho unidadeDeTrabalho) : IRotaService
+public sealed class RotaService(
+    IServicoMapasRotas mapas,
+    IServicoGeometriaRotas geometria,
+    IUnidadeDeTrabalho unidadeDeTrabalho) : IRotaService
 {
     /// <inheritdoc />
     public Task<ResultadoRotaComPontos?> CalcularAsync(
@@ -35,9 +41,36 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
         IEnumerable<Participacao> participacoes,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(origem);
+        ArgumentNullException.ThrowIfNull(destino);
         ArgumentNullException.ThrowIfNull(participacoes);
 
-        return CalcularAsync(origem, destino, participacoes.SelectMany(PontosDe).ToList(), ct);
+        var paragens = new List<PontoRota>();
+
+        foreach (Participacao participacao in participacoes)
+            paragens.AddRange(ParagensDe(participacao, origem.Coordenadas, destino.Coordenadas));
+
+        return CalcularAsync(origem, destino, paragens, ct);
+    }
+
+    /// <summary>Indica se a participação acrescenta paragens à rota da viagem (decisão de 16/11, BE-03).</summary>
+    /// <remarks>
+    /// Um ponto omitido segue a origem ou o destino da viagem (P-20), e um ponto com as mesmas coordenadas que a origem
+    /// ou o destino também não é paragem nova. Sem paragens novas a rota guardada continua certa: aceitar, cancelar ou
+    /// simular essa participação não chama o Serviço de Mapas.
+    /// </remarks>
+    /// <param name="viagem">Viagem, com as coordenadas da origem e do destino.</param>
+    /// <param name="participacao">Pedido ou participação aceite.</param>
+    /// <returns><c>true</c> se a rota tem de ser recalculada por causa desta participação.</returns>
+    public static bool AcrescentaParagens(Viagem viagem, Participacao participacao)
+    {
+        ArgumentNullException.ThrowIfNull(viagem);
+        ArgumentNullException.ThrowIfNull(participacao);
+
+        var origem = new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
+        var destino = new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);
+
+        return ParagensDe(participacao, origem, destino).Count > 0;
     }
 
     /// <summary>Calcula a rota com os pontos adicionais entre a origem e o destino da viagem.</summary>
@@ -94,22 +127,19 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
     {
         if (!mapas.Configurado) return false;
 
-        try
-        {
-            var rota = await CalcularAsync(viagem, aceites, ct);
-            if (rota is null) return false;
+        // O cálculo passa pela ChamadaMapas, com o limite de 10 s (P-19); qualquer falha devolve false.
+        Resultado<ResultadoRotaComPontos?> calculada = await ChamadaMapas.ExecutarAsync<ResultadoRotaComPontos?>(
+            async limite => await CalcularAsync(viagem, aceites, limite),
+            "Serviço de mapas indisponível.",
+            "Tempo de resposta do serviço de mapas excedido.",
+            ct);
 
-            RotaGuardada.Guardar(viagem, rota);
-            return true;
-        }
-        catch (HttpRequestException)
-        {
+        if (calculada.Erro is not null || calculada.Valor is null)
             return false;
-        }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return false;
-        }
+
+        // A linha da HERE fica fora do limite: tem o seu e nunca faz falhar a operação.
+        await GuardarAsync(viagem, calculada.Valor, ct);
+        return true;
     }
 
     /// <inheritdoc />
@@ -121,10 +151,10 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
         var guardada = RotaGuardada.Ler(viagem);
         if (guardada is not null) return guardada;
 
-        var rota = await CalcularAsync(viagem, aceites, ct);
-        if (rota is null) return null;
+        var calculada = await CalcularAsync(viagem, aceites, ct);
+        if (calculada is null) return null;
 
-        RotaGuardada.Guardar(viagem, rota);
+        var rota = await GuardarAsync(viagem, calculada, ct);
 
         try
         {
@@ -138,26 +168,64 @@ public sealed class RotaService(IServicoMapasRotas mapas, IUnidadeDeTrabalho uni
         return rota;
     }
 
-    // Um ponto omitido segue a origem ou o destino da viagem (P-20), por isso não acrescenta paragens.
-    private static IEnumerable<PontoRota> PontosDe(Participacao participacao)
+    /// <inheritdoc />
+    public async Task<ResultadoRotaComPontos> GuardarAsync(Viagem viagem, ResultadoRotaComPontos rota, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(viagem);
+        ArgumentNullException.ThrowIfNull(rota);
+
+        // Decisão de 16/11: se os pontos não mudaram, a linha guardada continua certa e não se chama a HERE.
+        ResultadoRotaComPontos? anterior = RotaGuardada.Ler(viagem);
+        IReadOnlyList<Coordenadas>? linha;
+
+        if (anterior?.Geometria is not null && GeometriaRota.MesmosPontos(anterior, rota))
+            linha = anterior.Geometria;
+        else
+            linha = await PedirLinhaAsync(GeometriaRota.LinhaReta(rota.PontosOrdenados), ct);
+
+        var comLinha = rota with { Geometria = linha };
+        RotaGuardada.Guardar(viagem, comLinha);
+
+        return comLinha;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Coordenadas>?> PedirLinhaAsync(IReadOnlyList<Coordenadas> pontos, CancellationToken ct)
+    {
+        // Sem chave da HERE não se faz o pedido: o mapa mostra linhas retas (a reserva).
+        if (!geometria.Configurado)
+            return null;
+
+        return await geometria.CalcularLinhaAsync(pontos, ct);
+    }
+
+    /// <summary>Paragens que a participação acrescenta entre a origem e o destino da rota.</summary>
+    /// <remarks>
+    /// Um ponto omitido segue a origem ou o destino da viagem (P-20). Um ponto nas mesmas coordenadas que a origem ou o
+    /// destino (por exemplo, a recolha com o texto da origem, BE-03) não é paragem: a rota não muda por causa dele.
+    /// </remarks>
+    /// <returns>A recolha e o destino do passageiro que são locais novos; lista vazia se não houver nenhum.</returns>
+    private static List<PontoRota> ParagensDe(Participacao participacao, Coordenadas origem, Coordenadas destino)
+    {
+        var paragens = new List<PontoRota>();
+
         if (!string.IsNullOrWhiteSpace(participacao.Recolha))
         {
-            yield return new PontoRota(
-                participacao.Id,
-                TiposPontoRota.Recolha,
-                participacao.Recolha,
-                CoordenadasDe(participacao.RecolhaLatitude, participacao.RecolhaLongitude, participacao.Id));
+            Coordenadas recolha = CoordenadasDe(participacao.RecolhaLatitude, participacao.RecolhaLongitude, participacao.Id);
+
+            if (recolha != origem && recolha != destino)
+                paragens.Add(new PontoRota(participacao.Id, TiposPontoRota.Recolha, participacao.Recolha, recolha));
         }
 
         if (!string.IsNullOrWhiteSpace(participacao.Destino))
         {
-            yield return new PontoRota(
-                participacao.Id,
-                TiposPontoRota.DestinoPassageiro,
-                participacao.Destino,
-                CoordenadasDe(participacao.DestinoLatitude, participacao.DestinoLongitude, participacao.Id));
+            Coordenadas fim = CoordenadasDe(participacao.DestinoLatitude, participacao.DestinoLongitude, participacao.Id);
+
+            if (fim != origem && fim != destino)
+                paragens.Add(new PontoRota(participacao.Id, TiposPontoRota.DestinoPassageiro, participacao.Destino, fim));
         }
+
+        return paragens;
     }
 
     // O pedido guarda sempre as coordenadas do ponto indicado (A8); faltarem é um erro de dados.

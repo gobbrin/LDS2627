@@ -93,13 +93,12 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ViagemDoCondutor>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct)
+    public async Task<IReadOnlyList<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct)
     {
         return await context.Viagens
             .AsNoTracking()
             .Where(v => v.CondutorId == condutorId && v.Estado == EstadoViagem.Ativa)
             .OrderBy(v => v.PartidaEm)
-            .Select(v => new ViagemDoCondutor(v.Id, v.Origem, v.Destino, v.PartidaEm, v.LugaresOferecidos, v.LugaresDisponiveis))
             .ToListAsync(ct);
     }
 

@@ -259,6 +259,29 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Fact]
+    public async Task ObterMinha_DevolveAvaliacaoDoAutor()
+    {
+        var servico = CriarServico();
+        await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 2, CancellationToken.None);
+
+        var resultado = await servico.ObterMinhaAsync(_condutor, _passageiroA, CancellationToken.None);
+
+        Assert.Equal(2, resultado.Valor.Classificacao);
+    }
+
+    [Fact]
+    public async Task ObterMinha_OutroAutor_NaoEncontrado()
+    {
+        var servico = CriarServico();
+        await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 2, CancellationToken.None);
+
+        var resultado = await servico.ObterMinhaAsync(_passageiroB, _passageiroA, CancellationToken.None);
+
+        Assert.Equal(TipoErro.NaoEncontrado, resultado.Erro?.Tipo);
+        Assert.Equal("Não existe uma avaliação sua para este utilizador.", resultado.Erro?.Mensagem);
+    }
+
+    [Fact]
     public async Task Criar_GravacaoRecusadaPelaBd_Conflito()
     {
         var servico = CriarServico();
@@ -293,7 +316,7 @@ public sealed class AvaliacaoServiceTests
 
         public Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct) =>
             Task.FromResult(Viagens.GetValueOrDefault(viagemId));
-        public Task<bool> UtilizadorExisteAsync(Guid id, CancellationToken ct) =>
+        public Task<bool> UtilizadorConfirmadoAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(Utilizadores.Contains(id));
         public Task<bool> ParticipacaoAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) =>
             Task.FromResult(Aceites.Contains((viagemId, passageiroId)));

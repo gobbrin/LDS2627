@@ -31,24 +31,6 @@ public sealed class RepositorioParticipacoesCoberturaTests
         Assert.Empty(await repo.ListarPorViagemAsync(viagem2, EstadoParticipacao.Aceite, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task ListarPorPassageiro_DevolveSoAsSuasParticipacoes()
-    {
-        await using var fixture = await Fixture.CriarAsync();
-        var (viagem1, viagem2, passageiro1, passageiro2) = await fixture.PrepararAsync();
-        var primeira = await fixture.AdicionarAsync(viagem1, passageiro1, EstadoParticipacao.Pendente);
-        var segunda = await fixture.AdicionarAsync(viagem2, passageiro1, EstadoParticipacao.Aceite);
-        await fixture.AdicionarAsync(viagem1, passageiro2, EstadoParticipacao.Cancelada);
-
-        var repo = new RepositorioParticipacoes(fixture.Db);
-        var resultado = await repo.ListarPorPassageiroAsync(passageiro1, CancellationToken.None);
-        Assert.Equal(2, resultado.Count);
-        Assert.Contains(resultado, p => p.Id == primeira.Id);
-        Assert.Contains(resultado, p => p.Id == segunda.Id);
-        Assert.Single(await repo.ListarPorPassageiroAsync(passageiro2, CancellationToken.None));
-        Assert.Empty(await repo.ListarPorPassageiroAsync(Guid.NewGuid(), CancellationToken.None));
-    }
-
     [Theory]
     [InlineData(EstadoParticipacao.Pendente, true)]
     [InlineData(EstadoParticipacao.Aceite, true)]

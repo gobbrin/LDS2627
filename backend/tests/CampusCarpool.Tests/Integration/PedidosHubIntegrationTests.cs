@@ -156,6 +156,7 @@ public sealed class PedidosHubIntegrationTests
         builder.Services.AddSingleton<
             INotificadorPedidosTempoReal,
             NotificadorPedidosSignalR>();
+        builder.Services.AddSingleton<LigacoesPorSessao>();
 
         var app = builder.Build();
 

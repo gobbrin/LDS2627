@@ -39,7 +39,7 @@ public sealed class RegrasViagemHttpTests : IDisposable
     {
         using var resposta = await CriarAsync(DateTime.UtcNow.AddMinutes(-1).ToString("O"));
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A hora de partida tem de ser no futuro.");
         Assert.Equal(0, _app.NaBaseDeDados(db => db.Viagens.Count()));
     }
 
@@ -70,7 +70,7 @@ public sealed class RegrasViagemHttpTests : IDisposable
     {
         using var resposta = await CriarAsync($"{DateTime.UtcNow.Year + 1}{resto}");
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A hora de partida tem de vir em UTC (terminada em Z).");
         Assert.Equal(0, _app.NaBaseDeDados(db => db.Viagens.Count()));
     }
 

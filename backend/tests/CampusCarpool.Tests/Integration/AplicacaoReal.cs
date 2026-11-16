@@ -106,6 +106,9 @@ public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = nu
             services.AddSingleton<IServicoMapasRotas>(Mapas.CriarServico());
             services.RemoveAll<IServicoEmail>();
             services.AddSingleton<IServicoEmail>(Email);
+            // Envio logo, para os testes lerem o token a seguir ao registo; a fila real tem teste próprio (EmailEmSegundoPlanoTests).
+            services.RemoveAll<IFilaEmails>();
+            services.AddSingleton<IFilaEmails>(new FilaEmailsDireta(Email));
             services.RemoveAll<IFilaNotificacoesPush>();
             services.AddSingleton<IFilaNotificacoesPush>(FilaPush);
 

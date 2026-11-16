@@ -126,8 +126,7 @@ public sealed class NotificacoesMesmaGravacaoTests : IAsyncLifetime, IDisposable
             new NotificacaoService(new RepositorioNotificacoes(db), fila, unidade),
             tempoReal,
             new RotaViagemFalsa(),
-            null!,
-            new RepositorioUtilizadores(db));
+            null!);
     }
 
     private async Task<(EstadoParticipacao Estado, int Notificacoes)> LerDaBdAsync()

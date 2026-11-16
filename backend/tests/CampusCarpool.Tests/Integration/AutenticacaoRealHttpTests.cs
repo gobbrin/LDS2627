@@ -179,6 +179,51 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         Assert.Equal(participacaoId, await recebido.Task.WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
+    /// <summary>
+    /// BE-18, DEF-BE-056, RNF-SEG-03: o fim de sessão fecha logo a ligação ao hub aberta com o mesmo token, e um
+    /// pedido seguinte já não chega a essa ligação.
+    /// </summary>
+    [Fact]
+    public async Task I112_FimDeSessao_FechaLigacaoAoHub()
+    {
+        var condutor = _app.CriarUtilizador("Condutor");
+        var passageiro = _app.CriarUtilizador("Passageiro");
+        string tokenCondutor = _app.TokenDe(condutor);
+        using var clienteCondutor = _app.CreateClient();
+        clienteCondutor.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenCondutor);
+        using var clientePassageiro = _app.ClienteDe(passageiro);
+        var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
+
+        var fechada = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var recebido = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var servidor = _app.Server;
+        await using var ligacao = new HubConnectionBuilder()
+            .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={tokenCondutor}"), opcoes =>
+            {
+                opcoes.HttpMessageHandlerFactory = _ => servidor.CreateHandler();
+                opcoes.Transports = HttpTransportType.LongPolling;
+            })
+            .Build();
+        ligacao.Closed += _ =>
+        {
+            fechada.TrySetResult();
+            return Task.CompletedTask;
+        };
+        ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
+        await ligacao.StartAsync();
+
+        using var logout = await clienteCondutor.PostAsync("/api/v1/autenticacao/logout", null);
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        // A ligação fecha do lado do servidor, sem esperar pela expiração do token.
+        await fechada.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(HubConnectionState.Disconnected, ligacao.State);
+
+        // Um pedido feito depois já não chega a esta ligação.
+        await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
+        Assert.False(recebido.Task.IsCompleted);
+    }
+
     /// <summary>RF-F001-11: email inexistente e palavra-passe errada devolvem exatamente a mesma resposta.</summary>
     [Fact]
     public async Task I110_83_Login_NaoRevelaQualDosCamposEstaErrado()

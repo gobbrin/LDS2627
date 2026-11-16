@@ -29,7 +29,7 @@ public sealed class RevisaoFinalHttpTests
             "/api/v1/pedidos",
             new { viagemId, recolha = "Maia", destino = (string?)null });
 
-        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.Conflict, "Viagem indisponível.");
         Assert.False(app.NaBaseDeDados(db => db.Participacoes.Any(p => p.ViagemId == viagemId)));
     }
 
@@ -41,7 +41,7 @@ public sealed class RevisaoFinalHttpTests
 
         using var resposta = await cliente.GetAsync($"/api/v1/notificacoes?pagina={int.MaxValue}&tamanhoPagina=100");
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Parâmetros de paginação inválidos.");
     }
 
     [Fact]

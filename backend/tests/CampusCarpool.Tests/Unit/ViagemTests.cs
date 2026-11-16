@@ -105,7 +105,7 @@ public sealed class ViagemTests
     {
         var viagem = NovaViagem(horasAtePartida: -1);
 
-        viagem.Concluir(Agora);
+        viagem.Concluir(Agora, []);
 
         Assert.True(viagem.EstaConcluida);
     }
@@ -116,7 +116,7 @@ public sealed class ViagemTests
     [InlineData(EstadoViagem.Concluida, -1)]
     public void Concluir_AntesDaPartidaOuNaoAtiva_ERecusado(EstadoViagem estado, int horasAtePartida)
     {
-        Assert.Throws<RegraDeNegocioException>(() => NovaViagem(estado, horasAtePartida: horasAtePartida).Concluir(Agora));
+        Assert.Throws<RegraDeNegocioException>(() => NovaViagem(estado, horasAtePartida: horasAtePartida).Concluir(Agora, []));
     }
 
     [Theory]
@@ -196,5 +196,37 @@ public sealed class ViagemTests
 
         Assert.Null(viagem.RotaPontos);
         Assert.Equal(12.5m, viagem.DistanciaKm);
+    }
+
+    /// <summary>BE-16, P-11: a entidade recusa lugares fora de 1 a 8, na criação e na alteração.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    public void CriarOuAlterar_LugaresForaDoIntervalo_ERecusado(int lugares)
+    {
+        Assert.Throws<RegraDeNegocioException>(() => Viagem.Criar(Guid.NewGuid(), Locais, Agora.AddDays(1), lugares, 25));
+        Assert.Throws<RegraDeNegocioException>(() => NovaViagem().Alterar(Locais, Agora.AddDays(1), lugares, 25, Agora));
+    }
+
+    /// <summary>BE-16: uma só regra de capacidade.</summary>
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(0, false)]
+    public void TemLugarLivre_SoComLugaresDisponiveis(int disponiveis, bool esperado)
+    {
+        Assert.Equal(esperado, NovaViagem(disponiveis: disponiveis).TemLugarLivre);
+    }
+
+    /// <summary>BE-31, RF-F004-19: concluir cancela os pedidos pendentes recebidos.</summary>
+    [Fact]
+    public void Concluir_CancelaOsPendentes()
+    {
+        var viagem = NovaViagem(horasAtePartida: -1);
+        var pendente = new Participacao();
+
+        viagem.Concluir(Agora, [pendente]);
+
+        Assert.True(viagem.EstaConcluida);
+        Assert.Equal(EstadoParticipacao.Cancelada, pendente.Estado);
     }
 }

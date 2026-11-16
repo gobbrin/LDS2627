@@ -58,7 +58,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "teste@gmail.com", "PasswordSegura123!"), default);
-        Assert.IsType<BadRequestObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 400, "É necessário um email académico permitido.");
         Assert.Empty(fixture.Db.Utilizadores);
     }
 
@@ -68,7 +68,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "teste@estg.ipp.pt", "curta"), default);
-        Assert.IsType<BadRequestObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 400, "A palavra-passe tem de ter pelo menos 8 caracteres, com letras e dígitos.");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class ApiIntegrationTests
         await fixture.Db.SaveChangesAsync();
         var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.Registar(new("Teste", "TESTE@ESTG.IPP.PT", "PasswordSegura123!"), default);
-        Assert.IsType<ConflictObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 409, "Email já registado.");
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.ConfirmarConta(new("token-invalido"), default);
-        Assert.IsType<BadRequestObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 400, "Ligação de confirmação inválida. Pede uma nova ligação.");
     }
 
     [Fact]
@@ -97,14 +97,15 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarAutenticacaoController(fixture.Db, new ConfigurationBuilder().Build(), new EmailFake());
         var result = await controller.IniciarSessao(new("naoexiste@estg.ipp.pt", "errada"), default);
-        Assert.IsType<UnauthorizedObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 401, "Credenciais inválidas.");
     }
 
     [Fact]
     public async Task CT019_PerfilProprio_NaoExpoePasswordHash()
     {
         using var fixture = new DatabaseFixture();
-        var user = new Utilizador { Email = "a@estg.ipp.pt", Nome = "A", PasswordHash = "HASH_SECRETO" };
+        // Conta confirmada: só estas têm sessão (o login recusa as outras) e só estas têm avaliações públicas (BE-14).
+        var user = new Utilizador { Email = "a@estg.ipp.pt", Nome = "A", PasswordHash = "HASH_SECRETO", EmailConfirmado = true };
         fixture.Db.Utilizadores.Add(user);
         await fixture.Db.SaveChangesAsync();
         var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(fixture.Db));
@@ -136,7 +137,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = new UtilizadoresController(ServicosDeTeste.CriarPerfil(fixture.Db));
         Authenticate(controller, Guid.NewGuid());
-        Assert.IsType<BadRequestObjectResult>(await controller.Atualizar(new(" ", null, null), default));
+        RespostasDeErro.AssertErro(await controller.Atualizar(new(" ", null, null), default), 400, "Indica o nome.");
     }
 
     [Fact]
@@ -146,7 +147,7 @@ public sealed class ApiIntegrationTests
         var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
-        Assert.IsType<NotFoundObjectResult>(await controller.Consultar(Guid.NewGuid(), default));
+        RespostasDeErro.AssertErro(await controller.Consultar(Guid.NewGuid(), default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -179,8 +180,8 @@ public sealed class ApiIntegrationTests
     {
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarPesquisaController(fixture.Db);
-        Assert.IsType<BadRequestObjectResult>(await controller.Pesquisar(
-            null, null, null, null, -1, 99999, default));
+        RespostasDeErro.AssertErro(await controller.Pesquisar(
+            null, null, null, null, -1, 99999, default), 400, "Paginação inválida.");
     }
 
     [Fact]
@@ -233,7 +234,7 @@ public sealed class MapasAndValidationTests
 
         var result = await controller.Calcular(new("Porto", "Braga"), default);
 
-        Assert.Equal(503, Assert.IsType<ObjectResult>(result).StatusCode);
+        RespostasDeErro.AssertErro(result, 503, "Serviço de mapas não configurado.");
     }
 
     [Fact]
@@ -243,7 +244,7 @@ public sealed class MapasAndValidationTests
 
         var controller = ServicosDeTeste.CriarRotasController(service, ServicosDeTeste.CriarCustos());
 
-        Assert.IsType<BadRequestObjectResult>(await controller.Geocodificar(" ", default));
+        RespostasDeErro.AssertErro(await controller.Geocodificar(" ", default), 400, "Indica o local a procurar.");
     }
 
     [Fact]

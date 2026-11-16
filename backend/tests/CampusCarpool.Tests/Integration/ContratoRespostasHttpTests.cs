@@ -203,7 +203,11 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         AssertCampos(
             rota,
             "viagemId", "participacoesAceites", "pontosOrdenados", "segmentos", "distanciaTotalKm",
-            "duracaoTotalMinutos", "estimativaCusto");
+            "duracaoTotalMinutos", "estimativaCusto", "geometria", "geometriaAproximada");
+
+        // I112 (BE-06): DTOs próprios; o ponto não leva a participação e o troço refere os pontos pela ordem.
+        AssertCampos(rota.GetProperty("pontosOrdenados")[0], "ordem", "tipo", "local", "latitude", "longitude");
+        AssertCampos(rota.GetProperty("segmentos")[0], "deOrdem", "ateOrdem", "distanciaKm", "duracaoMinutos");
     }
 
     [Fact]
@@ -231,14 +235,14 @@ public sealed class ContratoRespostasHttpTests : IDisposable
             passageiro.Id,
             new { destinatarioId = condutor.Id, conteudo = "Até amanhã." });
 
-        string[] camposDaMensagem = ["id", "viagemId", "remetenteId", "destinatarioId", "conteudo", "enviadoEm"];
+        string[] camposDaMensagem = ["id", "remetenteId", "destinatarioId", "conteudo", "enviadoEm"];
         AssertCampos(mensagem, camposDaMensagem);
 
         var conversa = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/mensagens/conversa/{condutor.Id}", passageiro.Id);
         AssertCampos(conversa[0], camposDaMensagem);
 
         var conversas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/mensagens/conversas", passageiro.Id);
-        AssertCampos(conversas[0], "outroUtilizadorId", "outroUtilizadorNome", "ultimaMensagem", "ultimaMensagemEm");
+        AssertCampos(conversas[0], "outroUtilizadorId", "outroUtilizadorNome", "ultimaMensagemId", "ultimaMensagem", "ultimaMensagemEm");
 
         var notificacoes = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", passageiro.Id);
         AssertCampos(notificacoes, "itens", "pagina", "tamanhoPagina", "total", "totalPaginas", "naoLidas");
@@ -274,6 +278,241 @@ public sealed class ContratoRespostasHttpTests : IDisposable
 
         var eu = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/autenticacao/me", condutor.Id);
         AssertCampos(eu, "id");
+    }
+
+    [Fact]
+    /// <summary>
+    /// WEB-01/MOB-01: a simulação da alteração responde com os mesmos campos de <c>GET /rotas/viagens/{id}</c>, para os
+    /// frontends usarem o mesmo modelo e o mesmo mapa na rota guardada e na simulada.
+    /// </summary>
+    public async Task I112_07_SimularAlteracao_TemOsCamposDaRotaDaViagem()
+    {
+        var viagemId = (await CriarViagemAsync()).GetProperty("id").GetString()!;
+        await AceitarPassageiroAsync(viagemId);
+
+        var simulada = await JsonAsync(
+            HttpStatusCode.OK,
+            HttpMethod.Post,
+            $"/api/v1/viagens/{viagemId}/simular-alteracao",
+            condutor.Id,
+            new { origem = "Felgueiras", destino = "Braga" });
+
+        AssertCampos(
+            simulada,
+            "viagemId", "participacoesAceites", "pontosOrdenados", "segmentos", "distanciaTotalKm",
+            "duracaoTotalMinutos", "estimativaCusto", "geometria", "geometriaAproximada");
+        AssertCampos(simulada.GetProperty("pontosOrdenados")[0], "ordem", "tipo", "local", "latitude", "longitude");
+        AssertCampos(simulada.GetProperty("segmentos")[0], "deOrdem", "ateOrdem", "distanciaKm", "duracaoMinutos");
+        AssertCampos(
+            simulada.GetProperty("estimativaCusto"),
+            "distanciaKm", "precoPorKm", "passageirosAceites", "totalParticipantes", "custoTotalEstimado",
+            "custoPorParticipante", "indicativo", "moeda");
+
+        // A linha vem em pares [latitude, longitude] e, sem a HERE, são retas entre os pontos.
+        Assert.True(simulada.GetProperty("geometriaAproximada").GetBoolean());
+        Assert.Equal(2, simulada.GetProperty("geometria")[0].GetArrayLength());
+    }
+
+    [Fact]
+    /// <summary>DEF-BE-054: a pré-visualização da rota traz a linha do mapa em pares [latitude, longitude].</summary>
+    public async Task I112_01_RotaCalculada_TemAGeometriaEmPares()
+    {
+        var rota = await JsonAsync(
+            HttpStatusCode.OK,
+            HttpMethod.Post,
+            "/api/v1/rotas/calcular",
+            condutor.Id,
+            new { origem = "Felgueiras", destino = "Porto" });
+
+        AssertCampos(rota, "distanciaKm", "duracaoMinutos", "origem", "destino", "geometria", "geometriaAproximada");
+
+        // Sem Here:ApiKey nos testes: a reserva é uma reta da origem ao destino.
+        Assert.True(rota.GetProperty("geometriaAproximada").GetBoolean());
+        var geometria = rota.GetProperty("geometria").EnumerateArray().ToList();
+        Assert.Equal(2, geometria.Count);
+        Assert.Equal(rota.GetProperty("origem").GetProperty("latitude").GetDecimal(), geometria[0][0].GetDecimal());
+        Assert.Equal(rota.GetProperty("origem").GetProperty("longitude").GetDecimal(), geometria[0][1].GetDecimal());
+        Assert.Equal(2, geometria[1].GetArrayLength());
+    }
+
+    // Viagem já concluída em que o passageiro participou: só assim se pode avaliar (RF-F007-01).
+    private Guid CriarViagemConcluidaComPassageiro()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>();
+
+        var viagem = new Viagem
+        {
+            CondutorId = condutor.Id,
+            Origem = "Porto",
+            Destino = "Braga",
+            OrigemLatitude = 41.15m,
+            OrigemLongitude = -8.61m,
+            DestinoLatitude = 41.55m,
+            DestinoLongitude = -8.42m,
+            PartidaEm = DateTime.UtcNow.AddDays(-2),
+            Estado = Domain.Enums.EstadoViagem.Concluida,
+            LugaresOferecidos = 3,
+            LugaresDisponiveis = 2
+        };
+
+        db.Viagens.Add(viagem);
+        db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = Domain.Enums.EstadoParticipacao.Aceite,
+            AceiteEm = DateTime.UtcNow.AddDays(-3)
+        });
+        db.SaveChanges();
+
+        return viagem.Id;
+    }
+
+    [Fact]
+    /// <summary>BE-10: perfil próprio, perfil público e ligações externas.</summary>
+    public async Task I112_02_Utilizadores_MantemOsCamposDasRespostas()
+    {
+        var ligacao = await JsonAsync(
+            HttpStatusCode.Created,
+            HttpMethod.Post,
+            "/api/v1/utilizadores/me/ligacoes",
+            condutor.Id,
+            new { url = "https://github.com/exemplo", descricao = "GitHub" });
+        AssertCampos(ligacao, "id", "url", "descricao");
+
+        var perfil = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/utilizadores/me", condutor.Id);
+        AssertCampos(
+            perfil,
+            "id", "nome", "email", "emailConfirmado", "curso", "instituicao", "criadoEm", "ligacoesExternas",
+            "classificacaoMedia", "totalAvaliacoes");
+        AssertCampos(perfil.GetProperty("ligacoesExternas")[0], "id", "url", "descricao");
+
+        var alterado = await JsonAsync(
+            HttpStatusCode.OK,
+            HttpMethod.Put,
+            "/api/v1/utilizadores/me",
+            condutor.Id,
+            new { nome = "Condutor Alterado", curso = "LEI", instituicao = "ESTG" });
+        AssertCampos(alterado, "id", "nome", "email", "emailConfirmado", "curso", "instituicao");
+
+        var publico = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/utilizadores/{condutor.Id}", passageiro.Id);
+        AssertCampos(
+            publico, "id", "nome", "curso", "instituicao", "ligacoesExternas", "classificacaoMedia", "totalAvaliacoes");
+    }
+
+    [Fact]
+    /// <summary>BE-10: listas do condutor (viagens, pedidos, passageiros) e simulação.</summary>
+    public async Task I112_03_ViagensDoCondutor_MantemOsCamposDasRespostas()
+    {
+        var viagemId = (await CriarViagemAsync()).GetProperty("id").GetString()!;
+
+        var minhas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/viagens/minhas", condutor.Id);
+        AssertCampos(minhas[0], "id", "origem", "destino", "partidaEm", "lugaresOferecidos", "lugaresDisponiveis");
+
+        var pedido = await JsonAsync(
+            HttpStatusCode.Created,
+            HttpMethod.Post,
+            "/api/v1/pedidos",
+            passageiro.Id,
+            new { viagemId, recolha = "Paços de Ferreira", destino = (string?)null });
+        var pedidoId = pedido.GetProperty("id").GetString();
+
+        var pedidos = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/viagens/{viagemId}/pedidos", condutor.Id);
+        AssertCampos(pedidos[0], "id", "passageiroId", "nome", "recolha", "destino", "criadoEm");
+
+        var simulacao = await JsonAsync(
+            HttpStatusCode.OK,
+            HttpMethod.Post,
+            $"/api/v1/viagens/{viagemId}/simulacao",
+            condutor.Id,
+            new { pedidoId });
+        AssertCampos(
+            simulacao,
+            "viagemId", "pedidoId", "origemViagem", "destinoViagem", "recolhaPassageiro", "destinoPassageiro",
+            "distanciaOriginalKm", "duracaoOriginalMinutos", "distanciaSimuladaKm", "duracaoSimuladaMinutos",
+            "desvioDistanciaKm", "desvioDuracaoMinutos", "ordemOriginal", "ordemSimulada");
+
+        using var aceite = await EnviarAsync(HttpMethod.Post, $"/api/v1/participacoes/{pedidoId}/aceitar", condutor.Id);
+        Assert.Equal(HttpStatusCode.NoContent, aceite.StatusCode);
+
+        var passageiros = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/viagens/{viagemId}/passageiros", condutor.Id);
+        AssertCampos(passageiros[0], "id", "passageiroId", "nome", "recolha", "destino");
+    }
+
+    [Fact]
+    /// <summary>BE-10: geocodificação e histórico.</summary>
+    public async Task I112_04_GeocodificacaoEHistorico_MantemOsCamposDasRespostas()
+    {
+        var coordenadas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/rotas/geocodificar?texto=Porto", condutor.Id);
+        AssertCampos(coordenadas, "latitude", "longitude");
+
+        CriarViagemConcluidaComPassageiro();
+
+        var historico = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/historico", passageiro.Id);
+        AssertCampos(
+            historico,
+            "viagensComoCondutor", "viagensComoPassageiro", "pedidosEfetuados", "pedidosRecebidos", "notificacoes", "avisos");
+        AssertCampos(
+            historico.GetProperty("pedidosEfetuados")[0],
+            "id", "viagemId", "origem", "destino", "partidaEm", "criadoEm", "estado", "pontoRecolha", "pontoDestino");
+        AssertCampos(
+            historico.GetProperty("viagensComoPassageiro")[0],
+            "id", "origem", "destino", "partidaEm", "estado", "lugaresOferecidos", "participacaoId", "estadoParticipacao");
+    }
+
+    [Fact]
+    /// <summary>BE-10: criar, alterar e consultar avaliações.</summary>
+    public async Task I112_05_Avaliacoes_MantemOsCamposDasRespostas()
+    {
+        var viagemId = CriarViagemConcluidaComPassageiro();
+
+        var criada = await JsonAsync(
+            HttpStatusCode.Created,
+            HttpMethod.Post,
+            "/api/v1/avaliacoes",
+            passageiro.Id,
+            new { viagemId, avaliadoId = condutor.Id, classificacao = 4 });
+        AssertCampos(criada, "classificacao", "data");
+
+        var alterada = await JsonAsync(
+            HttpStatusCode.OK,
+            HttpMethod.Put,
+            $"/api/v1/avaliacoes/utilizadores/{condutor.Id}",
+            passageiro.Id,
+            new { classificacao = 5 });
+        AssertCampos(alterada, "classificacao", "data");
+
+        var minha = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/avaliacoes/utilizadores/{condutor.Id}/minha", passageiro.Id);
+        AssertCampos(minha, "classificacao", "data");
+
+        var consulta = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/avaliacoes/utilizadores/{condutor.Id}", passageiro.Id);
+        AssertCampos(consulta, "utilizadorId", "total", "media", "avaliacoes");
+        AssertCampos(consulta.GetProperty("avaliacoes")[0], "classificacao", "data");
+    }
+
+    [Fact]
+    /// <summary>BE-10: os erros previstos de 403, 404 e 409 (via <c>Resultado</c>) trazem só <c>{ erro }</c>.</summary>
+    /// <remarks>
+    /// Os 409 de concorrência, 500, 404 de rota, 405 e 415 também saem em <c>{ erro }</c> (BE-08, ver
+    /// <c>PipelineHttpTests</c>); o 401 não tem corpo (exceção documentada no contrato).
+    /// </remarks>
+    public async Task I112_06_ErrosPrevistos_TemSoOCampoErro()
+    {
+        var naoEncontrada = await JsonAsync(HttpStatusCode.NotFound, HttpMethod.Get, $"/api/v1/viagens/{Guid.NewGuid()}", condutor.Id);
+        AssertCampos(naoEncontrada, "erro");
+
+        var viagemId = (await CriarViagemAsync()).GetProperty("id").GetString()!;
+
+        var proibido = await JsonAsync(HttpStatusCode.Forbidden, HttpMethod.Get, $"/api/v1/viagens/{viagemId}/pedidos", passageiro.Id);
+        AssertCampos(proibido, "erro");
+
+        var corpoDoPedido = new { viagemId, recolha = "Paços de Ferreira", destino = (string?)null };
+        await JsonAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/pedidos", passageiro.Id, corpoDoPedido);
+
+        var duplicado = await JsonAsync(HttpStatusCode.Conflict, HttpMethod.Post, "/api/v1/pedidos", passageiro.Id, corpoDoPedido);
+        AssertCampos(duplicado, "erro");
+        Assert.Equal("Já existe um pedido ou participação ativa nesta viagem.", duplicado.GetProperty("erro").GetString());
     }
 
     [Fact]

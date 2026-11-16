@@ -169,16 +169,16 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_03_PedidoInexistente_Devolve404()
     {
         using var f = new Fixture();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(Guid.NewGuid()), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(Guid.NewGuid()), default), 404, "Pedido não encontrado nesta viagem.");
     }
 
     [Fact]
     public async Task I040_04_ViagemInexistente_Devolve404()
     {
         using var f = new Fixture();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(Guid.NewGuid(),
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(Guid.NewGuid(),
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -197,8 +197,8 @@ public sealed class SimulacoesIntegrationTests
         };
         f.Db.Viagens.Add(outra);
         await f.Db.SaveChangesAsync();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(outra.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(outra.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 404, "Pedido não encontrado nesta viagem.");
     }
 
     [Theory]
@@ -210,8 +210,8 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Pedido.Estado = estado;
         await f.Db.SaveChangesAsync();
-        Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "Só é possível simular pedidos pendentes.");
     }
 
     [Fact]
@@ -220,8 +220,8 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
-        Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "A viagem não está ativa.");
     }
 
     [Fact]
@@ -235,6 +235,17 @@ public sealed class SimulacoesIntegrationTests
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
     }
 
+    /// <summary>BE-26: numa viagem cheia não há nada a simular; 409, sem chamar os mapas.</summary>
+    [Fact]
+    public async Task I112_16_ViagemCheia_Devolve409()
+    {
+        using var f = new Fixture();
+        f.Viagem.LugaresDisponiveis = 0;
+        await f.Db.SaveChangesAsync();
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id, mapasConfigurados: false).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "Sem lugares disponíveis.");
+    }
+
     [Fact]
     public async Task I040_08_SemPontos_Devolve400()
     {
@@ -242,8 +253,8 @@ public sealed class SimulacoesIntegrationTests
         f.Pedido.Recolha = null;
         f.Pedido.Destino = null;
         await f.Db.SaveChangesAsync();
-        Assert.IsType<BadRequestObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 400, "O pedido deve indicar recolha ou destino.");
     }
 
     [Fact]
@@ -252,7 +263,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var result = Assert.IsType<ObjectResult>(await f.Controller(f.Condutor.Id, false).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.Equal(503, result.StatusCode);
+        RespostasDeErro.AssertErro(result, 503, "Serviço de mapas não configurado.");
     }
 
     [Fact]
@@ -261,7 +272,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var result = Assert.IsType<ObjectResult>(await f.Controller(f.Condutor.Id, true, new FakeMapasHandler(true))
             .Simular(f.Viagem.Id, new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.Equal(502, result.StatusCode);
+        RespostasDeErro.AssertErro(result, 502, "Falha na comunicação com o serviço de mapas.");
     }
 
     [Fact]

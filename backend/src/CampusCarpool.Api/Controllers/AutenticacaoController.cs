@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CampusCarpool.Api.Configuration;
+using CampusCarpool.Api.Hubs;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Identidade;
 using Microsoft.AspNetCore.Authorization;
@@ -13,7 +14,7 @@ namespace CampusCarpool.Api.Controllers;
 /// Registo, confirmação de conta, início e fim de sessão (F001). Rotas em <c>/api/v1/autenticacao</c>.
 /// </summary>
 [ApiController, Route("api/v1/autenticacao")]
-public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : ControllerBase
+public sealed class AutenticacaoController(IAutenticacaoService autenticacao, LigacoesPorSessao ligacoesHub) : ControllerBase
 {
     private const string MensagemReenvio = "Se existir uma conta pendente associada a este email, receberás uma nova ligação de confirmação.";
 
@@ -30,8 +31,8 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
 
     /// <summary>Cria uma conta por confirmar e envia a ligação de confirmação (RF-F001-02 a RF-F001-06).</summary>
     /// <returns>
-    /// 202 conta criada e email enviado; 400 dados inválidos ou email não académico (RF-F001-03); 409 email já
-    /// registado (RF-F001-04); 503 conta criada mas o envio do email falhou.
+    /// 202 conta criada e email da confirmação em envio (segundo plano, BE-12); 400 dados inválidos ou email não
+    /// académico (RF-F001-03); 409 email já registado (RF-F001-04).
     /// </returns>
     [AllowAnonymous, HttpPost("registo"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> Registar(Registo input, CancellationToken ct) =>
@@ -44,7 +45,7 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
     /// Resposta neutra para não revelar se o endereço existe na plataforma.
     /// No máximo um reenvio por minuto. Cada reenvio invalida as ligações anteriores por usar.
     /// </remarks>
-    /// <returns>202 sempre que o email tem formato aceitável (exista ou não a conta); 400 email vazio ou longo.</returns>
+    /// <returns>202 sempre que o email tem formato de email (exista ou não a conta); 400 email vazio, longo ou sem formato de email.</returns>
     [AllowAnonymous, HttpPost("reenviar-confirmacao"), EnableRateLimiting(LimitesPedidos.Autenticacao)]
     public async Task<IActionResult> ReenviarConfirmacaoEmail(ReenviarConfirmacao input, CancellationToken ct) =>
         this.Responder(
@@ -85,8 +86,8 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
 
     /// <summary>
     /// Termina a sessão: revoga o token atual, que deixa de ser aceite (401) até expirar
-    /// (RF-F001-12, DEF-BE-004), e desativa o dispositivo indicado, sem afetar os outros (RF-F006-18, D-020).
-    /// Devolve 204; sem token válido, 401.
+    /// (RF-F001-12, DEF-BE-004), desativa o dispositivo indicado, sem afetar os outros (RF-F006-18, D-020), e fecha
+    /// as ligações ao hub abertas com o mesmo token (BE-18). Devolve 204; sem token válido, 401.
     /// </summary>
     [Authorize, HttpPost("logout")]
     public async Task<IActionResult> TerminarSessao(
@@ -103,6 +104,9 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao) : 
         var utilizadorId = User.IdUtilizador();
 
         await autenticacao.TerminarSessaoAsync(jti, expiraEm, utilizadorId, input?.TokenDispositivo, ct);
+
+        // RNF-SEG-03, BE-18: as ligações ao hub abertas com este token deixam logo de receber eventos.
+        ligacoesHub.FecharDaSessao(jti);
 
         return NoContent();
     }

@@ -7,8 +7,8 @@ public interface IRepositorioAvaliacoes
 {
     /// <summary>Obtém a viagem, só para leitura; <c>null</c> se não existir.</summary>
     Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct);
-    /// <summary>Indica se o utilizador existe.</summary>
-    Task<bool> UtilizadorExisteAsync(Guid id, CancellationToken ct);
+    /// <summary>Indica se o utilizador existe e tem a conta confirmada; uma conta por confirmar conta como inexistente (BE-14).</summary>
+    Task<bool> UtilizadorConfirmadoAsync(Guid id, CancellationToken ct);
     /// <summary>Indica se o passageiro tem participação <c>Aceite</c> na viagem (elegibilidade, P-16).</summary>
     Task<bool> ParticipacaoAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct);
     /// <summary>Obtém a avaliação atual do par (avaliador, avaliado), em qualquer viagem (RF-F007-04); fica rastreada para ser alterada.</summary>

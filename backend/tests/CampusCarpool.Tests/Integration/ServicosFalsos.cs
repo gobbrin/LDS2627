@@ -1,4 +1,5 @@
 using CampusCarpool.Api.Controllers;
+using CampusCarpool.Api.Hubs;
 using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Avaliacoes;
@@ -21,12 +22,7 @@ namespace CampusCarpool.Tests;
 /// <summary>Serviço de push que não faz nada (para testes que não verificam o push).</summary>
 public sealed class ServicoPushFalso : IServicoPush
 {
-    public Task EnviarAsync(
-        Guid utilizadorId,
-        string titulo,
-        string mensagem,
-        string tipo,
-        CancellationToken ct)
+    public Task EnviarAsync(NotificacaoPushPendente notificacao, CancellationToken ct)
         => Task.CompletedTask;
 }
 
@@ -55,17 +51,12 @@ public sealed class ServicoPushRegistador : IServicoPush
 
     public bool SimularFalha { get; set; }
 
-    public Task EnviarAsync(
-        Guid utilizadorId,
-        string titulo,
-        string mensagem,
-        string tipo,
-        CancellationToken ct)
+    public Task EnviarAsync(NotificacaoPushPendente notificacao, CancellationToken ct)
     {
         if (SimularFalha)
             throw new HttpRequestException("Falha simulada no serviço push.");
 
-        Envios.Add((utilizadorId, titulo, mensagem, tipo));
+        Envios.Add((notificacao.UtilizadorId, notificacao.Titulo, notificacao.Mensagem, notificacao.Tipo));
 
         return Task.CompletedTask;
     }
@@ -100,6 +91,15 @@ public sealed class RotaViagemFalsa : IRotaService
         IReadOnlyCollection<Participacao> aceites,
         CancellationToken ct)
         => Task.FromResult(RotaGuardada.Ler(viagem));
+
+    public Task<ResultadoRotaComPontos> GuardarAsync(Viagem viagem, ResultadoRotaComPontos rota, CancellationToken ct)
+    {
+        RotaGuardada.Guardar(viagem, rota);
+        return Task.FromResult(rota);
+    }
+
+    public Task<IReadOnlyList<Coordenadas>?> PedirLinhaAsync(IReadOnlyList<Coordenadas> pontos, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<Coordenadas>?>(null);
 }
 
 /// <summary>Unidade de trabalho falsa, que conta as gravações. Com <see cref="Falha"/> simula um conflito de concorrência.</summary>
@@ -161,20 +161,24 @@ public static class ServicosDeTeste
     public static EstimativaCustoService CriarCustos(decimal? precoPorKm = 0.10m) =>
         new(Options.Create(new OpcoesCustos { PrecoPorKm = precoPorKm }));
 
-    public static RotaService CriarRotas(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
-        new(mapas, new UnidadeDeTrabalhoEfCore(db));
+    /// <summary>Serviço de rotas real; sem <paramref name="geometria"/>, a HERE fica por configurar (linhas retas).</summary>
+    public static RotaService CriarRotas(
+        CampusCarpoolDbContext db,
+        IServicoMapasRotas mapas,
+        IServicoGeometriaRotas? geometria = null) =>
+        new(mapas, geometria ?? new HereFalsa().CriarServico(configurado: false), new UnidadeDeTrabalhoEfCore(db));
 
     public static ViagemService CriarViagens(
         CampusCarpoolDbContext db,
         IServicoMapasRotas mapas,
         EstimativaCustoService? custos = null,
-        INotificacaoService? notificacaoService = null) => new(
+        INotificacaoService? notificacaoService = null,
+        IServicoGeometriaRotas? geometria = null) => new(
         new RepositorioViagens(db),
         new RepositorioParticipacoes(db),
-        new RepositorioUtilizadores(db),
         new UnidadeDeTrabalhoEfCore(db),
         mapas,
-        CriarRotas(db, mapas),
+        CriarRotas(db, mapas, geometria),
         CriarConsultas(db),
         custos ?? CriarCustos(),
         notificacaoService ?? CriarNotificacoes(db));
@@ -193,15 +197,15 @@ public static class ServicosDeTeste
         CampusCarpoolDbContext db,
         IServicoMapasRotas mapas,
         INotificacaoService? notificacoes = null,
-        INotificadorPedidosTempoReal? tempoReal = null) => new(
+        INotificadorPedidosTempoReal? tempoReal = null,
+        IServicoGeometriaRotas? geometria = null) => new(
         new RepositorioParticipacoes(db),
         new RepositorioViagens(db),
         new UnidadeDeTrabalhoEfCore(db),
         notificacoes ?? CriarNotificacoes(db),
         tempoReal ?? new NotificadorPedidosFalso(),
-        CriarRotas(db, mapas),
-        mapas,
-        new RepositorioUtilizadores(db));
+        CriarRotas(db, mapas, geometria),
+        mapas);
 
     public static SimulacoesController CriarSimulacoesController(CampusCarpoolDbContext db, IServicoMapasRotas mapas) =>
         new(CriarParticipacoes(db, mapas));
@@ -224,7 +228,7 @@ public static class ServicosDeTeste
         CampusCarpoolDbContext db,
         IConfiguration configuracao,
         IServicoEmail email) =>
-        new(CriarAutenticacaoService(db, configuracao, email));
+        new(CriarAutenticacaoService(db, configuracao, email), new LigacoesPorSessao());
 
     public static AutenticacaoService CriarAutenticacaoService(
         CampusCarpoolDbContext db,
@@ -236,19 +240,19 @@ public static class ServicosDeTeste
             new RepositorioTokensRevogados(db),
             new RepositorioDispositivo(db),
             new UnidadeDeTrabalhoEfCore(db),
-            email,
+            new FilaEmailsDireta(email),
             new HashPalavraPasse(),
             new GeradorTokensJwt(configuracao),
-            CriarValidadorEmail(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<AutenticacaoService>.Instance);
+            CriarValidadorEmail());
 
     public static RotasController CriarRotasController(
         IServicoMapasRotas mapas,
         EstimativaCustoService custos,
-        CampusCarpoolDbContext? db = null) =>
+        CampusCarpoolDbContext? db = null,
+        IServicoGeometriaRotas? geometria = null) =>
         new(new ConsultaRotasService(
             mapas,
-            db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas),
+            db is null ? new RotaViagemFalsa() : CriarRotas(db, mapas, geometria),
             custos,
             db is null ? null! : CriarConsultas(db),
             new RepositorioViagens(db!),
@@ -290,8 +294,14 @@ public sealed class MapasFalsos : HttpMessageHandler
         return new CampusCarpool.Infrastructure.Integrations.ServicoMapasRotas(new HttpClient(this, disposeHandler: false), configuracao);
     }
 
+    /// <summary>Tempo que cada pedido demora a responder (para o limite de 10 s por operação, BE-11).</summary>
+    public TimeSpan Atraso { get; set; } = TimeSpan.Zero;
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (Atraso > TimeSpan.Zero)
+            await Task.Delay(Atraso, cancellationToken);
+
         if (SimularFalha)
             return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
 
@@ -350,4 +360,50 @@ public sealed class MapasFalsos : HttpMessageHandler
             System.Text.Encoding.UTF8,
             "application/json")
     };
+}
+
+/// <summary>
+/// HERE Routing v8 simulado: responde a cada pedido com uma rota de uma secção e uma linha fixa (<see cref="Polilinha"/>),
+/// ou com o código de <see cref="Falha"/>. Guarda o último URL pedido e conta os pedidos.
+/// </summary>
+public sealed class HereFalsa : HttpMessageHandler
+{
+    /// <summary>Exemplo da documentação da HERE (precisão 5): 4 pontos perto de Frankfurt.</summary>
+    public const string Polilinha = "BFoz5xJ67i1B1B7PzIhaxL7Y";
+
+    public int Chamadas { get; private set; }
+    public Uri? UltimoPedido { get; private set; }
+    public System.Net.HttpStatusCode? Falha { get; set; }
+
+    /// <summary>Cria o cliente da HERE que usa este simulador; sem chave, nunca chega a fazer pedidos.</summary>
+    public CampusCarpool.Infrastructure.Integrations.ServicoGeometriaHere CriarServico(bool configurado = true)
+    {
+        var configuracao = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Here:ApiKey"] = configurado ? "chave-here-ficticia-apenas-para-testes" : ""
+            })
+            .Build();
+
+        return new CampusCarpool.Infrastructure.Integrations.ServicoGeometriaHere(
+            new HttpClient(this, disposeHandler: false),
+            configuracao,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CampusCarpool.Infrastructure.Integrations.ServicoGeometriaHere>.Instance);
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Chamadas++;
+        UltimoPedido = request.RequestUri;
+
+        if (Falha is System.Net.HttpStatusCode codigo)
+            return Task.FromResult(new HttpResponseMessage(codigo));
+
+        string json = "{\"routes\":[{\"sections\":[{\"polyline\":\"" + Polilinha + "\"}]}]}";
+
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+        });
+    }
 }

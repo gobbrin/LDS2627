@@ -162,8 +162,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
             notificacaoService,
             new NotificadorPedidosTempoRealFalso(),
             new RotaViagemFalsa(),
-            null!,
-            new RepositorioUtilizadores(db));
+            null!);
 
         var controller = new GestaoParticipacoesController(participacaoService);
 
@@ -283,7 +282,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, passageiro.Id).Cancelar(participacao.Id, default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "O estado atual do pedido não permite esta operação.");
         Assert.Equal(EstadoParticipacao.Aceite, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
         Assert.Equal(1, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
@@ -336,7 +335,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, condutor.Id).Aceitar(participacao.Id, default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "A capacidade da viagem está inconsistente.");
         Assert.Equal(EstadoParticipacao.Pendente, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
         Assert.Equal(0, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
@@ -355,7 +354,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, condutor.Id).Aceitar(pendente.Id, default);
 
-        Assert.Equal(409, Assert.IsType<ConflictObjectResult>(resultado).StatusCode);
+        RespostasDeErro.AssertErro(resultado, 409, "A capacidade da viagem está inconsistente.");
         Assert.Equal(EstadoParticipacao.Pendente, (await f.Db.Participacoes.FindAsync(pendente.Id))!.Estado);
         Assert.Equal(3, (await f.Db.Viagens.FindAsync(viagem.Id))!.LugaresDisponiveis);
     }
@@ -411,11 +410,11 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var cancelada = await f.CriarParticipacao(viagem.Id, passageiroCancelado.Id, EstadoParticipacao.Cancelada);
         var controller = CriarController(f.Db, condutor.Id);
 
-        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(aceite.Id, default));
-        Assert.IsType<ConflictObjectResult>(await controller.Rejeitar(aceite.Id, default));
-        Assert.IsType<ConflictObjectResult>(await controller.Aceitar(rejeitada.Id, default));
-        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default));
-        Assert.IsType<ConflictObjectResult>(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default));
+        RespostasDeErro.AssertErro(await controller.Aceitar(aceite.Id, default), 409, "O estado atual do pedido não permite esta operação.");
+        RespostasDeErro.AssertErro(await controller.Rejeitar(aceite.Id, default), 409, "O estado atual do pedido não permite esta operação.");
+        RespostasDeErro.AssertErro(await controller.Aceitar(rejeitada.Id, default), 409, "O estado atual do pedido não permite esta operação.");
+        RespostasDeErro.AssertErro(await CriarController(f.Db, passageiroRejeitado.Id).Cancelar(rejeitada.Id, default), 409, "O estado atual do pedido não permite esta operação.");
+        RespostasDeErro.AssertErro(await CriarController(f.Db, passageiroCancelado.Id).Cancelar(cancelada.Id, default), 409, "O estado atual do pedido não permite esta operação.");
     }
 
     [Fact]

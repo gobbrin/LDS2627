@@ -295,7 +295,7 @@ public sealed class DispositivosHttpIntegrationTests
             "/api/v1/dispositivos",
             new { Token = "   " });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        await RespostasDeErro.AssertErroAsync(response, HttpStatusCode.BadRequest, "Token FCM inválido.");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider

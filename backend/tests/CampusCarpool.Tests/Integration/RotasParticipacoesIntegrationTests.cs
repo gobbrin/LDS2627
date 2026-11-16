@@ -230,7 +230,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var dados = resposta.Value!;
 
         var pontos = Assert.IsAssignableFrom<
-            IReadOnlyList<PontoRota>>(
+            IReadOnlyList<PontoDaRota>>(
             dados.GetType()
                 .GetProperty("PontosOrdenados")!
                 .GetValue(dados));
@@ -271,9 +271,9 @@ public sealed class RotasParticipacoesIntegrationTests
             .ConsultarRotaViagem(viagem.Id, default));
 
         var dados = resposta.Value!;
-        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoRota>>(
+        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoDaRota>>(
             dados.GetType().GetProperty("PontosOrdenados")!.GetValue(dados));
-        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<SegmentoRota>>(
+        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<TrocoDaRota>>(
             dados.GetType().GetProperty("Segmentos")!.GetValue(dados));
 
         Assert.Equal(["Porto", "Braga"], pontos.Select(p => p.Local));
@@ -292,8 +292,8 @@ public sealed class RotasParticipacoesIntegrationTests
         viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
 
-        Assert.IsType<NotFoundObjectResult>(await CriarController(f.Db, outro.Id, new MapasFalsos())
-            .ConsultarRotaViagem(viagem.Id, default));
+        RespostasDeErro.AssertErro(await CriarController(f.Db, outro.Id, new MapasFalsos())
+            .ConsultarRotaViagem(viagem.Id, default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -327,7 +327,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         var dados = resposta.Value!;
 
-        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoRota>>(
+        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoDaRota>>(
             dados.GetType()
                 .GetProperty("PontosOrdenados")!
                 .GetValue(dados));
@@ -402,7 +402,7 @@ public sealed class RotasParticipacoesIntegrationTests
         var resultado = await controller.ConsultarRotaViagem(
             Guid.NewGuid(), default);
 
-        Assert.IsType<NotFoundObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 404, "Viagem não encontrada.");
         Assert.Equal(0, handler.ChamadasRotas);
     }
     [Fact]
@@ -426,7 +426,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         var resposta = Assert.IsType<ObjectResult>(resultado);
 
-        Assert.Equal(502, resposta.StatusCode);
+        RespostasDeErro.AssertErro(resposta, 502, "Serviço de mapas indisponível.");
     }
 
     [Fact]
@@ -478,12 +478,12 @@ public sealed class RotasParticipacoesIntegrationTests
 
         var dados = resposta.Value!;
 
-        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoRota>>(
+        var pontos = Assert.IsAssignableFrom<IReadOnlyList<PontoDaRota>>(
             dados.GetType()
                 .GetProperty("PontosOrdenados")!
                 .GetValue(dados));
 
-        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<SegmentoRota>>(
+        var segmentos = Assert.IsAssignableFrom<IReadOnlyList<TrocoDaRota>>(
             dados.GetType()
                 .GetProperty("Segmentos")!
                 .GetValue(dados));
@@ -491,23 +491,12 @@ public sealed class RotasParticipacoesIntegrationTests
         Assert.Equal(6, pontos.Count);
         Assert.Equal(5, segmentos.Count);
 
-        // Para cada passageiro, a recolha deve vir antes do destino.
-        foreach (var passageiroId in new[]
+        // Para cada passageiro, a recolha deve vir antes do destino. A resposta já não traz a participação (I112,
+        // BE-06): identifica-se cada ponto pelo local.
+        foreach (var (recolha, destino) in new[] { ("Maia", "Trofa"), ("Famalicão", "Vila Nova de Famalicão") })
         {
-        f.Db.Participacoes.Local.First(p =>
-            p.PassageiroId == passageiro1.Id).Id,
-
-        f.Db.Participacoes.Local.First(p =>
-            p.PassageiroId == passageiro2.Id).Id
-    })
-        {
-            var indiceRecolha = pontos.ToList().FindIndex(
-                p => p.ParticipacaoId == passageiroId &&
-                     p.Tipo == "Recolha");
-
-            var indiceDestino = pontos.ToList().FindIndex(
-                p => p.ParticipacaoId == passageiroId &&
-                     p.Tipo == "DestinoPassageiro");
+            var indiceRecolha = pontos.ToList().FindIndex(p => p.Local == recolha && p.Tipo == "Recolha");
+            var indiceDestino = pontos.ToList().FindIndex(p => p.Local == destino && p.Tipo == "DestinoPassageiro");
 
             Assert.True(indiceRecolha >= 0);
             Assert.True(indiceDestino > indiceRecolha);

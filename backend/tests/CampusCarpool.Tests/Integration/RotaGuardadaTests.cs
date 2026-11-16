@@ -50,11 +50,11 @@ public sealed class RotaGuardadaTests : IDisposable
             LugaresDisponiveis = 2,
             DuracaoMinutos = 60
         };
-        RotaGuardada.GuardarDireta(viagem, new ResultadoRota(
+        RotaGuardada.Guardar(viagem, RotaGuardada.Direta(viagem, new ResultadoRota(
             50m,
             60,
             new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
-            new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude)));
+            new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude))));
 
         pedido = new Participacao
         {
@@ -216,11 +216,89 @@ public sealed class RotaGuardadaTests : IDisposable
     {
         await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
         db.ChangeTracker.Clear();
+        int chamadasAntes = mapas.ChamadasRotas;
+
+        // I112 (BE-29): indisponibilizar não chama os mapas; a rota com paragens fica por recalcular.
+        var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas.CriarServico()), condutor.Id);
+        Assert.IsType<NoContentResult>(await controller.Indisponibilizar(viagem.Id, default));
+
+        Assert.Equal(chamadasAntes, mapas.ChamadasRotas);
+        Assert.Null((await ViagemGravada()).RotaPontos);
+    }
+
+    /// <summary>BE-29: sem paragens, a rota guardada continua certa e indisponibilizar não chama os mapas.</summary>
+    [Fact]
+    public async Task I112_19_IndisponibilizarSemParagens_MantemARotaSemChamarOsMapas()
+    {
+        mapas.SimularFalha = true;
 
         var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas.CriarServico()), condutor.Id);
         Assert.IsType<NoContentResult>(await controller.Indisponibilizar(viagem.Id, default));
 
         Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
+        Assert.Equal(0, mapas.ChamadasRotas);
+    }
+
+    // Pedido que segue a origem e o destino da viagem: recolha com o texto e as coordenadas da origem, destino omitido.
+    private async Task PedidoSemParagens()
+    {
+        Participacao guardado = await db.Participacoes.SingleAsync();
+        guardado.Recolha = viagem.Origem;
+        guardado.RecolhaLatitude = viagem.OrigemLatitude;
+        guardado.RecolhaLongitude = viagem.OrigemLongitude;
+        guardado.Destino = null;
+        guardado.DestinoLatitude = null;
+        guardado.DestinoLongitude = null;
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+    }
+
+    /// <summary>BE-03 / DEF-BE-043: aceitar um pedido sem paragens novas não depende dos mapas e mantém a rota.</summary>
+    [Fact]
+    public async Task I112_20_AceitarSemParagens_SemServicoDeMapas_EAceiteEARotaMantemSe()
+    {
+        await PedidoSemParagens();
+        mapas.SimularFalha = true;
+
+        var resultado = await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
+
+        Assert.Null(resultado.Erro);
+        var gravada = await ViagemGravada();
+        Assert.Equal(1, gravada.LugaresDisponiveis);
+        Assert.Equal(["Porto", "Braga"], Locais(gravada));
+        Assert.Equal(0, mapas.ChamadasRotas);
+    }
+
+    /// <summary>BE-03: cancelar uma participação sem paragens também não chama os mapas nem perde a rota.</summary>
+    [Fact]
+    public async Task I112_21_CancelarSemParagens_SemServicoDeMapas_MantemARota()
+    {
+        await PedidoSemParagens();
+        await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
+        mapas.SimularFalha = true;
+
+        var resultado = await Servico().CancelarAsync(pedido.Id, passageiro.Id, default);
+
+        Assert.Null(resultado.Erro);
+        Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
+        Assert.Equal(0, mapas.ChamadasRotas);
+    }
+
+    /// <summary>BE-03: a simulação de um pedido sem paragens devolve a rota guardada, sem chamar os mapas.</summary>
+    [Fact]
+    public async Task I112_22_SimularSemParagens_SemServicoDeMapas_DevolveARotaGuardada()
+    {
+        await PedidoSemParagens();
+        mapas.SimularFalha = true;
+
+        var controller = ComUtilizador(ServicosDeTeste.CriarSimulacoesController(db, mapas.CriarServico()), condutor.Id);
+        var simulacao = Assert.IsType<SimulacaoPedido>(
+            Assert.IsType<OkObjectResult>(await controller.Simular(
+                viagem.Id, new SimulacoesController.SimularPedido(pedido.Id), default)).Value);
+
+        Assert.Equal(0, simulacao.DesvioDuracaoMinutos);
+        Assert.Equal(["Porto", "Braga"], simulacao.OrdemSimulada);
+        Assert.Equal(0, mapas.ChamadasRotas);
     }
 
     private ViagensController ControladorViagens() => ComUtilizador(
@@ -264,32 +342,56 @@ public sealed class RotaGuardadaTests : IDisposable
     }
 
     [Fact]
-    /// <summary>RF-F002-17: sem o Serviço de Mapas a alteração é recusada e a viagem fica como estava.</summary>
+    /// <summary>RF-F002-17: sem o Serviço de Mapas a mudança de local é recusada e a viagem fica como estava.</summary>
     public async Task I110_39_AlterarSemServicoDeMapas_ERecusadoENadaMuda()
     {
         mapas.SimularFalha = true;
 
-        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao(null, null), default);
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao("Maia", null), default);
 
-        Assert.Equal(502, Assert.IsType<ObjectResult>(resultado).StatusCode);
+        RespostasDeErro.AssertErro(resultado, 502, "Serviço de mapas indisponível.");
         var gravada = await ViagemGravada();
         Assert.Equal(2, gravada.LugaresOferecidos);
         Assert.Equal("Porto", gravada.Origem);
     }
 
+    [Fact]
+    /// <summary>
+    /// RF-F002-17 e BE-04 (decisão de 16/11): mudar só a hora e os lugares não precisa do Serviço de Mapas; a rota e a
+    /// duração guardadas mantêm-se.
+    /// </summary>
+    public async Task I112_17_AlterarSoHoraELugares_SemServicoDeMapas_EAceite()
+    {
+        var antes = await ViagemGravada();
+        db.ChangeTracker.Clear();
+        mapas.SimularFalha = true;
+        int geocodificacoes = mapas.ChamadasGeocodificacao;
+        int calculos = mapas.ChamadasRotas;
+
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao(null, null), default);
+
+        Assert.IsType<NoContentResult>(resultado);
+        var gravada = await ViagemGravada();
+        Assert.Equal(3, gravada.LugaresOferecidos);
+        Assert.Equal(antes.RotaPontos, gravada.RotaPontos);
+        Assert.Equal(antes.DuracaoMinutos, gravada.DuracaoMinutos);
+        Assert.Equal(geocodificacoes, mapas.ChamadasGeocodificacao);
+        Assert.Equal(calculos, mapas.ChamadasRotas);
+    }
+
     [Theory]
-    [InlineData(" braga ", null)]        // Mesmo texto que o destino atual.
-    [InlineData("Lisboa", "LISBOA")]     // Mesmo texto entre si.
-    [InlineData("Lisboa", "Capital")]    // Textos diferentes, coordenadas iguais.
-    /// <summary>RF-F002-16: a alteração aplica a regra de «mesmo local» (D-008).</summary>
-    public async Task I110_40_AlterarParaOMesmoLocal_Devolve400(string origem, string? destino)
+    [InlineData(" braga ", null, "A origem e o destino não podem ser o mesmo local.")]        // Mesmo texto que o destino atual.
+    [InlineData("Lisboa", "LISBOA", "A origem e o destino não podem ser o mesmo local.")]     // Mesmo texto entre si.
+    [InlineData("Lisboa", "Capital", "A origem e o destino não podem ser o mesmo local.")] // Textos diferentes, coordenadas iguais.
+    /// <summary>RF-F002-16: a alteração aplica a regra de «mesmo local» (D-008), com a mensagem própria (BE-15).</summary>
+    public async Task I110_40_AlterarParaOMesmoLocal_Devolve400(string origem, string? destino, string mensagem)
     {
         mapas.Locais["Lisboa"] = (38.72, -9.14);
         mapas.Locais["Capital"] = (38.72, -9.14);
 
         var resultado = await ControladorViagens().Editar(viagem.Id, Edicao(origem, destino), default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, mensagem);
         Assert.Equal("Porto", (await ViagemGravada()).Origem);
     }
 }

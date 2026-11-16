@@ -11,7 +11,8 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
     /// <inheritdoc />
     public Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct) => db.Viagens.AsNoTracking().FirstOrDefaultAsync(v => v.Id == viagemId, ct);
     /// <inheritdoc />
-    public Task<bool> UtilizadorExisteAsync(Guid id, CancellationToken ct) => db.Utilizadores.AnyAsync(u => u.Id == id, ct);
+    public Task<bool> UtilizadorConfirmadoAsync(Guid id, CancellationToken ct) =>
+        db.Utilizadores.AnyAsync(u => u.Id == id && u.EmailConfirmado, ct);
     /// <inheritdoc />
     public Task<bool> ParticipacaoAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) =>
         db.Participacoes.AnyAsync(p => p.ViagemId == viagemId && p.PassageiroId == passageiroId && p.Estado == EstadoParticipacao.Aceite, ct);

@@ -50,4 +50,21 @@ public interface IRotaService
         Viagem viagem,
         IReadOnlyCollection<Participacao> aceites,
         CancellationToken ct);
+
+    /// <summary>Junta a linha do mapa à rota e escreve-a na viagem, sem gravar (RF-F008-07, DEF-BE-054).</summary>
+    /// <remarks>
+    /// Se a rota guardada passa pelos mesmos pontos e já tem linha, reutiliza-a; senão pede-a à HERE. Sem HERE, a rota
+    /// fica sem linha e o mapa mostra retas entre os pontos. Nunca falha por causa da HERE.
+    /// </remarks>
+    /// <param name="viagem">Viagem a atualizar (ainda com a rota anterior, para a comparação).</param>
+    /// <param name="rota">Rota calculada.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A rota tal como ficou guardada, com a linha (ou sem ela).</returns>
+    Task<ResultadoRotaComPontos> GuardarAsync(Viagem viagem, ResultadoRotaComPontos rota, CancellationToken ct);
+
+    /// <summary>Pede à HERE a linha que passa pelos pontos indicados, pela ordem indicada.</summary>
+    /// <param name="pontos">Origem, paragens e destino.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A linha; <c>null</c> se a HERE não estiver configurada ou não a der (o mapa usa retas).</returns>
+    Task<IReadOnlyList<Coordenadas>?> PedirLinhaAsync(IReadOnlyList<Coordenadas> pontos, CancellationToken ct);
 }

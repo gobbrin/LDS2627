@@ -60,16 +60,16 @@ public static class InfrastructureServiceRegistration
         // A fila tem um só leitor: sem limite curto, um FCM lento atrasaria todos os push seguintes (IN-05).
         services.AddHttpClient<IServicoPush, ServicoPush>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
-        // O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
+        // O ServicoMapasRotas usa URLs absolutos do OpenRouteService. O timeout aplica-se a cada pedido;
+        // o limite de 10 s da operação inteira (P-19) está na ChamadaMapas (BE-11).
         services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            client.BaseAddress = new Uri(
-                config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
-                .TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromSeconds(
-                config.GetValue("Maps:TimeoutSeconds", 10));
+            client.Timeout = TimeSpan.FromSeconds(config.GetValue("Maps:TimeoutSeconds", 10));
         });
+
+        // Linha da rota para o mapa (HERE Routing v8, DEF-BE-054). Sem Here:ApiKey, a rota fica com linhas retas.
+        services.AddHttpClient<IServicoGeometriaRotas, ServicoGeometriaHere>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
@@ -102,6 +102,10 @@ public static class InfrastructureServiceRegistration
 
         // Trabalhador que processa a fila em segundo plano (I047).
         services.AddHostedService<TrabalhadorNotificacoesPush>();
+
+        // Emails de confirmação em segundo plano (I112, BE-12): o registo e o reenvio não esperam pelo Brevo.
+        services.AddSingleton<IFilaEmails, FilaEmails>();
+        services.AddHostedService<TrabalhadorEmails>();
 
         // Conclusão automática das viagens (I110, DEF-BE-009; UC-F002-05).
         services.AddHostedService<TrabalhadorConclusaoViagens>();

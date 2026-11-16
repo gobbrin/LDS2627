@@ -29,15 +29,15 @@ public sealed class ParticipacaoService(
     INotificacaoService notificacaoService,
     INotificadorPedidosTempoReal notificadorPedidosTempoReal,
     IRotaService rotaService,
-    IServicoMapasRotas mapas,
-    IRepositorioUtilizadores repositorioUtilizadores) : IParticipacaoService
+    IServicoMapasRotas mapas) : IParticipacaoService
 {
     private const string MensagemPedidoRepetido = "Já existe um pedido ou participação ativa nesta viagem.";
 
-    private const string MensagemPontosIncompativeis =
-        "A recolha e o destino não podem ser o mesmo local, a recolha não pode ser o destino da viagem e o destino não pode ser a origem da viagem.";
-
-    private static readonly Erro PontosIncompativeisErro = new(TipoErro.DadosInvalidos, MensagemPontosIncompativeis);
+    // Uma mensagem por regra dos pontos do pedido (BE-15).
+    private static readonly Erro RecolhaIgualAoDestino = new(TipoErro.DadosInvalidos, "A recolha e o destino não podem ser o mesmo local.");
+    private static readonly Erro RecolhaNoDestinoDaViagem = new(TipoErro.DadosInvalidos, "A recolha não pode ser o destino da viagem.");
+    private static readonly Erro DestinoNaOrigemDaViagem = new(TipoErro.DadosInvalidos, "O destino não pode ser a origem da viagem.");
+    private static readonly Erro ViagemIndisponivel = new(TipoErro.Conflito, "Viagem indisponível.");
     private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado, "Pedido não encontrado.");
     private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para gerir este pedido.");
     private static readonly Erro EstadoNaoPermite = new(TipoErro.Conflito, "O estado atual do pedido não permite esta operação.");
@@ -50,18 +50,89 @@ public sealed class ParticipacaoService(
     // Coordenadas dos pontos indicados no pedido; um ponto omitido fica a null.
     private sealed record PontosDoPedido(Coordenadas? Recolha, Coordenadas? Destino);
 
-    // RF-F004-18: recolha e destino efetivos; RF-F004-20: recolha no destino da viagem; RF-F004-21: destino na origem.
-    private static bool PontosIncompativeis<T>(
-        T recolha,
-        T destino,
-        T origemViagem,
-        T destinoViagem,
-        Func<T, T, bool> mesmoLocal) =>
-        mesmoLocal(recolha, destino)
-        || mesmoLocal(recolha, destinoViagem)
-        || mesmoLocal(destino, origemViagem);
+    /// <summary>Valida o texto dos pontos indicados no pedido (P-20), sem consultar a BD nem os mapas.</summary>
+    /// <param name="recolha">Ponto de recolha, ou <c>null</c> para a origem da viagem.</param>
+    /// <param name="destino">Ponto de destino, ou <c>null</c> para o destino da viagem.</param>
+    /// <returns>O erro da primeira regra que falha, com uma mensagem própria; <c>null</c> se estiver tudo certo.</returns>
+    private static Erro? ValidarTextoDosPontos(string? recolha, string? destino)
+    {
+        // P-20: pelo menos um dos dois pontos.
+        if (recolha is null && destino is null)
+            return new Erro(TipoErro.DadosInvalidos, "Indica um ponto de recolha ou de destino.");
+
+        if (recolha is not null && string.IsNullOrWhiteSpace(recolha))
+            return new Erro(TipoErro.DadosInvalidos, "O ponto de recolha está vazio.");
+
+        if (recolha is not null && recolha.Length > Participacao.TamanhoMaximoPonto)
+            return new Erro(TipoErro.DadosInvalidos, "O ponto de recolha tem no máximo 200 caracteres.");
+
+        if (destino is not null && string.IsNullOrWhiteSpace(destino))
+            return new Erro(TipoErro.DadosInvalidos, "O ponto de destino está vazio.");
+
+        if (destino is not null && destino.Length > Participacao.TamanhoMaximoPonto)
+            return new Erro(TipoErro.DadosInvalidos, "O ponto de destino tem no máximo 200 caracteres.");
+
+        return null;
+    }
+
+    /// <summary>
+    /// Regras de mesmo local pelo texto: RF-F004-20 (recolha no destino da viagem), RF-F004-21 (destino na origem da
+    /// viagem) e RF-F004-18 (recolha e destino efetivos). As duas primeiras vêm antes por terem a mensagem mais precisa:
+    /// com um ponto omitido, a regra 18 também falharia.
+    /// </summary>
+    /// <param name="recolha">Recolha efetiva: a indicada ou, se omitida, a origem da viagem.</param>
+    /// <param name="destino">Destino efetivo: o indicado ou, se omitido, o destino da viagem.</param>
+    /// <param name="viagem">Viagem pedida.</param>
+    /// <returns>O erro da regra que falha; <c>null</c> se nenhuma falhar.</returns>
+    private static Erro? ValidarMesmoLocalPorTexto(string recolha, string destino, Viagem viagem)
+    {
+        if (RegraMesmoLocal.MesmoTexto(recolha, viagem.Destino))
+            return RecolhaNoDestinoDaViagem;
+
+        if (RegraMesmoLocal.MesmoTexto(destino, viagem.Origem))
+            return DestinoNaOrigemDaViagem;
+
+        if (RegraMesmoLocal.MesmoTexto(recolha, destino))
+            return RecolhaIgualAoDestino;
+
+        return null;
+    }
+
+    /// <summary>
+    /// As mesmas regras de <see cref="ValidarMesmoLocalPorTexto"/>, agora pelas coordenadas. Um ponto omitido usa as
+    /// coordenadas da viagem (P-20).
+    /// </summary>
+    /// <param name="viagem">Viagem pedida.</param>
+    /// <param name="pontos">Coordenadas dos pontos indicados no pedido.</param>
+    /// <returns>O erro da regra que falha; <c>null</c> se nenhuma falhar.</returns>
+    private static Erro? ValidarMesmoLocalPorCoordenadas(Viagem viagem, PontosDoPedido pontos)
+    {
+        Coordenadas origemViagem = new(viagem.OrigemLatitude, viagem.OrigemLongitude);
+        Coordenadas destinoViagem = new(viagem.DestinoLatitude, viagem.DestinoLongitude);
+        Coordenadas recolha = pontos.Recolha ?? origemViagem;
+        Coordenadas destino = pontos.Destino ?? destinoViagem;
+
+        if (MesmasCoordenadas(recolha, destinoViagem))
+            return RecolhaNoDestinoDaViagem;
+
+        if (MesmasCoordenadas(destino, origemViagem))
+            return DestinoNaOrigemDaViagem;
+
+        if (MesmasCoordenadas(recolha, destino))
+            return RecolhaIgualAoDestino;
+
+        return null;
+    }
+
+    private static bool MesmasCoordenadas(Coordenadas a, Coordenadas b) =>
+        RegraMesmoLocal.MesmasCoordenadas(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Passos, por ordem (BE-05): (1) validar o texto dos pontos, sem BD; (2) validar a viagem; (3) mesmo local pelo
+    /// texto; (4) obter as coordenadas; (5) confirmar que a viagem continua ativa; (6) mesmo local pelas coordenadas;
+    /// (7) criar, gravar e avisar o condutor.
+    /// </remarks>
     public async Task<Resultado<PedidoCriado>> CriarPedidoAsync(
         Guid viagemId,
         Guid passageiroId,
@@ -69,74 +140,113 @@ public sealed class ParticipacaoService(
         string? destino,
         CancellationToken ct)
     {
-        // Confirmar que o passageiro tem uma conta validada.
-        if (!await repositorioUtilizadores.ContaConfirmadaAsync(passageiroId, ct))
-            return new Erro(TipoErro.Proibido, "Confirma a tua conta antes de pedir participação numa viagem.");
+        // 1. P-20: os pontos validam-se primeiro, porque não precisam da BD.
+        if (ValidarTextoDosPontos(recolha, destino) is { } pontosInvalidos)
+            return pontosInvalidos;
 
-        // A viagem deve existir, estar ativa e ainda não ter começado.
-        var viagem = await repositorioViagens.ObterPorIdAsync(viagemId, ct);
+        // 2. A viagem tem de existir e aceitar um pedido deste passageiro.
+        Viagem? viagem = await repositorioViagens.ObterPorIdAsync(viagemId, ct);
 
         if (viagem is null)
             return new Erro(TipoErro.NaoEncontrado, "Viagem não encontrada.");
 
+        if (await ValidarViagemParaPedidoAsync(viagem, passageiroId, ct) is { } viagemRecusada)
+            return viagemRecusada;
+
+        // 3. Primeiro só pelo texto, para não chamar o Serviço de Mapas sem necessidade.
+        if (ValidarMesmoLocalPorTexto(recolha ?? viagem.Origem, destino ?? viagem.Destino, viagem) is { } mesmoTexto)
+            return mesmoTexto;
+
+        // 4. Coordenadas dos pontos indicados.
+        Resultado<PontosDoPedido> pontos = await ObterCoordenadasAsync(viagem, recolha, destino, ct);
+
+        if (pontos.Erro is { } erroMapas)
+            return erroMapas;
+
+        // 5. Os mapas podem demorar até 10 s e a gravação do pedido não toca na linha da viagem, por isso Versao não
+        // deteta a mudança. Sem isto, o pedido ficaria Pendente para sempre numa viagem já terminada.
+        if (await repositorioViagens.ObterEstadoAsync(viagem.Id, ct) != EstadoViagem.Ativa)
+            return ViagemIndisponivel;
+
+        // 6. As mesmas regras de mesmo local, agora pelas coordenadas.
+        if (ValidarMesmoLocalPorCoordenadas(viagem, pontos.Valor) is { } mesmasCoordenadas)
+            return mesmasCoordenadas;
+
+        // 7. O pedido fica pendente, sem descontar lugares.
+        Participacao pedido = Participacao.Pedir(
+            viagem.Id,
+            passageiroId,
+            recolha,
+            pontos.Valor.Recolha,
+            destino,
+            pontos.Valor.Destino,
+            DateTime.UtcNow);
+
+        return await GravarENotificarPedidoAsync(viagem, pedido, ct);
+    }
+
+    /// <summary>
+    /// Verifica se a viagem aceita um pedido deste passageiro: ativa e por partir, não é do próprio passageiro
+    /// (RF-F004-05), sem outro pedido ativo dele (RF-F004-06) e com lugar livre.
+    /// </summary>
+    /// <returns>O erro da primeira regra que falha; <c>null</c> se a viagem aceitar o pedido.</returns>
+    private async Task<Erro?> ValidarViagemParaPedidoAsync(Viagem viagem, Guid passageiroId, CancellationToken ct)
+    {
         if (!viagem.PorPartir(DateTime.UtcNow))
-            return new Erro(TipoErro.Conflito, "Viagem indisponível.");
+            return ViagemIndisponivel;
 
         if (viagem.CondutorId == passageiroId)
             return new Erro(TipoErro.Conflito, "Não podes pedir participação na tua própria viagem.");
 
-        // Impedir pedidos pendentes ou participações aceites duplicadas.
         if (await repositorioParticipacoes.ExisteAtivaAsync(viagem.Id, passageiroId, ct))
             return new Erro(TipoErro.Conflito, MensagemPedidoRepetido);
 
-        // Apenas as participações aceites ocupam lugares.
-        var aceites = await repositorioParticipacoes.ListarPorViagemAsync(viagem.Id, EstadoParticipacao.Aceite, ct);
-
-        if (aceites.Count >= viagem.LugaresOferecidos)
+        // Só as participações aceites ocupam lugares; a regra é a da viagem (BE-16).
+        if (!viagem.TemLugarLivre)
             return new Erro(TipoErro.Conflito, "Não existem lugares disponíveis nesta viagem.");
 
-        // P-20: pelo menos um dos dois pontos; os valores fornecidos devem ser válidos.
-        if (recolha is null && destino is null)
-            return new Erro(TipoErro.DadosInvalidos, "Indica um ponto de recolha ou de destino.");
+        return null;
+    }
 
-        if ((recolha is not null && (string.IsNullOrWhiteSpace(recolha) || recolha.Length > 200))
-            || (destino is not null && (string.IsNullOrWhiteSpace(destino) || destino.Length > 200)))
-        {
-            return new Erro(TipoErro.DadosInvalidos, "Os pontos de recolha ou destino são inválidos.");
-        }
+    /// <summary>
+    /// Obtém as coordenadas dos pontos indicados no pedido (RF-F008-01). Um ponto omitido fica a <c>null</c> (P-20).
+    /// </summary>
+    /// <remarks>
+    /// Um ponto com o mesmo texto que a origem ou o destino da viagem usa as coordenadas já guardadas. Só um ponto novo
+    /// chama o Serviço de Mapas: sem pontos novos, o pedido não depende dele (P-19, BE-03).
+    /// </remarks>
+    /// <returns>As coordenadas, ou o erro dos mapas (422 ponto não encontrado, 502, 503, 504).</returns>
+    private async Task<Resultado<PontosDoPedido>> ObterCoordenadasAsync(
+        Viagem viagem,
+        string? recolha,
+        string? destino,
+        CancellationToken ct)
+    {
+        Coordenadas? coordenadasRecolha = CoordenadasJaConhecidas(viagem, recolha);
+        Coordenadas? coordenadasDestino = CoordenadasJaConhecidas(viagem, destino);
+        bool geocodificarRecolha = recolha is not null && coordenadasRecolha is null;
+        bool geocodificarDestino = destino is not null && coordenadasDestino is null;
 
-        // Primeiro só pelo texto, para não chamar o serviço de mapas sem necessidade.
-        if (PontosIncompativeis(
-            recolha ?? viagem.Origem,
-            destino ?? viagem.Destino,
-            viagem.Origem,
-            viagem.Destino,
-            RegraMesmoLocal.MesmoTexto))
-        {
-            return PontosIncompativeisErro;
-        }
+        if (!geocodificarRecolha && !geocodificarDestino)
+            return new PontosDoPedido(coordenadasRecolha, coordenadasDestino);
 
-        // Verificar se os locais fornecidos podem ser identificados pelo serviço de mapas.
         if (!mapas.Configurado)
             return ChamadaMapas.NaoConfigurado;
 
-        var pontos = await ChamadaMapas.ExecutarAsync<PontosDoPedido>(
-            async () =>
+        return await ChamadaMapas.ExecutarAsync<PontosDoPedido>(
+            async limite =>
             {
-                Coordenadas? coordenadasRecolha = null;
-                Coordenadas? coordenadasDestino = null;
-
-                if (recolha is not null)
+                if (geocodificarRecolha)
                 {
-                    coordenadasRecolha = await mapas.GeocodificarAsync(recolha.Trim(), ct);
+                    coordenadasRecolha = await mapas.GeocodificarAsync(recolha!.Trim(), limite);
 
                     if (coordenadasRecolha is null)
                         return new Erro(TipoErro.NaoProcessavel, "Ponto de recolha não encontrado.");
                 }
 
-                if (destino is not null)
+                if (geocodificarDestino)
                 {
-                    coordenadasDestino = await mapas.GeocodificarAsync(destino.Trim(), ct);
+                    coordenadasDestino = await mapas.GeocodificarAsync(destino!.Trim(), limite);
 
                     if (coordenadasDestino is null)
                         return new Erro(TipoErro.NaoProcessavel, "Ponto de destino não encontrado.");
@@ -145,46 +255,36 @@ public sealed class ParticipacaoService(
                 return new PontosDoPedido(coordenadasRecolha, coordenadasDestino);
             },
             "Serviço de mapas indisponível.",
-            "Tempo de resposta dos mapas excedido.",
+            "Tempo de resposta do serviço de mapas excedido.",
             ct);
+    }
 
-        if (pontos.Erro is { } erroMapas)
-            return erroMapas;
+    /// <summary>Coordenadas guardadas da viagem para um texto igual à sua origem ou ao seu destino.</summary>
+    /// <returns>As coordenadas; <c>null</c> para um texto omitido ou que é um local novo.</returns>
+    private static Coordenadas? CoordenadasJaConhecidas(Viagem viagem, string? texto)
+    {
+        if (texto is null)
+            return null;
 
-        // Os mapas podem demorar até 20 s e a gravação do pedido não toca na linha da viagem, por isso Versao não
-        // deteta a mudança. Sem isto, o pedido ficaria Pendente para sempre numa viagem já terminada.
-        if (await repositorioViagens.ObterEstadoAsync(viagem.Id, ct) != EstadoViagem.Ativa)
-            return new Erro(TipoErro.Conflito, "Viagem indisponível.");
+        if (RegraMesmoLocal.MesmoTexto(texto, viagem.Origem))
+            return new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
 
-        // As mesmas regras, agora pelas coordenadas. Um ponto omitido usa as coordenadas da viagem (P-20).
-        var origemViagem = new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude);
-        var destinoViagem = new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);
+        if (RegraMesmoLocal.MesmoTexto(texto, viagem.Destino))
+            return new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude);
 
-        if (PontosIncompativeis(
-            pontos.Valor.Recolha ?? origemViagem,
-            pontos.Valor.Destino ?? destinoViagem,
-            origemViagem,
-            destinoViagem,
-            (a, b) => RegraMesmoLocal.MesmasCoordenadas(a.Latitude, a.Longitude, b.Latitude, b.Longitude)))
-        {
-            return PontosIncompativeisErro;
-        }
+        return null;
+    }
 
-        // Criar a participação pendente sem descontar lugares.
-        var pedido = new Participacao
-        {
-            ViagemId = viagem.Id,
-            PassageiroId = passageiroId,
-            Recolha = recolha?.Trim(),
-            Destino = destino?.Trim(),
-            RecolhaLatitude = pontos.Valor.Recolha?.Latitude,
-            RecolhaLongitude = pontos.Valor.Recolha?.Longitude,
-            DestinoLatitude = pontos.Valor.Destino?.Latitude,
-            DestinoLongitude = pontos.Valor.Destino?.Longitude,
-            CriadoEm = DateTime.UtcNow
-        };
-
-        var notificacao = notificacaoService.Registar(
+    /// <summary>
+    /// Grava o pedido com a notificação do condutor e, só depois, envia o push e o evento em tempo real (RF-F006-01).
+    /// </summary>
+    /// <returns>O pedido criado; 409 se outro pedido simultâneo do mesmo passageiro ganhou (índice único da BD).</returns>
+    private async Task<Resultado<PedidoCriado>> GravarENotificarPedidoAsync(
+        Viagem viagem,
+        Participacao pedido,
+        CancellationToken ct)
+    {
+        Notificacao notificacao = notificacaoService.Registar(
             viagem.CondutorId,
             TipoNotificacao.PedidoRecebido,
             "Recebeste um novo pedido de participação numa viagem.",
@@ -219,28 +319,16 @@ public sealed class ParticipacaoService(
         if (viagem is null)
             return new Erro(TipoErro.NaoEncontrado, "Viagem não encontrada.");
 
-        if (viagem.CondutorId != utilizadorId)
-            return new Erro(TipoErro.Proibido, "Só o condutor da viagem pode simular este pedido.");
-
-        // A simulação antecede a decisão (RF-F004-09), por isso segue a mesma regra da aceitação (RF-F004-10).
-        if (!viagem.EstaAtiva)
-            return new Erro(TipoErro.Conflito, "A viagem não está ativa.");
+        if (ValidarViagemParaSimular(viagem, utilizadorId) is { } erroViagem)
+            return erroViagem;
 
         var pedido = await repositorioParticipacoes.ObterPorIdAsync(pedidoId, ct);
 
         if (pedido is null || pedido.ViagemId != viagemId)
             return new Erro(TipoErro.NaoEncontrado, "Pedido não encontrado nesta viagem.");
 
-        if (!pedido.EstaPendente)
-            return new Erro(TipoErro.Conflito, "Só é possível simular pedidos pendentes.");
-
-        if (string.IsNullOrWhiteSpace(pedido.Recolha) && string.IsNullOrWhiteSpace(pedido.Destino))
-            return new Erro(TipoErro.DadosInvalidos, "O pedido deve indicar recolha ou destino.");
-
-        if (!mapas.Configurado)
-            return ChamadaMapas.NaoConfigurado;
-
-        var aceites = await repositorioParticipacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
+        if (ValidarPedidoParaSimular(viagem, pedido) is { } erroPedido)
+            return erroPedido;
 
         var recolha = string.IsNullOrWhiteSpace(pedido.Recolha) ? viagem.Origem : pedido.Recolha.Trim();
         var destino = string.IsNullOrWhiteSpace(pedido.Destino) ? viagem.Destino : pedido.Destino.Trim();
@@ -248,47 +336,99 @@ public sealed class ParticipacaoService(
         if (RegraMesmoLocal.MesmoTexto(recolha, destino))
             return new Erro(TipoErro.DadosInvalidos, "A recolha e o destino efetivos não podem ser iguais.");
 
-        using var limite = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        limite.CancelAfter(TimeSpan.FromSeconds(10));
+        // Sem paragens novas, a rota simulada é a guardada: responde sem chamar os mapas (decisão de 16/11, BE-03).
+        ResultadoRotaComPontos? guardada = RotaGuardada.Ler(viagem);
+
+        if (guardada is not null && !RotaService.AcrescentaParagens(viagem, pedido))
+            return MontarSimulacao(viagem, pedido, recolha, destino, guardada, guardada);
+
+        if (!mapas.Configurado)
+            return ChamadaMapas.NaoConfigurado;
+
+        var aceites = await repositorioParticipacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
 
         const string MensagemTempo = "O serviço de mapas excedeu o limite de 10 segundos.";
 
         return await ChamadaMapas.ExecutarAsync<SimulacaoPedido>(
-            async () =>
+            async limite =>
             {
-                try
-                {
-                    // A rota atual é a guardada; só falta calculá-la se estiver por recalcular (P-19). Nada é gravado.
-                    var original = RotaGuardada.Ler(viagem) ?? await rotaService.CalcularAsync(viagem, aceites, limite.Token);
-                    var simulada = await rotaService.CalcularAsync(viagem, [.. aceites, pedido], limite.Token);
+                // A rota atual é a guardada; só falta calculá-la se estiver por recalcular (P-19). Nada é gravado.
+                var original = guardada ?? await rotaService.CalcularAsync(viagem, aceites, limite);
+                var simulada = await rotaService.CalcularAsync(viagem, [.. aceites, pedido], limite);
 
-                    if (original is null || simulada is null)
-                        return new Erro(TipoErro.NaoProcessavel, "Não foi possível calcular a rota.");
+                if (original is null || simulada is null)
+                    return new Erro(TipoErro.NaoProcessavel, "Não foi possível calcular a rota.");
 
-                    return new SimulacaoPedido(
-                        viagem.Id,
-                        pedido.Id,
-                        viagem.Origem,
-                        viagem.Destino,
-                        recolha,
-                        destino,
-                        original.DistanciaTotalKm,
-                        original.DuracaoTotalMinutos,
-                        simulada.DistanciaTotalKm,
-                        simulada.DuracaoTotalMinutos,
-                        Math.Round(simulada.DistanciaTotalKm - original.DistanciaTotalKm, 2),
-                        simulada.DuracaoTotalMinutos - original.DuracaoTotalMinutos,
-                        original.PontosOrdenados.Select(p => p.Local).ToList(),
-                        simulada.PontosOrdenados.Select(p => p.Local).ToList());
-                }
-                catch (ArgumentException ex)
-                {
-                    return new Erro(TipoErro.DadosInvalidos, ex.Message);
-                }
+                return MontarSimulacao(viagem, pedido, recolha, destino, original, simulada);
             },
             "Falha na comunicação com o serviço de mapas.",
             MensagemTempo,
             ct);
+    }
+
+    /// <summary>Verifica a viagem antes de simular: é do condutor que pede e está ativa.</summary>
+    /// <param name="viagem">Viagem da simulação.</param>
+    /// <param name="utilizadorId">Utilizador que pede a simulação.</param>
+    /// <returns>O erro a devolver, ou <c>null</c> se a viagem permite simular.</returns>
+    private static Erro? ValidarViagemParaSimular(Viagem viagem, Guid utilizadorId)
+    {
+        if (viagem.CondutorId != utilizadorId)
+            return new Erro(TipoErro.Proibido, "Só o condutor da viagem pode simular este pedido.");
+
+        // A simulação antecede a decisão (RF-F004-09), por isso segue a mesma regra da aceitação (RF-F004-10).
+        if (!viagem.EstaAtiva)
+            return new Erro(TipoErro.Conflito, "A viagem não está ativa.");
+
+        return null;
+    }
+
+    /// <summary>Verifica o pedido antes de simular: está pendente, tem pontos e há lugar na viagem (BE-26).</summary>
+    /// <param name="viagem">Viagem já validada.</param>
+    /// <param name="pedido">Pedido desta viagem.</param>
+    /// <returns>O erro a devolver, ou <c>null</c> se o pedido pode ser simulado.</returns>
+    private static Erro? ValidarPedidoParaSimular(Viagem viagem, Participacao pedido)
+    {
+        if (!pedido.EstaPendente)
+            return new Erro(TipoErro.Conflito, "Só é possível simular pedidos pendentes.");
+
+        if (string.IsNullOrWhiteSpace(pedido.Recolha) && string.IsNullOrWhiteSpace(pedido.Destino))
+            return new Erro(TipoErro.DadosInvalidos, "O pedido deve indicar recolha ou destino.");
+
+        // Numa viagem cheia o pedido não pode ser aceite, por isso não há nada a simular (BE-26).
+        if (!viagem.TemLugarLivre)
+            return SemCapacidade;
+
+        return null;
+    }
+
+    /// <summary>Monta a resposta da simulação: a rota atual, a rota com o pedido e as diferenças (RF-F004-09).</summary>
+    /// <param name="recolha">Recolha efetiva (a do pedido, ou a origem da viagem se for omitida).</param>
+    /// <param name="destino">Destino efetivo (o do pedido, ou o destino da viagem se for omitido).</param>
+    /// <param name="original">Rota atual da viagem.</param>
+    /// <param name="simulada">Rota se o pedido fosse aceite.</param>
+    private static SimulacaoPedido MontarSimulacao(
+        Viagem viagem,
+        Participacao pedido,
+        string recolha,
+        string destino,
+        ResultadoRotaComPontos original,
+        ResultadoRotaComPontos simulada)
+    {
+        return new SimulacaoPedido(
+            viagem.Id,
+            pedido.Id,
+            viagem.Origem,
+            viagem.Destino,
+            recolha,
+            destino,
+            original.DistanciaTotalKm,
+            original.DuracaoTotalMinutos,
+            simulada.DistanciaTotalKm,
+            simulada.DuracaoTotalMinutos,
+            Math.Round(simulada.DistanciaTotalKm - original.DistanciaTotalKm, 2),
+            simulada.DuracaoTotalMinutos - original.DuracaoTotalMinutos,
+            original.PontosOrdenados.Select(p => p.Local).ToList(),
+            simulada.PontosOrdenados.Select(p => p.Local).ToList());
     }
 
     /// <inheritdoc />
@@ -325,17 +465,18 @@ public sealed class ParticipacaoService(
         if (!viagem.LugaresConsistentes(aceites.Count))
             return LugaresInconsistentes;
 
-        if (viagem.LugaresDisponiveis == 0)
+        if (!viagem.TemLugarLivre)
             return SemCapacidade;
 
-        // RF-F008-05 / P-19: a aceitação recalcula a rota; sem o Serviço de Mapas é recusada e nada muda.
-        var rotaAtualizada = await rotaService.RecalcularAsync(
-            viagem,
-            [.. aceites, participacao],
-            ct);
+        // RF-F008-05 / P-19: um pedido com paragens novas recalcula a rota; sem o Serviço de Mapas é recusado e nada
+        // muda. Sem paragens novas a rota guardada continua certa e não se chamam os mapas (decisão de 16/11, BE-03).
+        if (RotaService.AcrescentaParagens(viagem, participacao))
+        {
+            bool rotaAtualizada = await rotaService.RecalcularAsync(viagem, [.. aceites, participacao], ct);
 
-        if (!rotaAtualizada)
-            return RotaIndisponivel;
+            if (!rotaAtualizada)
+                return RotaIndisponivel;
+        }
 
         participacao.Aceitar(DateTime.UtcNow);
         viagem.OcuparLugar();
@@ -445,13 +586,17 @@ public sealed class ParticipacaoService(
             viagem.LibertarLugar();
 
             // RF-F008-05 / P-19: o cancelamento nunca é recusado; sem o Serviço de Mapas, a rota fica por recalcular.
-            var rotaAtualizada = await rotaService.RecalcularAsync(
-                viagem,
-                aceites.Where(p => p.Id != participacao.Id).ToList(),
-                ct);
+            // Uma participação sem paragens não está na rota, por isso a rota guardada mantém-se (BE-03).
+            if (RotaService.AcrescentaParagens(viagem, participacao))
+            {
+                bool rotaAtualizada = await rotaService.RecalcularAsync(
+                    viagem,
+                    aceites.Where(p => p.Id != participacao.Id).ToList(),
+                    ct);
 
-            if (!rotaAtualizada)
-                viagem.MarcarRotaPorRecalcular();
+                if (!rotaAtualizada)
+                    viagem.MarcarRotaPorRecalcular();
+            }
 
             // RF-F006-02 e RF-F006-14 / P-23: são notificados o condutor e os restantes passageiros aceites.
             // P-21: cancelar um pedido pendente não gera notificação.

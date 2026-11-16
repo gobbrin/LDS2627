@@ -78,12 +78,16 @@ public sealed class NotificacaoService(
         if (!notificacao.OriginaPush())
             return;
 
-        await filaNotificacoesPush.EnfileirarAsync(
+        // BE-17: o push leva o id da notificação e da viagem, para a aplicação abrir o ecrã certo.
+        var pendente = new NotificacaoPushPendente(
+            notificacao.Id,
             notificacao.UtilizadorId,
+            notificacao.ViagemId,
             notificacao.Titulo,
             notificacao.Conteudo,
-            notificacao.Tipo.ToString(),
-            ct);
+            notificacao.Tipo.ToString());
+
+        await filaNotificacoesPush.EnfileirarAsync(pendente, ct);
     }
 
     /// <inheritdoc />

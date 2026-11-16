@@ -66,9 +66,6 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CondutorId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Conteudo")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -81,8 +78,6 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CondutorId");
 
                     b.HasIndex("ViagemId");
 
@@ -194,16 +189,12 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<Guid>("RemetenteId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ViagemId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DestinatarioId");
 
-                    b.HasIndex("RemetenteId");
-
-                    b.HasIndex("ViagemId");
+                    b.HasIndex("RemetenteId", "DestinatarioId", "EnviadoEm")
+                        .HasDatabaseName("IX_Mensagens_RemetenteId_DestinatarioId_EnviadoEm");
 
                     b.ToTable("Mensagens", t =>
                         {
@@ -510,12 +501,6 @@ namespace CampusCarpool.Infrastructure.Migrations
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Aviso", b =>
                 {
-                    b.HasOne("CampusCarpool.Domain.Entities.Utilizador", null)
-                        .WithMany()
-                        .HasForeignKey("CondutorId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("CampusCarpool.Domain.Entities.Viagem", null)
                         .WithMany()
                         .HasForeignKey("ViagemId")
@@ -563,11 +548,6 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasForeignKey("RemetenteId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
-
-                    b.HasOne("CampusCarpool.Domain.Entities.Viagem", null)
-                        .WithMany()
-                        .HasForeignKey("ViagemId")
-                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Notificacao", b =>

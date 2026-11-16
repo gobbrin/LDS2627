@@ -24,7 +24,14 @@ public interface IAvaliacaoService
     /// <returns>A avaliação; erro 400 com valor fora de 1 a 5; 404 se não existir avaliação deste avaliador sobre este avaliado.</returns>
     Task<Resultado<AvaliacaoRegistada>> AlterarAsync(Guid avaliadorId, Guid avaliadoId, int classificacao, CancellationToken ct);
 
+    /// <summary>
+    /// Devolve a avaliação que <paramref name="avaliadorId"/> deu a <paramref name="avaliadoId"/>, para o ecrã de alteração
+    /// mostrar o valor atual (RF-F007-05, DEF-BE-041). Só o próprio autor a lê: o avaliador é sempre o utilizador autenticado.
+    /// </summary>
+    /// <returns>A avaliação; erro 404 se não existir avaliação deste avaliador sobre este avaliado.</returns>
+    Task<Resultado<AvaliacaoRegistada>> ObterMinhaAsync(Guid avaliadorId, Guid avaliadoId, CancellationToken ct);
+
     /// <summary>Devolve as avaliações recebidas por um utilizador e a média (RF-F007-08 a RF-F007-11).</summary>
-    /// <returns>O resumo, ou erro 404 se o utilizador não existir.</returns>
+    /// <returns>O resumo, ou erro 404 se o utilizador não existir ou tiver a conta por confirmar.</returns>
     Task<Resultado<ResumoAvaliacoes>> ConsultarAsync(Guid utilizadorId, CancellationToken ct);
 }

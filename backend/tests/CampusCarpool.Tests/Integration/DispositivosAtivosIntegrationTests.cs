@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Abstractions.Integrations;
 
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
@@ -118,12 +119,7 @@ public sealed class DispositivosAtivosIntegrationTests
             NullLogger<ServicoPush>.Instance,
             new CacheTokenFcm());
 
-        await push.EnviarAsync(
-            utilizador.Id,
-            "Pedido aceite",
-            "O teu pedido foi aceite.",
-            "PedidoAceite",
-            CancellationToken.None);
+        await push.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizador.Id, null, "Pedido aceite", "O teu pedido foi aceite.", "PedidoAceite"), CancellationToken.None);
 
         Assert.Equal(0, pedidosHttp);
     }

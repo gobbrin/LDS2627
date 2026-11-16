@@ -119,6 +119,23 @@ public sealed class MigracoesSqlServerTests
             unico.Properties.Select(propriedade => propriedade.Name));
     }
 
+    /// <summary>BE-33 (I112): a conversa tem o índice do par e da data de envio, usado pela paginação por cursor.</summary>
+    [Fact]
+    public void I112_IndiceDaConversa_ParEDataDeEnvio()
+    {
+        using var db = new CampusCarpoolDbContext(new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+            .UseSqlServer("Server=(local);Database=SemLigacao;")
+            .Options);
+
+        var indice = Assert.Single(
+            db.Model.FindEntityType(typeof(Mensagem))!.GetIndexes(),
+            i => i.GetDatabaseName() == "IX_Mensagens_RemetenteId_DestinatarioId_EnviadoEm");
+
+        Assert.Equal(
+            [nameof(Mensagem.RemetenteId), nameof(Mensagem.DestinatarioId), nameof(Mensagem.EnviadoEm)],
+            indice.Properties.Select(propriedade => propriedade.Name));
+    }
+
     [SqlServerFact]
     public async Task I110_59_Migrations_AplicamSeAUmaBaseDeDadosVazia()
     {

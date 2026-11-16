@@ -15,11 +15,13 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     public sealed record CriarViagem(string Origem, string Destino, DateTime PartidaEm, int Lugares);
     /// <summary>Corpo de <c>PUT /viagens/{id}</c>. <c>Origem</c> e <c>Destino</c> a <c>null</c> mantêm o valor atual.</summary>
     public sealed record EditarViagem(DateTime PartidaEm, int Lugares, string? Origem = null, string? Destino = null);
+    /// <summary>Corpo de <c>POST /viagens/{id}/simular-alteracao</c>. Como no PUT, um local a <c>null</c> mantém o atual.</summary>
+    public sealed record SimularAlteracaoViagem(string? Origem = null, string? Destino = null);
 
     /// <summary>Cria uma viagem <c>Ativa</c> com o utilizador como condutor (RF-F002-01 a RF-F002-06).</summary>
     /// <returns>
     /// 201 viagem criada; 400 dados inválidos (vazios, mais de 200 caracteres, origem e destino no mesmo local,
-    /// data passada ou não UTC, lugares fora de 1 a 8); 401; 403 conta por confirmar; 422 local ou rota não
+    /// data passada ou não UTC, lugares fora de 1 a 8); 401; 422 local ou rota não
     /// encontrados; 502 serviço de mapas com erro; 503 serviço de mapas não configurado; 504 tempo esgotado.
     /// </returns>
     [HttpPost]
@@ -85,6 +87,26 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
         return this.Responder(
             await viagens.EditarAsync(id, userId, input.PartidaEm, input.Lugares, input.Origem, input.Destino, ct),
             () => NoContent());
+    }
+
+    /// <summary>
+    /// Simula a alteração da origem ou do destino, sem gravar: rota com as paragens dos passageiros aceites,
+    /// distância, duração e custo, para o ecrã de edição mostrar antes de guardar (RF-F002-07, RF-F008-05, RF-F008-10).
+    /// </summary>
+    /// <remarks>Ver <see cref="IViagemService.SimularAlteracaoAsync"/>.</remarks>
+    /// <returns>
+    /// 200 rota simulada (mesmos campos de <c>GET /rotas/viagens/{id}</c>); 400 locais vazios, com mais de 200
+    /// caracteres ou no mesmo local; 401; 403 não é o condutor; 404; 409 viagem não editável; 422 local ou rota não
+    /// encontrados; 502/503/504 problema no serviço de mapas.
+    /// </returns>
+    [HttpPost("{id:guid}/simular-alteracao")]
+    public async Task<IActionResult> SimularAlteracao(Guid id, SimularAlteracaoViagem input, CancellationToken ct)
+    {
+        if (User.IdUtilizador() is not Guid userId) return Unauthorized();
+
+        return this.Responder(
+            await viagens.SimularAlteracaoAsync(id, userId, input.Origem, input.Destino, ct),
+            rota => Ok(rota));
     }
 
     /// <summary>Indisponibiliza uma viagem ativa (RF-F002-09, RF-F002-10, P-25).</summary>

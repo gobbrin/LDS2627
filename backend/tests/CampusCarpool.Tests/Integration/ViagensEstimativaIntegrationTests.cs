@@ -69,11 +69,11 @@ public sealed class ViagensEstimativaIntegrationTests
 
             if (rotaGuardada && distanciaKm > 0)
             {
-                RotaGuardada.GuardarDireta(viagem, new ResultadoRota(
+                RotaGuardada.Guardar(viagem, RotaGuardada.Direta(viagem, new ResultadoRota(
                     distanciaKm,
                     30,
                     new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
-                    new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude)));
+                    new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude))));
             }
 
             Db.Viagens.Add(viagem);

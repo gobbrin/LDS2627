@@ -9,7 +9,7 @@
 | [testes/](testes/) | Especificações, evidências e relatórios de testes (I050, I053, I054, I059) e coleções Postman (I055, I034–I037). |
 | [operacao/](operacao/) | Pipeline CI/CD (I058) e manual de instalação do backend (I064). |
 | [qualidade/](qualidade/) | Análise estática (I056), plano de qualidade e DoR de m3. Revisões, auditorias e dívida técnica são locais, em `docs/qualidade/` (`.gitignore`). |
-| [IMPLEMENTACAO-STATUS.md](IMPLEMENTACAO-STATUS.md) | Estado da implementação (desatualizado; verificar sempre no código). |
+| [IMPLEMENTACAO-STATUS.md](IMPLEMENTACAO-STATUS.md) | Estado da implementação: m3, atualizado com a I112 (16/11/2026). Em caso de dúvida, vale o código. |
 
 ## Convenções
 

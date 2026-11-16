@@ -74,16 +74,19 @@ public sealed record AvisoHistorico(
 
 /// <summary>Histórico completo, devolvido por <c>GET /api/v1/historico</c>.</summary>
 /// <param name="ViagensComoCondutor">
-/// Viagens criadas pelo utilizador que já partiram ou já não estão ativas (RF-F009-02); as ativas futuras não entram.
+/// Viagens criadas pelo utilizador, em qualquer estado, incluindo as ativas futuras (RF-F009-02).
 /// </param>
 /// <param name="ViagensComoPassageiro">
-/// Viagens já partidas ou não ativas com participação aceite, ou aceite e depois cancelada por indisponibilização
-/// (RF-F009-03, RF-F009-08). As canceladas pelo próprio passageiro ficam de fora até à decisão D-029.
+/// Viagens, em qualquer estado, em que o utilizador chegou a ser aceite (<c>AceiteEm</c> preenchido), mesmo que a
+/// participação tenha sido cancelada depois, por ele ou pela indisponibilização (RF-F009-03, RF-F009-08, D-029).
 /// </param>
 /// <param name="PedidosEfetuados">Todos os pedidos feitos pelo utilizador, do mais recente para o mais antigo.</param>
 /// <param name="PedidosRecebidos">Todos os pedidos recebidos nas viagens do utilizador.</param>
 /// <param name="Notificacoes">Notificações recebidas, das mais recentes para as mais antigas.</param>
-/// <param name="Avisos">Avisos das viagens em que o utilizador é condutor ou passageiro aceite.</param>
+/// <param name="Avisos">
+/// Avisos das viagens em que o utilizador é condutor ou chegou a ser aceite como passageiro, mesmo que tenha cancelado
+/// depois (RF-F009-05, DEF-BE-024).
+/// </param>
 public sealed record HistoricoResultado(
     IReadOnlyList<ViagemHistorico> ViagensComoCondutor,
     IReadOnlyList<ViagemHistorico> ViagensComoPassageiro,

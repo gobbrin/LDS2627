@@ -31,8 +31,11 @@ public sealed class AvisoService(
         Guid viagemId, Guid condutorId, string? conteudo, CancellationToken ct)
     {
         var texto = conteudo?.Trim();
-        if (string.IsNullOrWhiteSpace(texto) || texto.Length > TamanhoMaximoConteudo)
-            return new Erro(TipoErro.DadosInvalidos, "Conteúdo do aviso inválido.");
+        if (string.IsNullOrWhiteSpace(texto))
+            return new Erro(TipoErro.DadosInvalidos, "Escreve o texto do aviso.");
+
+        if (texto.Length > TamanhoMaximoConteudo)
+            return new Erro(TipoErro.DadosInvalidos, $"O aviso tem no máximo {TamanhoMaximoConteudo} caracteres.");
 
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
         if (viagem is null) return ViagemNaoEncontrada;
@@ -45,7 +48,6 @@ public sealed class AvisoService(
         var aviso = new Aviso
         {
             ViagemId = viagemId,
-            CondutorId = condutorId,
             Conteudo = texto
         };
 
@@ -71,6 +73,7 @@ public sealed class AvisoService(
 
         var lista = await avisos.ListarPorViagemAsync(viagemId, ct);
 
-        return lista.Select(a => new AvisoDaViagem(a.Id, a.ViagemId, a.CondutorId, a.Conteudo, a.CriadoEm)).ToList();
+        // O autor de todos os avisos é o condutor da viagem (RF-F005-07).
+        return lista.Select(a => new AvisoDaViagem(a.Id, a.ViagemId, viagem.CondutorId, a.Conteudo, a.CriadoEm)).ToList();
     }
 }

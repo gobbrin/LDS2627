@@ -65,6 +65,11 @@ public static class OrdenadorDePontos
         return prerequisitos;
     }
 
+    // Ordem ótima em três passos: preencher a tabela, escolher o último ponto antes do destino e reconstruir a sequência.
+    //
+    // A máscara de bits diz que pontos adicionais já foram visitados: o bit k ligado = ponto k + 1 da matriz visitado.
+    // Exemplo com um passageiro (recolha R = ponto 1, destino D = ponto 2): máscara 0b01 = só R visitado; 0b11 = R e D.
+    // A partir de 0b00 só se pode ir a R (D precisa de R antes); de 0b01 vai-se a D; de 0b11 vai-se ao destino da viagem.
     private static List<int>? MelhorOrdem(double?[][] duracoesSegundos, int[] prerequisitos)
     {
         var n = prerequisitos.Length;
@@ -75,6 +80,21 @@ public static class OrdenadorDePontos
         var duracao = new double[total, n + 1];
         var anterior = new int[total, n + 1];
 
+        PreencherTabela(duracoesSegundos, prerequisitos, duracao, anterior);
+
+        var melhorUltimo = MelhorUltimoPonto(duracoesSegundos, duracao, n);
+        if (melhorUltimo < 0) return null;
+
+        return Reconstruir(anterior, melhorUltimo, n);
+    }
+
+    // Programação dinâmica: para cada máscara (por ordem crescente) e cada último ponto alcançado, tenta acrescentar
+    // cada ponto ainda não visitado cuja recolha (se tiver) já foi visitada, e guarda o caminho mais curto.
+    private static void PreencherTabela(double?[][] duracoesSegundos, int[] prerequisitos, double[,] duracao, int[,] anterior)
+    {
+        var n = prerequisitos.Length;
+        var total = 1 << n;
+
         for (var m = 0; m < total; m++)
         {
             for (var j = 0; j <= n; j++)
@@ -84,6 +104,7 @@ public static class OrdenadorDePontos
             }
         }
 
+        // Começa na origem da viagem (ponto 0), sem nenhum ponto adicional visitado.
         duracao[0, 0] = 0;
 
         for (var mascara = 0; mascara < total; mascara++)
@@ -112,8 +133,13 @@ public static class OrdenadorDePontos
                 }
             }
         }
+    }
 
-        var cheia = total - 1;
+    // Com todos os pontos visitados, escolhe o último ponto que dá a menor duração até ao destino da viagem (n + 1).
+    // Devolve -1 se nenhum caminho chegar ao destino.
+    private static int MelhorUltimoPonto(double?[][] duracoesSegundos, double[,] duracao, int n)
+    {
+        var cheia = (1 << n) - 1;
         var melhor = double.PositiveInfinity;
         var melhorUltimo = -1;
 
@@ -130,17 +156,21 @@ public static class OrdenadorDePontos
             }
         }
 
-        if (melhorUltimo < 0) return null;
+        return melhorUltimo;
+    }
 
-        // Reconstrói a sequência do fim para o início e inverte-a.
+    // Reconstrói a sequência do fim para o início, seguindo "anterior", e inverte-a: 0, pontos adicionais, n + 1.
+    private static List<int> Reconstruir(int[,] anterior, int melhorUltimo, int n)
+    {
         var ordem = new List<int> { n + 1 };
         var atual = melhorUltimo;
-        var estado = cheia;
+        var estado = (1 << n) - 1;
 
         while (atual > 0)
         {
             ordem.Add(atual);
             var previo = anterior[estado, atual];
+            // Tira o ponto atual da máscara: o estado anterior não o tinha visitado.
             estado &= ~(1 << (atual - 1));
             atual = previo;
         }

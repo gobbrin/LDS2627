@@ -15,24 +15,39 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     /// <summary>Corpo de <c>POST calcular</c>: dois locais em texto.</summary>
     public sealed record Pedido(string Origem, string Destino);
 
+    // RNF-SEG-06 / BE-30: o mesmo limite dos locais de uma viagem; um texto maior não chega ao Serviço de Mapas.
+    private const int TamanhoMaximoLocal = 200;
+
     /// <summary>Converte um texto num par de coordenadas (autocompletar e validação no frontend).</summary>
-    /// <returns>200 coordenadas; 400 texto vazio; 404 local não encontrado; 502/503/504.</returns>
+    /// <returns>200 coordenadas; 400 texto vazio ou com mais de 200 caracteres; 404 local não encontrado; 502/503/504.</returns>
     [HttpGet("geocodificar")]
     public async Task<IActionResult> Geocodificar([FromQuery] string texto, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(texto))
             return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica o local a procurar."));
 
+        if (texto.Length > TamanhoMaximoLocal)
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "O local tem no máximo 200 caracteres."));
+
         return this.Responder(await rotas.GeocodificarAsync(texto, ct), coordenadas => Ok(coordenadas));
     }
 
     /// <summary>Calcula a rota direta entre dois locais, sem gravar nada (pré-visualização ao criar a viagem).</summary>
-    /// <returns>200 rota (distância, duração, geometria); 400; 422 local ou rota não encontrados; 502/503/504.</returns>
+    /// <returns>
+    /// 200 rota (distância, duração, coordenadas, <c>geometria</c> em pares [latitude, longitude] e
+    /// <c>geometriaAproximada</c>); 400; 422 local ou rota não encontrados; 502/503/504.
+    /// </returns>
     [HttpPost("calcular")]
     public async Task<IActionResult> Calcular(Pedido input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.Origem) || string.IsNullOrWhiteSpace(input.Destino))
             return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica a origem e o destino."));
+
+        if (input.Origem.Length > TamanhoMaximoLocal)
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "A origem tem no máximo 200 caracteres."));
+
+        if (input.Destino.Length > TamanhoMaximoLocal)
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "O destino tem no máximo 200 caracteres."));
 
         return this.Responder(await rotas.CalcularAsync(input.Origem, input.Destino, ct), rota => Ok(rota));
     }

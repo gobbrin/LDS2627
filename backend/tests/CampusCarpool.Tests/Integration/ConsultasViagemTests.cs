@@ -87,7 +87,7 @@ public sealed class ConsultasViagemTests : IDisposable
     {
         var viagem = await CriarViagem(estado, lugares);
 
-        Assert.IsType<NotFoundObjectResult>(await Controller(outro.Id).Consultar(viagem.Id, default));
+        RespostasDeErro.AssertErro(await Controller(outro.Id).Consultar(viagem.Id, default), 404, "Viagem não encontrada.");
         Assert.IsType<OkObjectResult>(await Controller(condutor.Id).Consultar(viagem.Id, default));
         Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).Consultar(viagem.Id, default));
         Assert.IsType<OkObjectResult>(await Controller(pendente.Id).Consultar(viagem.Id, default));
@@ -234,7 +234,12 @@ public sealed class ConsultasViagemTests : IDisposable
             new Mensagem { RemetenteId = pendente.Id, DestinatarioId = outro.Id, Conteudo = "de terceiros", EnviadoEm = agora });
         await db.SaveChangesAsync();
 
-        var conversas = await new CampusCarpool.Infrastructure.Repositories.RepositorioMensagens(db)
+        // I112 (BE-07): o repositório devolve as mensagens e o serviço monta o resumo.
+        var conversas = await new CampusCarpool.Application.Comunicacao.MensagemService(
+                new CampusCarpool.Infrastructure.Repositories.RepositorioMensagens(db),
+                new CampusCarpool.Infrastructure.Repositories.RepositorioUtilizadores(db),
+                ServicosDeTeste.CriarNotificacoes(db),
+                new CampusCarpool.Infrastructure.Persistence.UnidadeDeTrabalhoEfCore(db))
             .ListarConversasAsync(condutor.Id, default);
 
         Assert.Equal(2, conversas.Count);

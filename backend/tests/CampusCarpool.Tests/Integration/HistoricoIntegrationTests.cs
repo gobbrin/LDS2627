@@ -407,7 +407,9 @@ public sealed class HistoricoIntegrationTests
             {
                 ViagemId = viagem.Id,
                 PassageiroId = aceite.Id,
-                Estado = EstadoParticipacao.Aceite
+                Estado = EstadoParticipacao.Aceite,
+                // Como faz Participacao.Aceitar: o histórico conta quem tem AceiteEm (DEF-BE-024).
+                AceiteEm = DateTime.UtcNow
             },
             new Participacao
             {
@@ -419,7 +421,6 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Avisos.Add(new Aviso
         {
             ViagemId = viagem.Id,
-            CondutorId = condutor.Id,
             Conteudo = "A partida sera no local combinado"
         });
 
@@ -546,4 +547,51 @@ public sealed class HistoricoIntegrationTests
     }
 
 
+
+    /// <summary>
+    /// BE-27, DEF-BE-024, RF-F009-05: o passageiro aceite que cancela depois continua a ver no histórico os avisos da
+    /// viagem, tal como continua a ver a viagem no separador Viagens.
+    /// </summary>
+    [Fact]
+    public async Task BE27_AvisoMantemSeDepoisDeOPassageiroCancelar()
+    {
+        using var fixture = new Fixture();
+
+        var condutor = new Utilizador { Nome = "Condutor", Email = "condutor.cancelou@estg.ipp.pt" };
+        var passageiro = new Utilizador { Nome = "Passageiro", Email = "passageiro.cancelou@estg.ipp.pt" };
+        fixture.Db.Utilizadores.AddRange(condutor, passageiro);
+
+        var viagem = new Viagem
+        {
+            DestinoLatitude = 41.55m,
+            CondutorId = condutor.Id,
+            Origem = "Porto",
+            Destino = "Braga",
+            PartidaEm = DateTime.UtcNow.AddDays(1),
+            Estado = EstadoViagem.Ativa,
+            LugaresOferecidos = 3,
+            LugaresDisponiveis = 3
+        };
+        fixture.Db.Viagens.Add(viagem);
+
+        // Aceite e cancelado depois pelo próprio passageiro: o AceiteEm fica preenchido.
+        fixture.Db.Participacoes.Add(new Participacao
+        {
+            ViagemId = viagem.Id,
+            PassageiroId = passageiro.Id,
+            Estado = EstadoParticipacao.Cancelada,
+            AceiteEm = DateTime.UtcNow.AddHours(-2)
+        });
+        fixture.Db.Avisos.Add(new Aviso
+        {
+            ViagemId = viagem.Id,
+            Conteudo = "Partida adiada 10 minutos"
+        });
+        await fixture.Db.SaveChangesAsync();
+
+        var historico = await ServicosDeTeste.CriarHistorico(fixture.Db).ConsultarAsync(passageiro.Id, CancellationToken.None);
+
+        Assert.Equal("Partida adiada 10 minutos", Assert.Single(historico.Avisos).Conteudo);
+        Assert.Single(historico.ViagensComoPassageiro);
+    }
 }

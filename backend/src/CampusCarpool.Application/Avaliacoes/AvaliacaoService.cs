@@ -14,6 +14,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
 {
     private static readonly Erro ClassificacaoInvalida = new(TipoErro.DadosInvalidos, "A classificação deve ser um número inteiro entre 1 e 5.");
     private static readonly Erro UtilizadorNaoEncontrado = new(TipoErro.NaoEncontrado, "Utilizador não encontrado.");
+    private static readonly Erro AvaliacaoDoAutorNaoEncontrada = new(TipoErro.NaoEncontrado, "Não existe uma avaliação sua para este utilizador.");
 
     /// <inheritdoc />
     public async Task<Resultado<AvaliacaoRegistada>> CriarAsync(Guid viagemId, Guid avaliadorId, Guid avaliadoId, int classificacao, CancellationToken ct)
@@ -28,7 +29,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         if (viagem is null)
             return new Erro(TipoErro.NaoEncontrado, "Viagem não encontrada.");
 
-        if (!await repositorio.UtilizadorExisteAsync(avaliadorId, ct) || !await repositorio.UtilizadorExisteAsync(avaliadoId, ct))
+        if (!await repositorio.UtilizadorConfirmadoAsync(avaliadorId, ct) || !await repositorio.UtilizadorConfirmadoAsync(avaliadoId, ct))
             return UtilizadorNaoEncontrado;
 
         if (!viagem.EstaConcluida)
@@ -62,7 +63,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         var avaliacao = await repositorio.ObterPorParAsync(avaliadorId, avaliadoId, ct);
 
         if (avaliacao is null)
-            return new Erro(TipoErro.NaoEncontrado, "Não existe uma avaliação sua para este utilizador.");
+            return AvaliacaoDoAutorNaoEncontrada;
 
         avaliacao.Alterar(classificacao);
 
@@ -73,9 +74,23 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
     }
 
     /// <inheritdoc />
+    public async Task<Resultado<AvaliacaoRegistada>> ObterMinhaAsync(Guid avaliadorId, Guid avaliadoId, CancellationToken ct)
+    {
+        // O par (avaliador, avaliado) identifica a avaliação (RF-F007-04); o avaliador é quem pede, por isso
+        // ninguém consegue ler a avaliação dada por outra pessoa (P-22).
+        var avaliacao = await repositorio.ObterPorParAsync(avaliadorId, avaliadoId, ct);
+
+        if (avaliacao is null)
+            return AvaliacaoDoAutorNaoEncontrada;
+
+        return new AvaliacaoRegistada(avaliacao.Classificacao, avaliacao.CriadoEm);
+    }
+
+    /// <inheritdoc />
     public async Task<Resultado<ResumoAvaliacoes>> ConsultarAsync(Guid utilizadorId, CancellationToken ct)
     {
-        if (!await repositorio.UtilizadorExisteAsync(utilizadorId, ct)) return UtilizadorNaoEncontrado;
+        // Uma conta por confirmar não é pública: 404, como no perfil público (BE-14).
+        if (!await repositorio.UtilizadorConfirmadoAsync(utilizadorId, ct)) return UtilizadorNaoEncontrado;
 
         var recebidas = await repositorio.ListarRecebidasAsync(utilizadorId, ct);
 

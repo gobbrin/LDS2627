@@ -16,7 +16,8 @@ namespace CampusCarpool.Infrastructure.Integrations;
 /// Configuração: <c>Maps:ApiKey</c> (obrigatória; sem ela <see cref="Configurado"/> é falso e os serviços da
 /// Application devolvem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> registado em
 /// <c>AddInfrastructureServices</c>).
-/// Os URLs são absolutos e fixos, por isso <c>Maps:BaseUrl</c> e <c>Maps:Provider</c> não têm efeito (IN-04).
+/// Os URLs do OpenRouteService são absolutos e fixos (as chaves <c>Maps:BaseUrl</c> e <c>Maps:Provider</c>, sem efeito,
+/// foram retiradas na I112, BE-23).
 /// Erros HTTP e respostas sem o formato esperado saem como <see cref="HttpRequestException"/> e o tempo esgotado
 /// como <see cref="TaskCanceledException"/>; <c>ChamadaMapas</c>, na Application, converte-os em 502 e 504.
 /// </remarks>

@@ -34,14 +34,29 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
         return Ok(await mensagemService.ListarConversasAsync(utilizadorId, ct));
     }
 
-    /// <summary>Conversa com outro utilizador, por ordem cronológica (RF-F005-03, RF-F005-09). 200; 400; 401.</summary>
+    /// <summary>
+    /// Uma página da conversa com outro utilizador, por ordem cronológica (RF-F005-03, RF-F005-09, BE-13).
+    /// </summary>
+    /// <remarks>
+    /// <c>GET conversa/{id}?antesDe={mensagemId}&amp;tamanho=50</c>. Sem <c>antesDe</c>, as mais recentes; para
+    /// carregar as anteriores, <c>antesDe</c> é o id da mensagem mais antiga já mostrada. Menos de <c>tamanho</c>
+    /// mensagens significa que não há mais antigas.
+    /// </remarks>
+    /// <returns>200 com a lista; 400 (tamanho fora de 1 a 100, <c>antesDe</c> de outra conversa, outro utilizador inválido); 401.</returns>
     [HttpGet("conversa/{outroUtilizadorId:guid}")]
-    public async Task<IActionResult> ObterConversa(Guid outroUtilizadorId, CancellationToken ct)
+    public async Task<IActionResult> ObterConversa(
+        Guid outroUtilizadorId,
+        [FromQuery] Guid? antesDe,
+        [FromQuery] int? tamanho,
+        CancellationToken ct)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
 
+        // Sem tamanho, 50 mensagens por página.
+        int tamanhoDaPagina = tamanho ?? MensagemService.TamanhoPorOmissao;
+
         return this.Responder(
-            await mensagemService.ObterConversaAsync(utilizadorId, outroUtilizadorId, ct),
+            await mensagemService.ObterConversaAsync(utilizadorId, outroUtilizadorId, antesDe, tamanhoDaPagina, ct),
             mensagens => Ok(mensagens));
     }
 }
