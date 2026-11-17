@@ -6,7 +6,7 @@
 |---|---|
 | [arquitetura/](arquitetura/) | [Guia do código do backend](arquitetura/GUIA-DO-CODIGO.md): camadas, fluxo de um pedido, onde está cada funcionalidade e armadilhas. |
 | [entregas/](entregas/) | Documentos de entrega por item: I029, I034–I037, I041, I044. |
-| [testes/](testes/) | Especificações, evidências e relatórios de testes (I050, I053, I054, I059) e coleções Postman (I055, I034–I037). |
+| [testes/](testes/) | [Plano de testes do backend, m4 v01](testes/m4-plano-testes-backend-v01.md) (I112); plano de m3 (I031, `.docx`); especificações, evidências e relatórios de testes (I050, I053, I054, I059) e coleções Postman (I055, I034–I037). |
 | [operacao/](operacao/) | Pipeline CI/CD (I058) e manual de instalação do backend (I064). |
 | [qualidade/](qualidade/) | Análise estática (I056), plano de qualidade e DoR de m3. Revisões, auditorias e dívida técnica são locais, em `docs/qualidade/` (`.gitignore`). |
 | [IMPLEMENTACAO-STATUS.md](IMPLEMENTACAO-STATUS.md) | Estado da implementação: m3, atualizado com a I112 (16/11/2026). Em caso de dúvida, vale o código. |

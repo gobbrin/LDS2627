@@ -15,7 +15,8 @@ namespace CampusCarpool.Tests.Integration;
 
 // I110 — DEF-BE-009: conclusão automática das viagens (UC-F002-05; RF-F002-12, RF-F004-19, P-04).
 // O serviço é chamado diretamente com um "agora" fixo, sobre SQLite em memória;
-// o temporizador (TrabalhadorConclusaoViagens) só é verificado na configuração.
+// o temporizador (TrabalhadorConclusaoViagens) é verificado aqui na configuração e o seu ciclo
+// (falha e paragem) em TrabalhadoresSegundoPlanoTests.
 public sealed class ConclusaoViagensTests : IDisposable
 {
     private static readonly DateTime Agora = new(2026, 11, 4, 12, 0, 0, DateTimeKind.Utc);

@@ -161,7 +161,7 @@ public sealed class PushPontaAPontaTests
         await fila.EnfileirarAsync(Pendente("Primeiro"), CancellationToken.None);
         await fila.EnfileirarAsync(Pendente("Segundo"), CancellationToken.None);
 
-        await push.SegundoEnvio.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await push.SegundoEnvio.Task.WaitAsync(AplicacaoReal.EsperaMaxima);
         await trabalhador.StopAsync(CancellationToken.None);
 
         Assert.Equal(["Segundo"], push.Enviados);
@@ -174,7 +174,7 @@ public sealed class PushPontaAPontaTests
         using var trabalhador = CriarTrabalhador(new FilaNotificacoesPush(NullLogger<FilaNotificacoesPush>.Instance), new PushQueFalhaAPrimeira());
 
         await trabalhador.StartAsync(CancellationToken.None);
-        await trabalhador.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        await trabalhador.StopAsync(CancellationToken.None).WaitAsync(AplicacaoReal.EsperaMaxima);
 
         Assert.True(trabalhador.ExecuteTask!.IsCompleted);
     }
@@ -193,7 +193,7 @@ public sealed class PushPontaAPontaTests
         Task segunda = fila.EnfileirarAsync(Pendente("Segundo"), CancellationToken.None).AsTask();
 
         // Antes da correção, o segundo ficava à espera até haver espaço (aqui, para sempre).
-        await segunda.WaitAsync(TimeSpan.FromSeconds(1));
+        await segunda.WaitAsync(AplicacaoReal.EsperaMaxima);
 
         using var parar = new CancellationTokenSource();
         var lidas = new List<string>();

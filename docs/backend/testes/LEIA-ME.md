@@ -1,5 +1,7 @@
 # CampusCarpool — Aumentar a cobertura de testes
 
+> **Plano de testes em vigor (m4):** [m4-plano-testes-backend-v01.md](m4-plano-testes-backend-v01.md) (I112, 17/11/2026): modo duplo SQLite e SQL Server, contrato de erro `{ erro }`, testes de arquitetura, regras para escrever testes e lacunas registadas. O plano de m3 (`m3-s03-i031-plano-testes-backend.docx`, I031) fica como está. O texto abaixo é o registo de m3 sobre a cobertura.
+
 ## Situação inicial (medição fornecida)
 - Cobertura global: **24,96% das linhas** (1310/5247).
 - **58,63% dos ramos** (533/909).
