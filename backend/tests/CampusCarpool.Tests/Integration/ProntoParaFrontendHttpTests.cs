@@ -116,21 +116,23 @@ public sealed class ProntoParaFrontendHttpTests
     {
         using var app = new AplicacaoReal();
         using var cliente = app.CreateClient();
-        HttpResponseMessage? ultima = null;
 
-        for (var i = 0; i < 11; i++)
+        // Os 11 logins em simultâneo, para caberem na mesma janela de um minuto do limitador (R1).
+        HttpResponseMessage[] respostas = await Task.WhenAll(Enumerable.Range(0, 11).Select(_ =>
+            cliente.PostAsJsonAsync("/api/v1/autenticacao/login", new { email = "alguem@estg.ipp.pt", password = "abcdefg1" })));
+
+        try
         {
-            ultima?.Dispose();
-            ultima = await cliente.PostAsJsonAsync(
-                "/api/v1/autenticacao/login", new { email = "alguem@estg.ipp.pt", password = "abcdefg1" });
-        }
+            // Em simultâneo não se sabe qual chega em último: procura-se a única resposta recusada.
+            HttpResponseMessage recusada = Assert.Single(respostas, resposta => resposta.StatusCode == HttpStatusCode.TooManyRequests);
 
-        using (ultima)
-        {
-            Assert.Equal(HttpStatusCode.TooManyRequests, ultima!.StatusCode);
-
-            var corpo = await ultima.Content.ReadFromJsonAsync<JsonElement>();
+            var corpo = await recusada.Content.ReadFromJsonAsync<JsonElement>();
             Assert.Contains("Demasiados pedidos", corpo.GetProperty("erro").GetString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            foreach (HttpResponseMessage resposta in respostas)
+                resposta.Dispose();
         }
     }
 

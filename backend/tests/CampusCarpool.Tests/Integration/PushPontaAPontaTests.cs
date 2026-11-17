@@ -100,8 +100,9 @@ public sealed class PushPontaAPontaTests
         var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
         await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
 
-        // P-24 pede 30 s; aqui não há rede, por isso 5 s chegam com folga.
-        await fcm.PrimeiroEnvio.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // Espera pelo envio com o limite generoso dos testes (R1): 5 s não chegavam com a suite toda em SQL Server.
+        // O tempo de entrega de P-24 (30 s) não se mede aqui, porque depende da carga da máquina de testes.
+        await fcm.PrimeiroEnvio.Task.WaitAsync(AplicacaoReal.EsperaMaxima);
 
         string envio = Assert.Single(fcm.Envios);
         Assert.StartsWith("https://fcm.googleapis.com/v1/projects/projeto-teste/messages:send ", envio);

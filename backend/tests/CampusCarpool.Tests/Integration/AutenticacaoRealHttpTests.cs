@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using CampusCarpool.Domain.Entities;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
@@ -163,20 +164,45 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
 
         var recebido = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using HubConnection ligacao = CriarLigacaoAoHub(_app.TokenDe(condutor));
+        ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
+        await LigarEEsperarPeloServidorAsync(ligacao);
+
+        var participacaoId = await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
+
+        Assert.Equal(participacaoId, await recebido.Task.WaitAsync(AplicacaoReal.EsperaMaxima));
+    }
+
+    /// <summary>Cria uma ligação ao hub, ainda fechada, com o token na query string e por long polling.</summary>
+    /// <param name="token">Token com que a ligação entra.</param>
+    private HubConnection CriarLigacaoAoHub(string token)
+    {
         var servidor = _app.Server;
-        await using var ligacao = new HubConnectionBuilder()
-            .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={_app.TokenDe(condutor)}"), opcoes =>
+
+        return new HubConnectionBuilder()
+            .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={token}"), opcoes =>
             {
                 opcoes.HttpMessageHandlerFactory = _ => servidor.CreateHandler();
                 opcoes.Transports = HttpTransportType.LongPolling;
             })
             .Build();
-        ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
-        await ligacao.StartAsync();
+    }
 
-        var participacaoId = await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
-
-        Assert.Equal(participacaoId, await recebido.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+    /// <summary>
+    /// Abre a ligação e só volta quando o servidor acabou de a registar (R1).
+    /// </summary>
+    /// <remarks>
+    /// O <c>StartAsync</c> volta logo que o servidor responde ao handshake, mas o servidor só depois associa a ligação
+    /// ao utilizador e corre o <c>OnConnectedAsync</c> do hub (que a guarda em <c>LigacoesPorSessao</c>). Com a máquina
+    /// carregada, um evento ou um fim de sessão podia chegar antes disso e perder-se. O servidor só lê as mensagens do
+    /// cliente depois do <c>OnConnectedAsync</c>; por isso a resposta a uma invocação, aqui de um método que o hub não
+    /// tem, prova que o registo já está feito.
+    /// </remarks>
+    /// <param name="ligacao">Ligação criada por <see cref="CriarLigacaoAoHub"/>.</param>
+    private static async Task LigarEEsperarPeloServidorAsync(HubConnection ligacao)
+    {
+        await ligacao.StartAsync().WaitAsync(AplicacaoReal.EsperaMaxima);
+        await Assert.ThrowsAsync<HubException>(() => ligacao.InvokeAsync("MetodoQueNaoExiste").WaitAsync(AplicacaoReal.EsperaMaxima));
     }
 
     /// <summary>
@@ -196,27 +222,20 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
 
         var fechada = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var recebido = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var servidor = _app.Server;
-        await using var ligacao = new HubConnectionBuilder()
-            .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={tokenCondutor}"), opcoes =>
-            {
-                opcoes.HttpMessageHandlerFactory = _ => servidor.CreateHandler();
-                opcoes.Transports = HttpTransportType.LongPolling;
-            })
-            .Build();
+        await using HubConnection ligacao = CriarLigacaoAoHub(tokenCondutor);
         ligacao.Closed += _ =>
         {
             fechada.TrySetResult();
             return Task.CompletedTask;
         };
         ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
-        await ligacao.StartAsync();
+        await LigarEEsperarPeloServidorAsync(ligacao);
 
         using var logout = await clienteCondutor.PostAsync("/api/v1/autenticacao/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
-        // A ligação fecha do lado do servidor, sem esperar pela expiração do token.
-        await fechada.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        // A ligação fecha do lado do servidor, sem esperar pela expiração do token (60 min).
+        await fechada.Task.WaitAsync(AplicacaoReal.EsperaMaxima);
         Assert.Equal(HubConnectionState.Disconnected, ligacao.State);
 
         // Um pedido feito depois já não chega a esta ligação.

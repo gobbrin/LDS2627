@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using CampusCarpool.Application.Abstractions.Integrations;
@@ -16,23 +15,32 @@ namespace CampusCarpool.Tests.Integration;
 /// <remarks>Os outros testes da <see cref="AplicacaoReal"/> usam a <see cref="FilaEmailsDireta"/>.</remarks>
 public sealed class EmailEmSegundoPlanoTests
 {
-    /// <summary>Serviço de email lento (2 s), que avisa quando acaba o envio.</summary>
-    private sealed class EmailLento : IServicoEmail
+    /// <summary>
+    /// Serviço de email preso: o envio só acaba quando o teste o liberta (<see cref="Libertar"/>), e depois avisa
+    /// (<see cref="Enviado"/>). Assim o teste não depende de tempos fixos (R1).
+    /// </summary>
+    private sealed class EmailPreso : IServicoEmail
     {
+        public TaskCompletionSource Libertar { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<string> Enviado { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public async Task EnviarConfirmacaoAsync(string destino, string token, CancellationToken ct)
         {
-            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            await Libertar.Task.WaitAsync(ct);
             Enviado.TrySetResult(destino);
         }
     }
 
     /// <summary>O registo responde sem esperar pelo envio (antes esperava pelo Brevo até 10 s), e o email sai depois.</summary>
+    /// <remarks>
+    /// O email fica preso até o teste receber a resposta: se o registo esperasse pelo envio, a resposta nunca chegava e
+    /// o teste falhava ao fim de <see cref="AplicacaoReal.EsperaMaxima"/>. Antes media-se o tempo (menos de 2 s), o que
+    /// falhava com a máquina carregada (R1).
+    /// </remarks>
     [Fact]
     public async Task I112_26_Registo_RespondeSemEsperarPeloEmailEOEmailSaiDepois()
     {
-        var email = new EmailLento();
+        var email = new EmailPreso();
 
         using var app = new AplicacaoReal(services =>
         {
@@ -43,17 +51,19 @@ public sealed class EmailEmSegundoPlanoTests
             services.AddSingleton<IFilaEmails, FilaEmails>();
         });
         using HttpClient cliente = app.CreateClient();
-        var relogio = Stopwatch.StartNew();
 
+        // A resposta chega com o email ainda preso.
         using HttpResponseMessage resposta = await cliente.PostAsJsonAsync(
-            "/api/v1/autenticacao/registo",
-            new { nome = "Conta", email = "lento@estg.ipp.pt", password = AplicacaoReal.PalavraPasse });
+                "/api/v1/autenticacao/registo",
+                new { nome = "Conta", email = "lento@estg.ipp.pt", password = AplicacaoReal.PalavraPasse })
+            .WaitAsync(AplicacaoReal.EsperaMaxima);
 
-        relogio.Stop();
         Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
-        Assert.True(relogio.Elapsed < TimeSpan.FromSeconds(2), $"O registo esperou {relogio.Elapsed.TotalSeconds:F1} s.");
+        Assert.False(email.Enviado.Task.IsCompleted);
 
-        string destino = await email.Enviado.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        // Depois de libertado, o trabalhador em segundo plano acaba o envio.
+        email.Libertar.SetResult();
+        string destino = await email.Enviado.Task.WaitAsync(AplicacaoReal.EsperaMaxima);
         Assert.Equal("lento@estg.ipp.pt", destino);
     }
 

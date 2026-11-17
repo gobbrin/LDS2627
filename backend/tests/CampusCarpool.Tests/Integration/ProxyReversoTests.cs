@@ -60,24 +60,30 @@ public sealed class ProxyReversoTests
         Assert.Equal("ProxyReverso:Proxies tem um endereço IP inválido: 'nao-e-um-ip'.", erro.Message);
     }
 
-    /// <summary>Envia 11 logins, cada um com um IP de cliente diferente no <c>X-Forwarded-For</c>.</summary>
-    private static async Task<List<HttpStatusCode>> OnzeLoginsDeClientesDiferentesAsync(HttpClient cliente)
+    /// <summary>
+    /// Envia 11 logins em simultâneo, cada um com um IP de cliente diferente no <c>X-Forwarded-For</c>, e devolve os
+    /// estados das respostas.
+    /// </summary>
+    /// <remarks>
+    /// Em simultâneo, para os 11 caberem na mesma janela de um minuto do limitador: o limite é verificado à entrada do
+    /// pedido, antes do login. Em série, com a máquina carregada, os 11 logins podiam passar de um minuto (R1).
+    /// </remarks>
+    private static async Task<HttpStatusCode[]> OnzeLoginsDeClientesDiferentesAsync(HttpClient cliente)
     {
-        var estados = new List<HttpStatusCode>();
+        return await Task.WhenAll(Enumerable.Range(1, 11).Select(i => LoginDoClienteAsync(cliente, $"198.51.100.{i}")));
+    }
 
-        for (var i = 1; i <= 11; i++)
+    /// <summary>Faz um login errado em nome do cliente <paramref name="ipDoCliente"/> e devolve o estado da resposta.</summary>
+    private static async Task<HttpStatusCode> LoginDoClienteAsync(HttpClient cliente, string ipDoCliente)
+    {
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, "/api/v1/autenticacao/login")
         {
-            using var pedido = new HttpRequestMessage(HttpMethod.Post, "/api/v1/autenticacao/login")
-            {
-                Content = JsonContent.Create(new { email = "ninguem@estg.ipp.pt", password = "Palavra-errada-1" })
-            };
-            pedido.Headers.Add("X-Forwarded-For", $"198.51.100.{i}");
+            Content = JsonContent.Create(new { email = "ninguem@estg.ipp.pt", password = "Palavra-errada-1" })
+        };
+        pedido.Headers.Add("X-Forwarded-For", ipDoCliente);
 
-            using var resposta = await cliente.SendAsync(pedido);
-            estados.Add(resposta.StatusCode);
-        }
-
-        return estados;
+        using var resposta = await cliente.SendAsync(pedido);
+        return resposta.StatusCode;
     }
 
     /// <summary>
@@ -120,14 +126,14 @@ public sealed class ProxyReversoTests
         using var comProxy = AtrasDoProxy(app, "10.1.2.3");
         using var cliente = comProxy.CreateClient();
 
-        List<HttpStatusCode> estados = await OnzeLoginsDeClientesDiferentesAsync(cliente);
+        HttpStatusCode[] estados = await OnzeLoginsDeClientesDiferentesAsync(cliente);
 
         Assert.DoesNotContain((HttpStatusCode)429, estados);
     }
 
     /// <summary>
     /// Um pedido que não vem do proxy configurado não é acreditado: o cabeçalho é ignorado, os 11 pedidos partilham o
-    /// limite do IP de ligação e o 11.º dá 429.
+    /// limite do IP de ligação: 10 passam e um dá 429.
     /// </summary>
     [Theory]
     [InlineData("10.9.9.9")]
@@ -138,8 +144,10 @@ public sealed class ProxyReversoTests
         using var semConfianca = AtrasDoProxy(app, proxyConfigurado);
         using var cliente = semConfianca.CreateClient();
 
-        List<HttpStatusCode> estados = await OnzeLoginsDeClientesDiferentesAsync(cliente);
+        HttpStatusCode[] estados = await OnzeLoginsDeClientesDiferentesAsync(cliente);
 
-        Assert.Equal((HttpStatusCode)429, estados[10]);
+        // Em simultâneo não se sabe qual dos 11 chega em último; conta-se quantos foram recusados.
+        Assert.Equal(1, estados.Count(estado => estado == (HttpStatusCode)429));
+        Assert.Equal(10, estados.Count(estado => estado == HttpStatusCode.Unauthorized));
     }
 }
