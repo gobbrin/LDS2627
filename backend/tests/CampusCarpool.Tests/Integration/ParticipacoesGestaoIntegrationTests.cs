@@ -116,8 +116,14 @@ public sealed class ParticipacoesGestaoIntegrationTests
             Guid passageiroId,
             EstadoParticipacao estado = EstadoParticipacao.Pendente)
         {
+            // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+            var viagem = await Db.Viagens.FindAsync(viagemId);
             var participacao = new Participacao
             {
+                Destino = viagem!.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
                 ViagemId = viagemId,
                 PassageiroId = passageiroId,
                 Estado = estado
@@ -319,7 +325,7 @@ public sealed class ParticipacoesGestaoIntegrationTests
 
         var resultado = await CriarController(f.Db, condutor.Id).Cancelar(participacao.Id, default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para gerir este pedido.");
         Assert.Equal(estado, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
@@ -374,9 +380,9 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var rejeitar = await CriarController(f.Db, outroUtilizador.Id).Rejeitar(participacao.Id, default);
         var cancelar = await CriarController(f.Db, outroUtilizador.Id).Cancelar(participacao.Id, default);
 
-        RespostaEsperada.Proibido(aceitar);
-        RespostaEsperada.Proibido(rejeitar);
-        RespostaEsperada.Proibido(cancelar);
+        RespostasDeErro.AssertErro(aceitar, 403, "Não tens permissão para gerir este pedido.");
+        RespostasDeErro.AssertErro(rejeitar, 403, "Não tens permissão para gerir este pedido.");
+        RespostasDeErro.AssertErro(cancelar, 403, "Não tens permissão para gerir este pedido.");
         Assert.Equal(EstadoParticipacao.Pendente, (await f.Db.Participacoes.FindAsync(participacao.Id))!.Estado);
     }
 
@@ -391,8 +397,8 @@ public sealed class ParticipacoesGestaoIntegrationTests
         var participacao = await f.CriarParticipacao(viagem.Id, passageiro.Id);
         var controller = CriarController(f.Db, passageiro.Id);
 
-        RespostaEsperada.Proibido(await controller.Aceitar(participacao.Id, default));
-        RespostaEsperada.Proibido(await controller.Rejeitar(participacao.Id, default));
+        RespostasDeErro.AssertErro(await controller.Aceitar(participacao.Id, default), 403, "Não tens permissão para gerir este pedido.");
+        RespostasDeErro.AssertErro(await controller.Rejeitar(participacao.Id, default), 403, "Não tens permissão para gerir este pedido.");
     }
 
     [Fact]

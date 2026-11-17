@@ -41,8 +41,8 @@ public sealed class PerfilService(
             utilizador.Instituicao,
             utilizador.CriadoEm,
             await ListarLigacoesAsync(utilizadorId, ct),
-            resumo.Valor.Media,
-            resumo.Valor.Total);
+            resumo.Valor.ClassificacaoMedia,
+            resumo.Valor.TotalAvaliacoes);
     }
 
     /// <inheritdoc />
@@ -62,8 +62,8 @@ public sealed class PerfilService(
             utilizador.Curso,
             utilizador.Instituicao,
             lista,
-            resumo.Valor.Media,
-            resumo.Valor.Total);
+            resumo.Valor.ClassificacaoMedia,
+            resumo.Valor.TotalAvaliacoes);
     }
 
     /// <inheritdoc />

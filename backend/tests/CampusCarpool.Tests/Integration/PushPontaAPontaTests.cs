@@ -151,7 +151,7 @@ public sealed class PushPontaAPontaTests
 
     [Fact]
     /// <summary>Uma falha num envio fica no log e não impede os envios seguintes.</summary>
-    public async Task I112_13_FalhaNumEnvio_NaoParaOsSeguintes()
+    public async Task I112_51_FalhaNumEnvio_NaoParaOsSeguintes()
     {
         var fila = new FilaNotificacoesPush(NullLogger<FilaNotificacoesPush>.Instance);
         var push = new PushQueFalhaAPrimeira();
@@ -169,7 +169,7 @@ public sealed class PushPontaAPontaTests
 
     [Fact]
     /// <summary>Ao parar a aplicação, o trabalhador sai do ciclo mesmo com a fila vazia.</summary>
-    public async Task I112_14_Paragem_TerminaOTrabalhador()
+    public async Task I112_52_Paragem_TerminaOTrabalhador()
     {
         using var trabalhador = CriarTrabalhador(new FilaNotificacoesPush(NullLogger<FilaNotificacoesPush>.Instance), new PushQueFalhaAPrimeira());
 
@@ -185,7 +185,7 @@ public sealed class PushPontaAPontaTests
 
     [Fact]
     /// <summary>BE-28: com a fila cheia e o trabalhador parado, enfileirar não espera; a notificação a mais é descartada.</summary>
-    public async Task I112_15_FilaCheia_NaoPrendeQuemEnfileira()
+    public async Task I112_53_FilaCheia_NaoPrendeQuemEnfileira()
     {
         var fila = new FilaNotificacoesPush(NullLogger<FilaNotificacoesPush>.Instance, capacidade: 1);
 

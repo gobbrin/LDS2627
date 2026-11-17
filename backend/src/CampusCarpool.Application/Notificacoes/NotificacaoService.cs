@@ -93,10 +93,7 @@ public sealed class NotificacaoService(
     /// <inheritdoc />
     public async Task<PaginaNotificacoes> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(pagina, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(tamanhoPagina, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(tamanhoPagina, 100);
-
+        // A página e o tamanho chegam já validados pelo controller (Paginacao.Validar, BE-41).
         var itens = await repositorioNotificacoes.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct);
         var total = await repositorioNotificacoes.ContarAsync(utilizadorId, ct);
         var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(utilizadorId, ct);

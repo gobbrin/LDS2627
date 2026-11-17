@@ -5,6 +5,7 @@ using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -393,5 +394,209 @@ public sealed class RotaGuardadaTests : IDisposable
 
         RespostasDeErro.AssertErro(resultado, 400, mensagem);
         Assert.Equal("Porto", (await ViagemGravada()).Origem);
+    }
+    // ---------------------------------------------------------------- melhorias da I112 depois da matriz (BE-36, BE-38)
+
+    /// <summary>Linha falsa da HERE que guarda o cancelamento recebido, para ver se a chamada corre dentro do limite de 10 s.</summary>
+    private sealed class LinhaQueGuardaOCancelamento : IServicoGeometriaRotas
+    {
+        public bool Configurado => true;
+
+        public CancellationToken? CancelamentoRecebido { get; private set; }
+
+        public Task<IReadOnlyList<Coordenadas>?> CalcularLinhaAsync(IReadOnlyList<Coordenadas> pontos, CancellationToken ct)
+        {
+            CancelamentoRecebido = ct;
+            return Task.FromResult<IReadOnlyList<Coordenadas>?>(null);
+        }
+    }
+
+    // Deixa a rota da viagem por recalcular, como depois de um cancelamento sem mapas.
+    private async Task RotaPorRecalcular()
+    {
+        Viagem guardada = await db.Viagens.SingleAsync();
+        guardada.MarcarRotaPorRecalcular();
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+    }
+
+    /// <summary>
+    /// BE-36: com a rota por recalcular, a linha da HERE pede-se fora do limite de 10 s dos mapas: recebe o
+    /// cancelamento do pedido (aqui, um que nunca cancela) e não o limite da ChamadaMapas (que é sempre cancelável).
+    /// Sem linha, a rota grava-se na mesma e a resposta traz retas.
+    /// </summary>
+    [Fact]
+    public async Task I112_58_RotaPorRecalcular_ALinhaDaHereCorreForaDoLimite()
+    {
+        await RotaPorRecalcular();
+        var linha = new LinhaQueGuardaOCancelamento();
+        var rotas = ServicosDeTeste.CriarRotas(db, mapas.CriarServico(), linha);
+        Viagem doContexto = await db.Viagens.SingleAsync();
+
+        Resultado<ResultadoRotaComPontos> obtida = await rotas.ObterAsync(doContexto, [], CancellationToken.None);
+
+        Assert.Null(obtida.Erro);
+        Assert.Null(obtida.Valor.Geometria);
+        Assert.NotNull(linha.CancelamentoRecebido);
+        Assert.False(linha.CancelamentoRecebido.Value.CanBeCanceled);
+        Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
+    }
+
+    /// <summary>BE-38 b: simular um pedido sem paragens com a rota por recalcular pede uma só matriz (e não duas).</summary>
+    [Fact]
+    public async Task I112_59_SimularSemParagensComRotaPorRecalcular_UmaSoMatriz()
+    {
+        await PedidoSemParagens();
+        await RotaPorRecalcular();
+
+        var controller = ComUtilizador(ServicosDeTeste.CriarSimulacoesController(db, mapas.CriarServico()), condutor.Id);
+        var simulacao = Assert.IsType<SimulacaoPedido>(
+            Assert.IsType<OkObjectResult>(await controller.Simular(
+                viagem.Id, new SimulacoesController.SimularPedido(pedido.Id), default)).Value);
+
+        Assert.Equal(1, mapas.ChamadasRotas);
+        Assert.Equal(0, simulacao.DesvioDuracaoMinutos);
+        Assert.Equal(["Porto", "Braga"], simulacao.OrdemSimulada);
+        Assert.Equal(["Porto", "Braga"], simulacao.RotaSimulada.PontosOrdenados.Select(p => p.Local));
+    }
+
+    /// <summary>
+    /// BE-38 c: «porto» é o mesmo local que «Porto» (RegraMesmoLocal): a edição não chama os mapas, mesmo com eles em
+    /// falha; o texto muda e as coordenadas, a rota e a duração ficam.
+    /// </summary>
+    [Fact]
+    public async Task I112_60_AlterarSoACapitalizacao_NaoChamaOsMapas()
+    {
+        var antes = await ViagemGravada();
+        mapas.SimularFalha = true;
+
+        var resultado = await ControladorViagens().Editar(viagem.Id, Edicao("porto", "BRAGA"), default);
+
+        Assert.IsType<NoContentResult>(resultado);
+        var gravada = await ViagemGravada();
+        Assert.Equal("porto", gravada.Origem);
+        Assert.Equal("BRAGA", gravada.Destino);
+        Assert.Equal(antes.OrigemLatitude, gravada.OrigemLatitude);
+        Assert.Equal(antes.RotaPontos, gravada.RotaPontos);
+        Assert.Equal(antes.DuracaoMinutos, gravada.DuracaoMinutos);
+        Assert.Equal(0, mapas.ChamadasGeocodificacao);
+        Assert.Equal(0, mapas.ChamadasRotas);
+    }
+
+    /// <summary>
+    /// BE-38 d: uma viagem indisponibilizada com paragens fica com a rota por recalcular, e consultá-la não chama os
+    /// mapas: a rota responde 422 com o motivo e os detalhes respondem 200 sem estimativa, com o motivo.
+    /// </summary>
+    [Fact]
+    public async Task I112_61_ViagemIndisponivel_NaoRecalculaARotaAoConsultar()
+    {
+        await Servico().AceitarAsync(pedido.Id, condutor.Id, default);
+        db.ChangeTracker.Clear();
+        var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas.CriarServico()), condutor.Id);
+        Assert.IsType<NoContentResult>(await controller.Indisponibilizar(viagem.Id, default));
+        db.ChangeTracker.Clear();
+        int chamadas = mapas.ChamadasRotas;
+
+        RespostasDeErro.AssertErro(await ConsultarRota(), 422, "A viagem já não está ativa: a rota não é recalculada.");
+
+        db.ChangeTracker.Clear();
+        var detalhes = Assert.IsType<DetalhesViagem>(Assert.IsType<OkObjectResult>(
+            await ComUtilizador(ServicosDeTeste.CriarViagensController(db, mapas.CriarServico()), condutor.Id)
+                .Consultar(viagem.Id, default)).Value);
+
+        Assert.Null(detalhes.EstimativaCusto);
+        Assert.Equal("A viagem já não está ativa: a rota não é recalculada.", detalhes.EstimativaIndisponivelMotivo);
+        Assert.Equal(chamadas, mapas.ChamadasRotas);
+        Assert.Null((await ViagemGravada()).RotaPontos);
+    }
+
+    // Simula o pedido do fixture como o condutor (POST /viagens/{id}/simulacao).
+    private Task<IActionResult> SimularPedido()
+    {
+        var controller = ComUtilizador(ServicosDeTeste.CriarSimulacoesController(db, mapas.CriarServico()), condutor.Id);
+        return controller.Simular(viagem.Id, new SimulacoesController.SimularPedido(pedido.Id), default);
+    }
+
+    /// <summary>
+    /// Matriz 15, L3.7 (R5): com a rota guardada e um pedido com paragens, a simulação faz uma só matriz (a rota com o
+    /// pedido) e nenhuma geocodificação: a rota atual é a guardada.
+    /// </summary>
+    [Fact]
+    public async Task I112_90_SimularComParagens_ComRotaGuardada_FazUmaSoMatriz()
+    {
+        Assert.IsType<OkObjectResult>(await SimularPedido());
+
+        Assert.Equal(1, mapas.ChamadasRotas);
+        Assert.Equal(0, mapas.ChamadasGeocodificacao);
+    }
+
+    /// <summary>
+    /// R5 (teste em falta da R4): se a rota com o pedido vier sem distância, a simulação responde 422 «Não foi possível
+    /// calcular a rota.» em vez de calcular um custo com 0 km (o custo exige uma distância positiva).
+    /// </summary>
+    [Fact]
+    public async Task I112_91_SimularComRotaSemDistancia_Devolve422()
+    {
+        mapas.MetrosPorSegmento = 0;
+
+        RespostasDeErro.AssertErro(await SimularPedido(), 422, "Não foi possível calcular a rota.");
+    }
+
+    /// <summary>Matriz 15, L3.20 (R5): rejeitar um pedido não chama os mapas e não mexe na rota guardada.</summary>
+    [Fact]
+    public async Task I112_92_RejeitarPedido_NaoChamaOsMapas()
+    {
+        mapas.SimularFalha = true;
+
+        var resultado = await Servico().RejeitarAsync(pedido.Id, condutor.Id, default);
+
+        Assert.Null(resultado.Erro);
+        Assert.Equal(0, mapas.PedidosRecebidos);
+        Assert.Equal(["Porto", "Braga"], Locais(await ViagemGravada()));
+    }
+
+    /// <summary>
+    /// Matriz 15, L3.5 (R5): um pedido em que só a recolha é um local novo geocodifica só esse ponto (1 pedido) e não
+    /// calcula a rota (a rota só muda ao aceitar).
+    /// </summary>
+    [Fact]
+    public async Task I112_93_PedidoComSoARecolhaNova_UmaGeocodificacaoESemMatriz()
+    {
+        var outro = new Utilizador { Nome = "Outro", Email = "outro@estg.ipp.pt", EmailConfirmado = true };
+        db.Utilizadores.Add(outro);
+        await db.SaveChangesAsync();
+
+        var criado = await Servico().CriarPedidoAsync(viagem.Id, outro.Id, "Ermesinde", null, default);
+
+        Assert.Null(criado.Erro);
+        Assert.Equal(1, mapas.ChamadasGeocodificacao);
+        Assert.Equal(0, mapas.ChamadasRotas);
+    }
+
+    /// <summary>
+    /// Matriz 15, L1.10 (R5, RF-F006-14): as notificações do pedido e da aceitação têm textos fixos, sem a recolha nem
+    /// o destino do passageiro (P-13: quem recebe a notificação pode não poder ver esses pontos).
+    /// </summary>
+    [Fact]
+    public async Task I112_94_NotificacoesDoPedido_NaoTrazemOsPontosDoPassageiro()
+    {
+        var outro = new Utilizador { Nome = "Outro", Email = "outro@estg.ipp.pt", EmailConfirmado = true };
+        db.Utilizadores.Add(outro);
+        await db.SaveChangesAsync();
+
+        var criado = await Servico().CriarPedidoAsync(viagem.Id, outro.Id, "Ermesinde", "Famalicão", default);
+        Assert.Null(criado.Erro);
+        db.ChangeTracker.Clear();
+        Assert.Null((await Servico().AceitarAsync(criado.Valor.Id, condutor.Id, default)).Erro);
+
+        var notificacoes = await db.Notificacoes.AsNoTracking().ToListAsync();
+        Assert.True(notificacoes.Count >= 2);
+
+        foreach (var notificacao in notificacoes)
+        {
+            string texto = notificacao.Titulo + " " + notificacao.Conteudo;
+            Assert.DoesNotContain("Ermesinde", texto, StringComparison.Ordinal);
+            Assert.DoesNotContain("Famalicão", texto, StringComparison.Ordinal);
+        }
     }
 }

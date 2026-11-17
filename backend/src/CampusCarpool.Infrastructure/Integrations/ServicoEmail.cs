@@ -22,7 +22,7 @@ public sealed class ServicoEmail(
     /// <summary>Envia o email de confirmação através da API Brevo.</summary>
     /// <exception cref="InvalidOperationException">Falta a configuração da Brevo ou o URL de confirmação.</exception>
     /// <exception cref="HttpRequestException">
-    /// A Brevo recusou o envio. O registo responde 503 e a conta fica por confirmar (RF-F001-21).
+    /// A Brevo recusou o envio. O envio é feito em segundo plano (BE-12): o registo já respondeu 202 e a conta fica por confirmar; o reenvio permite pedir outro email (RF-F001-21).
     /// </exception>
     public async Task EnviarConfirmacaoAsync(
         string destino,

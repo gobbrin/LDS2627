@@ -242,7 +242,11 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         AssertCampos(conversa[0], camposDaMensagem);
 
         var conversas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/mensagens/conversas", passageiro.Id);
-        AssertCampos(conversas[0], "outroUtilizadorId", "outroUtilizadorNome", "ultimaMensagemId", "ultimaMensagem", "ultimaMensagemEm");
+        // D-4: página com { total, pagina, tamanho, conversas }.
+        AssertCampos(conversas, "total", "pagina", "tamanho", "conversas");
+        AssertCampos(
+            conversas.GetProperty("conversas")[0],
+            "outroUtilizadorId", "outroUtilizadorNome", "ultimaMensagemId", "ultimaMensagem", "ultimaMensagemEm");
 
         var notificacoes = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", passageiro.Id);
         AssertCampos(notificacoes, "itens", "pagina", "tamanhoPagina", "total", "totalPaginas", "naoLidas");
@@ -335,6 +339,34 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         Assert.Equal(2, geometria[1].GetArrayLength());
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("%20%20")]
+    [InlineData(null)]
+    /// <summary>E5-a: texto vazio, só com espaços ou em falta em <c>GET /rotas/geocodificar</c> dá a mensagem do controller.</summary>
+    public async Task I112_112_Geocodificar_TextoVazioOuEmFalta_DaAMensagemDoController(string? texto)
+    {
+        string caminho = texto is null ? "/api/v1/rotas/geocodificar" : $"/api/v1/rotas/geocodificar?texto={texto}";
+
+        var erro = await JsonAsync(HttpStatusCode.BadRequest, HttpMethod.Get, caminho, condutor.Id);
+
+        Assert.Equal("Indica o local a procurar.", erro.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    /// <summary>E5-b: <c>POST /rotas/calcular</c> recusa a origem igual ao destino (mesmo texto, sem distinguir maiúsculas), como <c>POST /viagens</c>.</summary>
+    public async Task I112_113_Calcular_OrigemIgualAoDestino_400()
+    {
+        var erro = await JsonAsync(
+            HttpStatusCode.BadRequest,
+            HttpMethod.Post,
+            "/api/v1/rotas/calcular",
+            condutor.Id,
+            new { origem = "Porto", destino = " porto " });
+
+        Assert.Equal("A origem e o destino não podem ser o mesmo local.", erro.GetProperty("erro").GetString());
+    }
+
     // Viagem já concluída em que o passageiro participou: só assim se pode avaliar (RF-F007-01).
     private Guid CriarViagemConcluidaComPassageiro()
     {
@@ -359,6 +391,9 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         db.Viagens.Add(viagem);
         db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = Domain.Enums.EstadoParticipacao.Aceite,
@@ -408,7 +443,11 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         var viagemId = (await CriarViagemAsync()).GetProperty("id").GetString()!;
 
         var minhas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/viagens/minhas", condutor.Id);
-        AssertCampos(minhas[0], "id", "origem", "destino", "partidaEm", "lugaresOferecidos", "lugaresDisponiveis");
+        // D-4: página com { total, pagina, tamanho, viagens }, como a pesquisa.
+        AssertCampos(minhas, "total", "pagina", "tamanho", "viagens");
+        AssertCampos(
+            minhas.GetProperty("viagens")[0],
+            "id", "origem", "destino", "partidaEm", "lugaresOferecidos", "lugaresDisponiveis");
 
         var pedido = await JsonAsync(
             HttpStatusCode.Created,
@@ -431,7 +470,15 @@ public sealed class ContratoRespostasHttpTests : IDisposable
             simulacao,
             "viagemId", "pedidoId", "origemViagem", "destinoViagem", "recolhaPassageiro", "destinoPassageiro",
             "distanciaOriginalKm", "duracaoOriginalMinutos", "distanciaSimuladaKm", "duracaoSimuladaMinutos",
-            "desvioDistanciaKm", "desvioDuracaoMinutos", "ordemOriginal", "ordemSimulada");
+            "desvioDistanciaKm", "desvioDuracaoMinutos", "ordemOriginal", "ordemSimulada", "rotaSimulada");
+
+        // BE-35 / D-2: a rota simulada tem o formato de GET /rotas/viagens/{id}, com coordenadas e linha.
+        AssertCampos(
+            simulacao.GetProperty("rotaSimulada"),
+            "viagemId", "participacoesAceites", "pontosOrdenados", "segmentos", "distanciaTotalKm",
+            "duracaoTotalMinutos", "estimativaCusto", "geometria", "geometriaAproximada");
+        AssertCampos(simulacao.GetProperty("rotaSimulada").GetProperty("pontosOrdenados")[1], "ordem", "tipo", "local", "latitude", "longitude");
+        Assert.Equal("Recolha", simulacao.GetProperty("rotaSimulada").GetProperty("pontosOrdenados")[1].GetProperty("tipo").GetString());
 
         using var aceite = await EnviarAsync(HttpMethod.Post, $"/api/v1/participacoes/{pedidoId}/aceitar", condutor.Id);
         Assert.Equal(HttpStatusCode.NoContent, aceite.StatusCode);
@@ -450,8 +497,13 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         CriarViagemConcluidaComPassageiro();
 
         var historico = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/historico", passageiro.Id);
+        // D-4: as seis listas da página, com a página, o tamanho e o total de cada lista.
         AssertCampos(
             historico,
+            "pagina", "tamanho", "totais",
+            "viagensComoCondutor", "viagensComoPassageiro", "pedidosEfetuados", "pedidosRecebidos", "notificacoes", "avisos");
+        AssertCampos(
+            historico.GetProperty("totais"),
             "viagensComoCondutor", "viagensComoPassageiro", "pedidosEfetuados", "pedidosRecebidos", "notificacoes", "avisos");
         AssertCampos(
             historico.GetProperty("pedidosEfetuados")[0],
@@ -487,8 +539,8 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         AssertCampos(minha, "classificacao", "data");
 
         var consulta = await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/avaliacoes/utilizadores/{condutor.Id}", passageiro.Id);
-        AssertCampos(consulta, "utilizadorId", "total", "media", "avaliacoes");
-        AssertCampos(consulta.GetProperty("avaliacoes")[0], "classificacao", "data");
+        // BE-43: só a média e o contador, com os nomes do perfil; sem lista nem autor.
+        AssertCampos(consulta, "classificacaoMedia", "totalAvaliacoes");
     }
 
     [Fact]

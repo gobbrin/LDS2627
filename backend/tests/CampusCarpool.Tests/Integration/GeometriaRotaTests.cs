@@ -101,7 +101,7 @@ public sealed class GeometriaRotaTests : IDisposable
     }
 
     [Fact]
-    public async Task I112_02_CriarViagem_GuardaALinhaDaHere()
+    public async Task I112_45_CriarViagem_GuardaALinhaDaHere()
     {
         var viagemId = await CriarViagemAsync();
 
@@ -114,7 +114,7 @@ public sealed class GeometriaRotaTests : IDisposable
 
     [Fact]
     /// <summary>Consultar a rota lê a linha guardada: não volta a chamar a HERE.</summary>
-    public async Task I112_03_ConsultarRota_DevolveALinhaGuardadaSemChamarAHere()
+    public async Task I112_46_ConsultarRota_DevolveALinhaGuardadaSemChamarAHere()
     {
         var viagemId = await CriarViagemAsync();
 
@@ -128,7 +128,7 @@ public sealed class GeometriaRotaTests : IDisposable
 
     [Fact]
     /// <summary>Sem chave da HERE (reserva): a viagem cria-se e o mapa recebe retas entre os pontos.</summary>
-    public async Task I112_04_SemHere_AViagemCriaSeEARotaTemRetas()
+    public async Task I112_47_SemHere_AViagemCriaSeEARotaTemRetas()
     {
         var viagemId = await CriarViagemAsync(comHere: false);
 
@@ -142,7 +142,7 @@ public sealed class GeometriaRotaTests : IDisposable
 
     [Fact]
     /// <summary>A HERE em erro nunca impede a operação: a viagem cria-se sem linha.</summary>
-    public async Task I112_05_HereEmErro_AViagemCriaSeSemLinha()
+    public async Task I112_48_HereEmErro_AViagemCriaSeSemLinha()
     {
         here.Falha = System.Net.HttpStatusCode.InternalServerError;
 
@@ -154,7 +154,7 @@ public sealed class GeometriaRotaTests : IDisposable
 
     [Fact]
     /// <summary>Decisão de 16/11: alterar só a hora e os lugares não muda os pontos; a linha não se pede de novo.</summary>
-    public async Task I112_06_AlterarSoAHora_ReutilizaALinha()
+    public async Task I112_49_AlterarSoAHora_ReutilizaALinha()
     {
         var viagemId = await CriarViagemAsync();
         db.ChangeTracker.Clear();
@@ -169,7 +169,7 @@ public sealed class GeometriaRotaTests : IDisposable
 
     [Fact]
     /// <summary>Uma paragem nova muda os pontos: a linha pede-se de novo, com a paragem como <c>via</c>.</summary>
-    public async Task I112_07_AceitarComParagemNova_PedeALinhaComVia()
+    public async Task I112_50_AceitarComParagemNova_PedeALinhaComVia()
     {
         var viagemId = await CriarViagemAsync();
 
@@ -184,8 +184,8 @@ public sealed class GeometriaRotaTests : IDisposable
     }
 
     [Fact]
-    /// <summary>P-13: com paragens, quem não participa recebe só a reta da origem ao destino.</summary>
-    public async Task I112_08_QuemNaoParticipa_NaoVeALinhaComParagens()
+    /// <summary>SP-01 e P-13: com paragens, quem não participa vê a mesma linha real, mas só a origem e o destino como pontos.</summary>
+    public async Task I112_08_QuemNaoParticipa_VeALinhaRealSemOsPontosIntermedios()
     {
         var viagemId = await CriarViagemAsync();
         Assert.False((await ConsultarAsync(viagemId, outro.Id)).GeometriaAproximada);
@@ -193,22 +193,65 @@ public sealed class GeometriaRotaTests : IDisposable
         await AceitarPassageiroNaMaiaAsync(viagemId);
 
         var rota = await ConsultarAsync(viagemId, outro.Id);
-        Assert.True(rota.GeometriaAproximada);
-        Assert.Equal([[41.15m, -8.61m], [41.55m, -8.42m]], rota.Geometria);
+        Assert.False(rota.GeometriaAproximada);
+        Assert.Equal(4, rota.Geometria.Count);
+        Assert.Equal(2, rota.PontosOrdenados.Count);
+    }
+
+    /// <summary>
+    /// Matriz 15, L1.5 e BE-44 (R5; SP-01 e D-SP-2, decisões de 17/11): quem tem um pedido pendente vê no mapa a mesma
+    /// linha real guardada, mas só a origem e o destino como pontos (as paragens dos aceites ficam ocultas).
+    /// </summary>
+    [Fact]
+    public async Task I112_95_PassageiroPendente_VeALinhaRealSemAsParagensDosAceites()
+    {
+        var viagemId = await CriarViagemAsync();
+        await AceitarPassageiroNaMaiaAsync(viagemId);
+
+        // O pedido pendente usa a origem da viagem (sem paragens novas, sem mapas).
+        var participacoes = ServicosDeTeste.CriarParticipacoes(db, mapas.CriarServico(), geometria: here.CriarServico());
+        Assert.Null((await participacoes.CriarPedidoAsync(viagemId, outro.Id, "Porto", null, default)).Erro);
+
+        var rota = await ConsultarAsync(viagemId, outro.Id);
+
+        Assert.False(rota.GeometriaAproximada);
+        Assert.Equal((await RotaGravadaAsync(viagemId)).Geometria!.Count, rota.Geometria.Count);
+        Assert.Equal(["Porto", "Braga"], rota.PontosOrdenados.Select(p => p.Local));
     }
 
     [Fact]
-    /// <summary>A simulação não grava nada, por isso não pede a linha.</summary>
-    public async Task I112_09_Simular_NaoChamaAHere()
+    /// <summary>
+    /// D-2 (muda o comportamento do antigo I112_09): a simulação do pedido pede a linha à HERE e devolve-a em
+    /// <c>rotaSimulada</c>; o aceitar seguinte, com os mesmos pontos, reutiliza a rota simulada sem chamar a matriz nem a HERE.
+    /// </summary>
+    public async Task I112_09_SimularPedido_PedeALinhaEOAceitarReutiliza()
     {
         var viagemId = await CriarViagemAsync();
-        var participacoes = ServicosDeTeste.CriarParticipacoes(db, mapas.CriarServico(), geometria: here.CriarServico());
+        RotaService rotas = ServicosDeTeste.CriarRotas(db, mapas.CriarServico(), here.CriarServico());
+        var participacoes = ServicosDeTeste.CriarParticipacoes(db, mapas.CriarServico(), rotas: rotas);
+        var simulacoes = ServicosDeTeste.CriarSimulacoesDePedido(db, mapas.CriarServico(), rotas: rotas);
         var pedido = await participacoes.CriarPedidoAsync(viagemId, passageiro.Id, "Maia", null, default);
 
-        var simulacao = await participacoes.SimularAsync(viagemId, pedido.Valor.Id, condutor.Id, default);
+        var simulacao = await simulacoes.SimularAsync(viagemId, pedido.Valor.Id, condutor.Id, default);
 
         Assert.Null(simulacao.Erro);
-        Assert.Equal(1, here.Chamadas);
+        Assert.Equal(2, here.Chamadas);
+        Assert.Contains("via=41.23,-8.62", Uri.UnescapeDataString(here.UltimoPedido!.ToString()), StringComparison.Ordinal);
+        RotaDaViagem rotaSimulada = simulacao.Valor.RotaSimulada;
+        Assert.False(rotaSimulada.GeometriaAproximada);
+        Assert.Equal(4, rotaSimulada.Geometria.Count);
+        Assert.Equal(["Porto", "Maia", "Braga"], rotaSimulada.PontosOrdenados.Select(p => p.Local));
+
+        int matrizesAntes = mapas.ChamadasRotas;
+        db.ChangeTracker.Clear();
+        var aceite = await participacoes.AceitarAsync(pedido.Valor.Id, condutor.Id, default);
+
+        Assert.Null(aceite.Erro);
+        Assert.Equal(matrizesAntes, mapas.ChamadasRotas);
+        Assert.Equal(2, here.Chamadas);
+        var guardada = await RotaGravadaAsync(viagemId);
+        Assert.Equal(rotaSimulada.DistanciaTotalKm, guardada.DistanciaTotalKm);
+        Assert.Equal(4, guardada.Geometria!.Count);
     }
 
     [Fact]

@@ -101,7 +101,7 @@ public sealed class NotificacoesMesmaGravacaoTests : IAsyncLifetime, IDisposable
             LugaresOferecidos = 2,
             LugaresDisponiveis = 2
         };
-        pedido = new Participacao { ViagemId = viagem.Id, PassageiroId = passageiro.Id };
+        pedido = new Participacao { Destino = viagem.Destino, DestinoLatitude = viagem.DestinoLatitude, DestinoLongitude = viagem.DestinoLongitude, ViagemId = viagem.Id, PassageiroId = passageiro.Id };
 
         db.AddRange(condutor, passageiro, viagem, pedido);
         await db.SaveChangesAsync();

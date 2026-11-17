@@ -204,6 +204,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            AceiteEm = DateTime.UtcNow,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite,
@@ -258,6 +259,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            AceiteEm = DateTime.UtcNow,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite,
@@ -307,6 +309,7 @@ public sealed class RotasParticipacoesIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            AceiteEm = DateTime.UtcNow,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite,
@@ -314,7 +317,8 @@ public sealed class RotasParticipacoesIntegrationTests
             Destino = null
         });
 
-        await f.Db.SaveChangesAsync();
+        // Pedidos sem pontos só existem como dados antigos (anteriores ao CHECK de BE-33).
+        await f.Db.GravarDadosAntigosAsync();
 
         var handler = new MapasFalsos();
         var controller = CriarController(f.Db, passageiro.Id, handler);
@@ -442,6 +446,7 @@ public sealed class RotasParticipacoesIntegrationTests
         f.Db.Participacoes.AddRange(
             new Participacao
             {
+                AceiteEm = DateTime.UtcNow,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiro1.Id,
                 Estado = EstadoParticipacao.Aceite,
@@ -454,6 +459,7 @@ public sealed class RotasParticipacoesIntegrationTests
             },
             new Participacao
             {
+                AceiteEm = DateTime.UtcNow,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiro2.Id,
                 Estado = EstadoParticipacao.Aceite,

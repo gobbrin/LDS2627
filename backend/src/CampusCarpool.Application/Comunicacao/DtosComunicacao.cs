@@ -28,3 +28,10 @@ public sealed record ResumoConversa(
     Guid UltimaMensagemId,
     string UltimaMensagem,
     DateTime UltimaMensagemEm);
+
+/// <summary>Página da lista de conversas (<c>GET /mensagens/conversas?pagina=&amp;tamanho=</c>, D-4).</summary>
+/// <param name="Total">Número de conversas do utilizador.</param>
+/// <param name="Pagina">Página devolvida, a contar de 1.</param>
+/// <param name="Tamanho">Conversas por página.</param>
+/// <param name="Conversas">Conversas da página, da mais recente para a mais antiga.</param>
+public sealed record PaginaConversas(int Total, int Pagina, int Tamanho, IReadOnlyList<ResumoConversa> Conversas);

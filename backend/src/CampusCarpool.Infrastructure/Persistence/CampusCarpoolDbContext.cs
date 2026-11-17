@@ -13,7 +13,7 @@ namespace CampusCarpool.Infrastructure.Persistence;
 /// O esquema real das BD de produção vem das migrations (<c>Migrations/</c>), aplicadas à
 /// parte; os testes em SQLite usam <c>EnsureCreated</c>, que segue este modelo.
 /// Todas as datas são UTC: <see cref="ConfigureConventions"/> aplica o <see cref="ConversorDataUtc"/>.
-/// Os tamanhos e as restrições <c>CHECK</c> seguem o modelo de dados v06 (DC-36).
+/// Os tamanhos, as restrições <c>CHECK</c> e os índices seguem o modelo de dados v07 (DC-36, BE-33, DEF-BE-052).
 /// </remarks>
 public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbContext> options) : DbContext(options)
 {
@@ -144,14 +144,33 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         modelBuilder.Entity<Dispositivo>().HasIndex(x => x.Token).IsUnique();
         modelBuilder.Entity<TokenRevogado>().HasIndex(x => x.Jti).IsUnique();
         modelBuilder.Entity<ConfirmacaoConta>().HasIndex(x => x.TokenHash).IsUnique();
-        // Pesquisa de viagens: só as ativas e futuras, por ordem de partida.
-        modelBuilder.Entity<Viagem>().HasIndex(x => new { x.Estado, x.PartidaEm });
-
+        ConfigurarIndicesDasConsultas(modelBuilder);
         ConfigurarTamanhos(modelBuilder);
         ConfigurarRestricoes(modelBuilder, Database.IsSqlServer());
     }
 
-    // DC-36 / IN-07: tamanhos do modelo de dados v06. Os serviços validam os mesmos limites, para responder 400 e não 500.
+    // Modelo de dados v07, §9 (BE-33): índices das consultas mais frequentes. Cada um começa pelo filtro da consulta e
+    // acaba na ordenação, para o SQL Server não ter de ordenar em memória.
+    private static void ConfigurarIndicesDasConsultas(ModelBuilder modelBuilder)
+    {
+        // Pesquisa de viagens (RF-F003-01): ativas e futuras, por ordem de partida. As colunas incluídas são as que a
+        // pesquisa filtra a seguir (texto normalizado e lugares), para não voltar à tabela por cada viagem.
+        modelBuilder.Entity<Viagem>()
+            .HasIndex(x => new { x.Estado, x.PartidaEm })
+            .IncludeProperties(x => new { x.OrigemPesquisa, x.DestinoPesquisa, x.LugaresDisponiveis });
+        // Pedidos pendentes e participações aceites de uma viagem (RF-F004-08, RF-F003-07).
+        modelBuilder.Entity<Participacao>().HasIndex(x => new { x.ViagemId, x.Estado });
+        // Lista de conversas (RF-F005-09): mensagens recebidas pela data de envio.
+        modelBuilder.Entity<Mensagem>().HasIndex(x => new { x.DestinatarioId, x.EnviadoEm });
+        // Avisos de uma viagem por ordem de criação (RF-F005-03).
+        modelBuilder.Entity<Aviso>().HasIndex(x => new { x.ViagemId, x.CriadoEm });
+        // Notificações do utilizador, das mais recentes para as mais antigas (RF-F006-07).
+        modelBuilder.Entity<Notificacao>()
+            .HasIndex(x => new { x.UtilizadorId, x.CriadaEm })
+            .IsDescending(false, true);
+    }
+
+    // DC-36 / IN-07: tamanhos do modelo de dados v07. Os serviços validam os mesmos limites, para responder 400 e não 500.
     private static void ConfigurarTamanhos(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Utilizador>().Property(x => x.PasswordHash).HasMaxLength(255);
@@ -159,27 +178,36 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         modelBuilder.Entity<Utilizador>().Property(x => x.Instituicao).HasMaxLength(150);
         modelBuilder.Entity<LigacaoExterna>().Property(x => x.Url).HasMaxLength(2048);
         modelBuilder.Entity<LigacaoExterna>().Property(x => x.Descricao).HasMaxLength(100);
-        modelBuilder.Entity<ConfirmacaoConta>().Property(x => x.TokenHash).HasMaxLength(128);
-        modelBuilder.Entity<Dispositivo>().Property(x => x.Token).HasMaxLength(500);
+        modelBuilder.Entity<ConfirmacaoConta>().Property(x => x.TokenHash).HasMaxLength(450);
+        modelBuilder.Entity<Dispositivo>().Property(x => x.Token).HasMaxLength(450);
         modelBuilder.Entity<Viagem>().Property(x => x.Origem).HasMaxLength(200);
         modelBuilder.Entity<Viagem>().Property(x => x.Destino).HasMaxLength(200);
         // A normalização pode aumentar o número de caracteres de alguns alfabetos.
         modelBuilder.Entity<Viagem>().Property(x => x.OrigemPesquisa).HasMaxLength(400);
         modelBuilder.Entity<Viagem>().Property(x => x.DestinoPesquisa).HasMaxLength(400);
-        modelBuilder.Entity<Viagem>().Property(x => x.Estado).HasMaxLength(30);
+        modelBuilder.Entity<Viagem>().Property(x => x.Estado).HasMaxLength(20);
         modelBuilder.Entity<Participacao>().Property(x => x.Estado).HasMaxLength(20);
         modelBuilder.Entity<Participacao>().Property(x => x.Recolha).HasMaxLength(200);
         modelBuilder.Entity<Participacao>().Property(x => x.Destino).HasMaxLength(200);
         modelBuilder.Entity<Mensagem>().Property(x => x.Conteudo).HasMaxLength(1000);
-        modelBuilder.Entity<Notificacao>().Property(x => x.Tipo).HasMaxLength(50);
-        modelBuilder.Entity<Notificacao>().Property(x => x.Titulo).HasMaxLength(100);
+        modelBuilder.Entity<Notificacao>().Property(x => x.Tipo).HasMaxLength(30);
+        modelBuilder.Entity<Notificacao>().Property(x => x.Titulo).HasMaxLength(150);
         modelBuilder.Entity<Notificacao>().Property(x => x.Conteudo).HasMaxLength(1000);
     }
 
-    // DC-36: restrições do modelo de dados v06 que se aplicam às colunas existentes. Os estados e tipos são os nomes dos
-    // enums, sem acento. ISJSON só existe em SQL Server; as outras correm também nos testes em SQLite.
+    // DC-36, BE-33: restrições do modelo de dados v07 que se aplicam às colunas existentes. Os estados e tipos são os
+    // nomes dos enums, sem acento. Só em SQL Server: ISJSON, que o SQLite não tem, e as comparações numéricas das
+    // colunas decimais, que o SQLite guarda como texto (comparava "-8" com "-90" letra a letra). As outras correm
+    // também nos testes em SQLite.
     private static void ConfigurarRestricoes(ModelBuilder modelBuilder, bool sqlServer)
     {
+        // P-26: o nome não pode ser só espaços.
+        modelBuilder.Entity<Utilizador>().ToTable(t => t.HasCheckConstraint("CK_Utilizadores_Nome", "TRIM([Nome]) <> ''"));
+
+        // P-27: só ligações http ou https.
+        modelBuilder.Entity<LigacaoExterna>().ToTable(t =>
+            t.HasCheckConstraint("CK_LigacoesExternas_Url", "[Url] LIKE 'http://%' OR [Url] LIKE 'https://%'"));
+
         modelBuilder.Entity<Viagem>().ToTable(t =>
         {
             t.HasCheckConstraint(
@@ -189,7 +217,18 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
                 "CK_Viagens_Locais",
                 "NOT ([OrigemLatitude] = [DestinoLatitude] AND [OrigemLongitude] = [DestinoLongitude])");
 
-            if (sqlServer) t.HasCheckConstraint("CK_Viagens_Rota", "[RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1");
+            if (!sqlServer) return;
+
+            t.HasCheckConstraint("CK_Viagens_Rota", "[RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1");
+            // Latitude entre -90 e 90 e longitude entre -180 e 180.
+            t.HasCheckConstraint(
+                "CK_Viagens_Coordenadas",
+                "[OrigemLatitude] BETWEEN -90 AND 90 AND [DestinoLatitude] BETWEEN -90 AND 90"
+                + " AND [OrigemLongitude] BETWEEN -180 AND 180 AND [DestinoLongitude] BETWEEN -180 AND 180");
+            // Distância e duração positivas. Ficam a NULL enquanto o Serviço de Mapas não as calculou (P-19).
+            t.HasCheckConstraint(
+                "CK_Viagens_Medidas",
+                "([DistanciaKm] IS NULL OR [DistanciaKm] > 0) AND ([DuracaoMinutos] IS NULL OR [DuracaoMinutos] > 0)");
         });
 
         modelBuilder.Entity<Participacao>().ToTable(t =>
@@ -198,7 +237,23 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
             t.HasCheckConstraint(
                 "CK_Participacoes_Locais",
                 "NOT ([RecolhaLatitude] = [DestinoLatitude] AND [RecolhaLongitude] = [DestinoLongitude])");
+            // P-20: pelo menos um ponto no pedido.
+            t.HasCheckConstraint("CK_Participacoes_UmPonto", "[Recolha] IS NOT NULL OR [Destino] IS NOT NULL");
+            // A8: um ponto indicado tem coordenadas; um ponto omitido não tem nenhuma.
+            t.HasCheckConstraint(
+                "CK_Participacoes_CoordRecolha",
+                "([Recolha] IS NULL AND [RecolhaLatitude] IS NULL AND [RecolhaLongitude] IS NULL)"
+                + " OR ([Recolha] IS NOT NULL AND [RecolhaLatitude] IS NOT NULL AND [RecolhaLongitude] IS NOT NULL)");
+            t.HasCheckConstraint(
+                "CK_Participacoes_CoordDestino",
+                "([Destino] IS NULL AND [DestinoLatitude] IS NULL AND [DestinoLongitude] IS NULL)"
+                + " OR ([Destino] IS NOT NULL AND [DestinoLatitude] IS NOT NULL AND [DestinoLongitude] IS NOT NULL)");
+            // D-029: uma participação aceite guarda a data da aceitação (histórico do passageiro).
+            t.HasCheckConstraint("CK_Participacoes_AceiteEm", "[Estado] <> 'Aceite' OR [AceiteEm] IS NOT NULL");
         });
+
+        // D-019: o aviso não pode ser só espaços.
+        modelBuilder.Entity<Aviso>().ToTable(t => t.HasCheckConstraint("CK_Avisos_Conteudo", "TRIM([Conteudo]) <> ''"));
 
         modelBuilder.Entity<Avaliacao>().ToTable(t =>
         {

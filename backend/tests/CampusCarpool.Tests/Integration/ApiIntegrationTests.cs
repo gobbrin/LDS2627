@@ -171,8 +171,8 @@ public sealed class ApiIntegrationTests
         var controller = ServicosDeTeste.CriarViagensController(fixture.Db, new ServicoMapasRotas(
             new HttpClient(), new ConfigurationBuilder().Build()));
         Authenticate(controller, Guid.NewGuid());
-        RespostaEsperada.Proibido(await controller.Editar(trip.Id,
-            new(DateTime.UtcNow.AddDays(3), 4), default));
+        RespostasDeErro.AssertErro(await controller.Editar(trip.Id,
+            new(DateTime.UtcNow.AddDays(3), 4), default), 403, "Não tens permissão para gerir esta viagem.");
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class ApiIntegrationTests
         using var fixture = new DatabaseFixture();
         var controller = ServicosDeTeste.CriarPesquisaController(fixture.Db);
         RespostasDeErro.AssertErro(await controller.Pesquisar(
-            null, null, null, null, -1, 99999, default), 400, "Paginação inválida.");
+            null, null, null, null, -1, 99999, default), 400, "A página começa em 1.");
     }
 
     [Fact]

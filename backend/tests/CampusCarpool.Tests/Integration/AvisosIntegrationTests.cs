@@ -69,8 +69,14 @@ public sealed class AvisosIntegrationTests
             Guid passageiroId,
             EstadoParticipacao estado)
         {
+            // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+            var viagem = await Db.Viagens.FindAsync(viagemId);
             var participacao = new Participacao
             {
+                Destino = viagem!.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
                 ViagemId = viagemId,
                 PassageiroId = passageiroId,
                 Estado = estado
@@ -184,7 +190,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Criar(
             viagem.Id, new("Mensagem não autorizada"), default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -277,7 +283,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, passageiro.Id).Listar(viagem.Id, default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
     }
 
     [Fact]
@@ -290,7 +296,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Listar(viagem.Id, default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
     }
 
     [Fact]

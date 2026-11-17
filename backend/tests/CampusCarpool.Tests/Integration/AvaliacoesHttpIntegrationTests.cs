@@ -163,8 +163,12 @@ public sealed class AvaliacoesHttpIntegrationTests
 
         db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
+            AceiteEm = participacaoAceite ? DateTime.UtcNow : null,
             Estado = participacaoAceite
                 ? EstadoParticipacao.Aceite
                 : EstadoParticipacao.Pendente
@@ -372,7 +376,7 @@ public sealed class AvaliacoesHttpIntegrationTests
         var confirmada = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{dados.avaliadoId}");
         Assert.Equal(HttpStatusCode.OK, confirmada.StatusCode);
         using var corpo = JsonDocument.Parse(await confirmada.Content.ReadAsStringAsync());
-        Assert.Equal(0, corpo.RootElement.GetProperty("total").GetInt32());
-        Assert.Equal(JsonValueKind.Null, corpo.RootElement.GetProperty("media").ValueKind);
+        Assert.Equal(0, corpo.RootElement.GetProperty("totalAvaliacoes").GetInt32());
+        Assert.Equal(JsonValueKind.Null, corpo.RootElement.GetProperty("classificacaoMedia").ValueKind);
     }
 }

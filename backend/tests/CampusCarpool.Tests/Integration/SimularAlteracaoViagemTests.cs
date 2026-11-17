@@ -11,11 +11,11 @@ using Xunit;
 namespace CampusCarpool.Tests.Integration;
 
 /// <summary>
-/// Simulação da alteração de origem ou destino (<c>ViagemService.SimularAlteracaoAsync</c>, WEB-01, MOB-01): o mesmo
-/// cálculo do PUT, com as paragens dos passageiros aceites e o custo, sem gravar nada e sem chamar a HERE.
+/// Simulação da alteração de origem ou destino (<c>SimulacaoDeAlteracaoService.SimularAlteracaoAsync</c>, WEB-01, MOB-01): o mesmo
+/// cálculo do PUT, com as paragens dos passageiros aceites e o custo, sem gravar nada; desde a D-2, com a linha da HERE.
 /// </summary>
 /// <remarks>
-/// Testes do serviço, chamado diretamente, como os outros testes do <c>ViagemService</c>: SQLite em memória com os
+/// Testes do serviço, chamado diretamente, como os outros testes do <c>ViagemService</c> (que cria e altera as viagens): SQLite em memória com os
 /// serviços reais; OpenRouteService pelo <see cref="MapasFalsos"/> (1 km e 2 min por troço) e HERE pela <see cref="HereFalsa"/>.
 /// </remarks>
 public sealed class SimularAlteracaoViagemTests : IDisposable
@@ -47,9 +47,13 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
         ligacao.Dispose();
     }
 
-    // Serviço real, com a HERE configurada (para provar que a simulação não a chama).
+    // Serviço real, com a HERE configurada (D-2: a simulação pede-lhe a linha).
     private ViagemService Viagens(bool mapasConfigurados = true) =>
         ServicosDeTeste.CriarViagens(db, mapas.CriarServico(mapasConfigurados), geometria: here.CriarServico());
+
+    // Simulação da alteração (AE-01), com a HERE configurada.
+    private SimulacaoDeAlteracaoService Simulacoes(bool mapasConfigurados = true) =>
+        ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas.CriarServico(mapasConfigurados), geometria: here.CriarServico());
 
     // Viagem Porto → Braga de 3 lugares, daqui a dois dias; a criação pede a linha à HERE uma vez.
     private async Task<Guid> CriarViagemAsync()
@@ -81,11 +85,14 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
     private async Task<Resultado<RotaDaViagem>> SimularAsync(Guid viagemId, Guid utilizadorId, string? origem, string? destino)
     {
         db.ChangeTracker.Clear();
-        return await Viagens().SimularAlteracaoAsync(viagemId, utilizadorId, origem, destino, default);
+        return await Simulacoes().SimularAlteracaoAsync(viagemId, utilizadorId, origem, destino, default);
     }
 
     [Fact]
-    /// <summary>Condutor sem passageiros muda o destino: rota direta com o custo só dele, em retas e sem chamar a HERE.</summary>
+    /// <summary>
+    /// Condutor sem passageiros muda o destino: rota direta com o custo só dele e, desde a D-2, a linha da HERE
+    /// (um pedido à HERE, <c>geometriaAproximada</c> a falso).
+    /// </summary>
     public async Task SimularAlteracao_CondutorMudaODestino_DevolveRotaECusto()
     {
         var viagemId = await CriarViagemAsync();
@@ -102,10 +109,60 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
         Assert.Equal(0, rota.EstimativaCusto.PassageirosAceites);
         Assert.Equal(1, rota.EstimativaCusto.TotalParticipantes);
 
-        // Sem a HERE, a linha são retas entre os pontos: origem (Porto) e novo destino (Guimarães).
-        Assert.True(rota.GeometriaAproximada);
-        Assert.Equal([[41.15m, -8.61m], [41.44m, -8.29m]], rota.Geometria);
-        Assert.Equal(chamadasHereDepoisDeCriar, here.Chamadas);
+        // D-2: a simulação pede a linha à HERE (a da HereFalsa tem 4 pontos), da origem ao novo destino.
+        Assert.False(rota.GeometriaAproximada);
+        Assert.Equal(4, rota.Geometria.Count);
+        Assert.Equal(chamadasHereDepoisDeCriar + 1, here.Chamadas);
+        Assert.Contains("destination=41.44,-8.29", Uri.UnescapeDataString(here.UltimoPedido!.ToString()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    /// <summary>Sem chave da HERE (reserva final), a linha da simulação são retas entre os pontos.</summary>
+    public async Task I112_56_SimularAlteracao_SemHere_DevolveRetas()
+    {
+        var viagemId = await CriarViagemAsync();
+        db.ChangeTracker.Clear();
+        SimulacaoDeAlteracaoService semHere = ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas.CriarServico(), geometria: here.CriarServico(configurado: false));
+        int chamadasHere = here.Chamadas;
+
+        var simulada = await semHere.SimularAlteracaoAsync(viagemId, condutor.Id, null, "Guimarães", default);
+
+        Assert.Null(simulada.Erro);
+        Assert.True(simulada.Valor.GeometriaAproximada);
+        Assert.Equal([[41.15m, -8.61m], [41.44m, -8.29m]], simulada.Valor.Geometria);
+        Assert.Equal(chamadasHere, here.Chamadas);
+    }
+
+    [Fact]
+    /// <summary>
+    /// D-2: o PUT logo a seguir à simulação, com os mesmos locais, guarda a rota e a linha simuladas sem pedir outra
+    /// matriz nem outra linha à HERE (só a geocodificação, que aqui não passa pela memória do ServicoMapasComReserva).
+    /// </summary>
+    public async Task I112_57_SimularEDepoisAlterar_ReutilizaARotaSimulada()
+    {
+        var viagemId = await CriarViagemAsync();
+        await AceitarPassageiroNaMaiaAsync(viagemId);
+        db.ChangeTracker.Clear();
+        // O PUT e a simulação partilham o serviço de rotas, como no contentor (memória das simulações, D-2).
+        RotaService rotas = ServicosDeTeste.CriarRotas(db, mapas.CriarServico(), here.CriarServico());
+        ViagemService viagens = ServicosDeTeste.CriarViagens(db, mapas.CriarServico(), rotas: rotas);
+        SimulacaoDeAlteracaoService simulacoes = ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas.CriarServico(), rotas: rotas);
+
+        var simulada = await simulacoes.SimularAlteracaoAsync(viagemId, condutor.Id, null, "Guimarães", default);
+        Assert.Null(simulada.Erro);
+        int matrizes = mapas.ChamadasRotas;
+        int chamadasHere = here.Chamadas;
+
+        db.ChangeTracker.Clear();
+        var alterada = await viagens.EditarAsync(viagemId, condutor.Id, DateTime.UtcNow.AddDays(2), 3, null, "Guimarães", default);
+
+        Assert.Null(alterada.Erro);
+        Assert.Equal(matrizes, mapas.ChamadasRotas);
+        Assert.Equal(chamadasHere, here.Chamadas);
+        ResultadoRotaComPontos guardada = RotaGuardada.Ler(ViagemNaBaseDeDados(viagemId))!;
+        Assert.Equal(["Porto", "Maia", "Guimarães"], guardada.PontosOrdenados.Select(p => p.Local));
+        Assert.Equal(simulada.Valor.DistanciaTotalKm, guardada.DistanciaTotalKm);
+        Assert.Equal(4, guardada.Geometria!.Count);
     }
 
     [Fact]
@@ -125,12 +182,17 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
         Assert.Equal(1, rota.ParticipacoesAceites);
         Assert.Equal(1, rota.EstimativaCusto.PassageirosAceites);
         Assert.Equal(2, rota.EstimativaCusto.TotalParticipantes);
-        Assert.Equal(3, rota.Geometria.Count);
+        // D-2: a linha vem da HERE (4 pontos na HereFalsa), com a Maia como via.
+        Assert.Equal(4, rota.Geometria.Count);
+        Assert.Contains("via=41.23,-8.62", Uri.UnescapeDataString(here.UltimoPedido!.ToString()), StringComparison.Ordinal);
     }
 
     [Fact]
-    /// <summary>A simulação não grava nada (locais, rota, duração, versão), não notifica nem chama a HERE.</summary>
-    public async Task SimularAlteracao_NaoGravaNemNotificaNemChamaAHere()
+    /// <summary>
+    /// A simulação não grava nada (locais, rota, duração, versão) nem notifica. Desde a D-2 pede a linha à HERE (uma
+    /// vez), mas a linha só fica em memória, nunca na viagem.
+    /// </summary>
+    public async Task SimularAlteracao_NaoGravaNemNotifica()
     {
         var viagemId = await CriarViagemAsync();
         await AceitarPassageiroNaMaiaAsync(viagemId);
@@ -149,7 +211,7 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
         Assert.Equal(antes.DistanciaKm, depois.DistanciaKm);
         Assert.Equal(antes.RotaPontos, depois.RotaPontos);
         Assert.Equal(notificacoesAntes, db.Notificacoes.Count());
-        Assert.Equal(chamadasHereAntes, here.Chamadas);
+        Assert.Equal(chamadasHereAntes + 1, here.Chamadas);
     }
 
     [Fact]
@@ -228,7 +290,7 @@ public sealed class SimularAlteracaoViagemTests : IDisposable
         var viagemId = await CriarViagemAsync();
         db.ChangeTracker.Clear();
 
-        var simulada = await Viagens(mapasConfigurados: false)
+        var simulada = await Simulacoes(mapasConfigurados: false)
             .SimularAlteracaoAsync(viagemId, condutor.Id, null, "Guimarães", default);
 
         Assert.Equal(TipoErro.ServicoIndisponivel, simulada.Erro?.Tipo);

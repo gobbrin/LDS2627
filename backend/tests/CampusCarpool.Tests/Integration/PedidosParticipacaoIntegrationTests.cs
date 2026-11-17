@@ -359,6 +359,9 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Pendente
@@ -391,6 +394,10 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
+            AceiteEm = DateTime.UtcNow,
             ViagemId = viagem.Id,
             PassageiroId = outroPassageiro.Id,
             Estado = EstadoParticipacao.Aceite
@@ -553,9 +560,7 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, "Maia", null),
             default);
 
-        Assert.Equal(
-            502,
-            Assert.IsType<ObjectResult>(resultado).StatusCode);
+        RespostasDeErro.AssertErro(resultado, 502, "Serviço de mapas indisponível.");
 
         Assert.Empty(f.Db.Participacoes);
     }
@@ -602,9 +607,7 @@ public sealed class PedidosParticipacaoIntegrationTests
             new(viagem.Id, "Maia", null),
             default);
 
-        Assert.Equal(
-            503,
-            Assert.IsType<ObjectResult>(resultado).StatusCode);
+        RespostasDeErro.AssertErro(resultado, 503, "Serviço de mapas não configurado.");
 
         Assert.Empty(f.Db.Participacoes);
     }
@@ -619,6 +622,9 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Pendente
@@ -628,6 +634,10 @@ public sealed class PedidosParticipacaoIntegrationTests
 
         f.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
+            AceiteEm = DateTime.UtcNow,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite

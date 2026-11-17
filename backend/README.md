@@ -11,7 +11,7 @@ Projetos: Api, Application, Domain, Infrastructure e Tests, na solução `Campus
 5. Executar `dotnet build CampusCarpool.slnx` e `dotnet test CampusCarpool.slnx`.
 6. Executar `dotnet run --project src/CampusCarpool.Api` (fica em `http://localhost:5100`).
 
-Sem `Jwt:Key` ou sem `ConnectionStrings:DefaultConnection`, a API recusa arrancar, de propósito. As integrações são opcionais: OpenRouteService (`Maps:ApiKey`), HERE Routing para a linha do mapa (`Here:ApiKey`), Brevo (`Brevo:*`, `Frontend:ConfirmUrl`) e FCM (`Firebase:*`); o manual I064 diz o que acontece sem cada uma.
+Sem `Jwt:Key` ou sem `ConnectionStrings:DefaultConnection`, a API recusa arrancar, de propósito. As integrações são opcionais: HERE, o Serviço de Mapas principal (`Here:ApiKey`), OpenRouteService como reserva (`Maps:ApiKey`; ver `docs/backend/README.md`), Brevo (`Brevo:*`, `Frontend:ConfirmUrl`) e FCM (`Firebase:*`); o manual I064 diz o que acontece sem cada uma.
 
 Não enviar segredos para o repositório: é público.
 

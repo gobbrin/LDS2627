@@ -53,6 +53,27 @@ public static class BaseDeDadosDeTeste
         else await baseDeDados.EnsureCreatedAsync();
     }
 
+    /// <summary>
+    /// Grava os pedidos alterados como dados antigos, anteriores à migration <c>I112_ModeloDadosV07</c> (BE-33): por
+    /// exemplo, um pedido sem nenhum ponto, que o m3 aceitava. A migration criou as restrições novas
+    /// <c>WITH NOCHECK</c>, por isso essas linhas podem existir numa BD real e o código continua a tratá-las.
+    /// </summary>
+    /// <remarks>Desliga as restrições <c>CHECK</c> só durante esta gravação e volta a ligá-las logo a seguir.</remarks>
+    public static async Task GravarDadosAntigosAsync(this DbContext db)
+    {
+        if (EmSqlServer)
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Participacoes] NOCHECK CONSTRAINT ALL");
+            await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Participacoes] CHECK CONSTRAINT ALL");
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync("PRAGMA ignore_check_constraints = ON");
+        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlRawAsync("PRAGMA ignore_check_constraints = OFF");
+    }
+
     private static string CadeiaDe(SqliteConnection ligacao)
     {
         lock (CriacaoDeBases)

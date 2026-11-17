@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
 
 namespace CampusCarpool.Application.Historico;
@@ -15,22 +16,36 @@ public sealed class HistoricoService(IRepositorioHistorico historico) : IHistori
     /// <inheritdoc />
     public async Task<HistoricoResultado> ConsultarAsync(
         Guid utilizadorId,
+        int pagina,
+        int tamanho,
         CancellationToken ct)
     {
-        IReadOnlyList<Viagem> comoCondutor = await historico.ListarViagensComoCondutorAsync(utilizadorId, ct);
-        IReadOnlyList<Participacao> comoPassageiro = await historico.ListarParticipacoesComoPassageiroAsync(utilizadorId, ct);
-        IReadOnlyList<Participacao> efetuados = await historico.ListarPedidosEfetuadosAsync(utilizadorId, ct);
-        IReadOnlyList<Participacao> recebidos = await historico.ListarPedidosRecebidosAsync(utilizadorId, ct);
-        IReadOnlyList<Notificacao> notificacoes = await historico.ListarNotificacoesAsync(utilizadorId, ct);
-        IReadOnlyList<Aviso> avisos = await historico.ListarAvisosAsync(utilizadorId, ct);
+        // Cada lista lê só a página pedida e conta o seu total (D-4).
+        PaginaDe<Viagem> comoCondutor = await historico.ListarViagensComoCondutorAsync(utilizadorId, pagina, tamanho, ct);
+        PaginaDe<Participacao> comoPassageiro = await historico.ListarParticipacoesComoPassageiroAsync(utilizadorId, pagina, tamanho, ct);
+        PaginaDe<Participacao> efetuados = await historico.ListarPedidosEfetuadosAsync(utilizadorId, pagina, tamanho, ct);
+        PaginaDe<Participacao> recebidos = await historico.ListarPedidosRecebidosAsync(utilizadorId, pagina, tamanho, ct);
+        PaginaDe<Notificacao> notificacoes = await historico.ListarNotificacoesAsync(utilizadorId, pagina, tamanho, ct);
+        PaginaDe<Aviso> avisos = await historico.ListarAvisosAsync(utilizadorId, pagina, tamanho, ct);
+
+        var totais = new TotaisHistorico(
+            comoCondutor.Total,
+            comoPassageiro.Total,
+            efetuados.Total,
+            recebidos.Total,
+            notificacoes.Total,
+            avisos.Total);
 
         return new HistoricoResultado(
-            comoCondutor.Select(ViagemComoCondutor).ToList(),
-            comoPassageiro.Select(ViagemComoPassageiro).ToList(),
-            efetuados.Select(Pedido).ToList(),
-            recebidos.Select(Pedido).ToList(),
-            notificacoes.Select(NotificacaoDoHistorico).ToList(),
-            avisos.Select(AvisoDoHistorico).ToList());
+            pagina,
+            tamanho,
+            totais,
+            comoCondutor.Itens.Select(ViagemComoCondutor).ToList(),
+            comoPassageiro.Itens.Select(ViagemComoPassageiro).ToList(),
+            efetuados.Itens.Select(Pedido).ToList(),
+            recebidos.Itens.Select(Pedido).ToList(),
+            notificacoes.Itens.Select(NotificacaoDoHistorico).ToList(),
+            avisos.Itens.Select(AvisoDoHistorico).ToList());
     }
 
     /// <summary>Viagem do condutor: com os lugares oferecidos e sem participação.</summary>

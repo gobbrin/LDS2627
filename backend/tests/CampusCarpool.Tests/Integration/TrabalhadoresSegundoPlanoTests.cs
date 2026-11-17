@@ -149,7 +149,7 @@ public sealed class TrabalhadoresSegundoPlanoTests
     [Fact]
     public async Task I112_37_Emails_FalhaNumEnvio_NaoParaOsSeguintes()
     {
-        var fila = new FilaEmails();
+        var fila = new FilaEmails(NullLogger<FilaEmails>.Instance);
         var email = new EmailQueFalhaUmDestino();
         using TrabalhadorEmails trabalhador = CriarTrabalhadorEmails(fila, email);
 
@@ -167,7 +167,7 @@ public sealed class TrabalhadoresSegundoPlanoTests
     [Fact]
     public async Task I112_38_Emails_ParagemAMeioDeUmEnvio_TerminaOTrabalhador()
     {
-        var fila = new FilaEmails();
+        var fila = new FilaEmails(NullLogger<FilaEmails>.Instance);
         var email = new EmailQueNuncaAcaba();
         using TrabalhadorEmails trabalhador = CriarTrabalhadorEmails(fila, email);
 
@@ -178,5 +178,32 @@ public sealed class TrabalhadoresSegundoPlanoTests
         await trabalhador.StopAsync(CancellationToken.None).WaitAsync(AplicacaoReal.EsperaMaxima);
 
         Assert.True(trabalhador.ExecuteTask!.IsCompletedSuccessfully);
+    }
+
+    /// <summary>
+    /// BE-39: com a fila de emails cheia e o trabalhador parado, enfileirar não espera; o email a mais é descartado
+    /// e o primeiro continua na fila.
+    /// </summary>
+    [Fact]
+    public async Task I112_55_Emails_FilaCheia_NaoPrendeORegisto()
+    {
+        var fila = new FilaEmails(NullLogger<FilaEmails>.Instance, capacidade: 1);
+
+        await fila.EnfileirarConfirmacaoAsync("primeiro@estg.ipp.pt", "token-1", CancellationToken.None);
+        Task segundo = fila.EnfileirarConfirmacaoAsync("segundo@estg.ipp.pt", "token-2", CancellationToken.None).AsTask();
+
+        // Antes da correção, o segundo ficava à espera até haver espaço (aqui, para sempre).
+        await segundo.WaitAsync(AplicacaoReal.EsperaMaxima);
+
+        using var parar = new CancellationTokenSource();
+        var lidos = new List<string>();
+        await foreach (EmailConfirmacaoPendente lido in fila.LerPendentesAsync(parar.Token))
+        {
+            lidos.Add(lido.Destino);
+            parar.Cancel();
+            break;
+        }
+
+        Assert.Equal(["primeiro@estg.ipp.pt"], lidos);
     }
 }

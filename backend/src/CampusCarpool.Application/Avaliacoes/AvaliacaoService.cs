@@ -92,13 +92,13 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         // Uma conta por confirmar não é pública: 404, como no perfil público (BE-14).
         if (!await repositorio.UtilizadorConfirmadoAsync(utilizadorId, ct)) return UtilizadorNaoEncontrado;
 
-        var recebidas = await repositorio.ListarRecebidasAsync(utilizadorId, ct);
+        // Só os valores recebidos: a resposta não leva a lista nem o autor de cada avaliação (BE-43, P-22).
+        var recebidas = await repositorio.ListarClassificacoesAsync([utilizadorId], ct);
 
         // RF-F007-08: média aritmética, arredondada a 1 casa (o arredondamento não está nos requisitos);
         // calculada em cada consulta, por isso reflete logo qualquer criação ou alteração (RF-F007-09).
         var media = CalculadoraDeClassificacao.Media(recebidas.Select(x => x.Classificacao));
 
-        return new ResumoAvaliacoes(utilizadorId, recebidas.Count, media,
-            recebidas.Select(x => new AvaliacaoPublica(x.Classificacao, x.CriadoEm)).ToList());
+        return new ResumoAvaliacoes(media, recebidas.Count);
     }
 }

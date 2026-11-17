@@ -73,8 +73,8 @@ public sealed class ConclusaoViagensTests : IDisposable
         var passageiroA = new Utilizador { Nome = "Passageiro A", Email = "a@estg.ipp.pt", EmailConfirmado = true };
         var passageiroB = new Utilizador { Nome = "Passageiro B", Email = "b@estg.ipp.pt", EmailConfirmado = true };
         _db.Utilizadores.AddRange(passageiroA, passageiroB);
-        var aceite = new Participacao { ViagemId = viagem.Id, PassageiroId = passageiroA.Id, Estado = EstadoParticipacao.Aceite };
-        var pendente = new Participacao { ViagemId = viagem.Id, PassageiroId = passageiroB.Id, Estado = EstadoParticipacao.Pendente };
+        var aceite = new Participacao { Destino = viagem.Destino, DestinoLatitude = viagem.DestinoLatitude, DestinoLongitude = viagem.DestinoLongitude, AceiteEm = DateTime.UtcNow, ViagemId = viagem.Id, PassageiroId = passageiroA.Id, Estado = EstadoParticipacao.Aceite };
+        var pendente = new Participacao { Destino = viagem.Destino, DestinoLatitude = viagem.DestinoLatitude, DestinoLongitude = viagem.DestinoLongitude, ViagemId = viagem.Id, PassageiroId = passageiroB.Id, Estado = EstadoParticipacao.Pendente };
         _db.Participacoes.AddRange(aceite, pendente);
         await _db.SaveChangesAsync();
 

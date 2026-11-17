@@ -1,5 +1,6 @@
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Rotas;
+using CampusCarpool.Domain.Rules;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +22,7 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     /// <summary>Converte um texto num par de coordenadas (autocompletar e validação no frontend).</summary>
     /// <returns>200 coordenadas; 400 texto vazio ou com mais de 200 caracteres; 404 local não encontrado; 502/503/504.</returns>
     [HttpGet("geocodificar")]
-    public async Task<IActionResult> Geocodificar([FromQuery] string texto, CancellationToken ct)
+    public async Task<IActionResult> Geocodificar([FromQuery] string? texto, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(texto))
             return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Indica o local a procurar."));
@@ -35,7 +36,7 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
     /// <summary>Calcula a rota direta entre dois locais, sem gravar nada (pré-visualização ao criar a viagem).</summary>
     /// <returns>
     /// 200 rota (distância, duração, coordenadas, <c>geometria</c> em pares [latitude, longitude] e
-    /// <c>geometriaAproximada</c>); 400; 422 local ou rota não encontrados; 502/503/504.
+    /// <c>geometriaAproximada</c>); 400 locais vazios, com mais de 200 caracteres ou no mesmo local; 422 local ou rota não encontrados; 502/503/504.
     /// </returns>
     [HttpPost("calcular")]
     public async Task<IActionResult> Calcular(Pedido input, CancellationToken ct)
@@ -48,6 +49,10 @@ public sealed class RotasController(IConsultaRotasService rotas) : ControllerBas
 
         if (input.Destino.Length > TamanhoMaximoLocal)
             return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "O destino tem no máximo 200 caracteres."));
+
+        // Como em POST /viagens: a origem e o destino não podem ser o mesmo local (RegraMesmoLocal, sem chamar os mapas).
+        if (RegraMesmoLocal.MesmoTexto(input.Origem, input.Destino))
+            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "A origem e o destino não podem ser o mesmo local."));
 
         return this.Responder(await rotas.CalcularAsync(input.Origem, input.Destino, ct), rota => Ok(rota));
     }

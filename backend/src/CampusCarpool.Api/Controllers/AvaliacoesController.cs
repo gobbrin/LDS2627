@@ -49,7 +49,10 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
         return this.Responder(await avaliacoes.ObterMinhaAsync(id, avaliadoId, ct), avaliacao => Ok(avaliacao));
     }
 
-    /// <summary>Avaliações recebidas por um utilizador, sem o autor, e a média (RF-F007-07, RF-F007-11). 200; 401; 404.</summary>
+    /// <summary>
+    /// Classificação de um utilizador: <c>{ classificacaoMedia, totalAvaliacoes }</c>, sem lista nem autor (RF-F007-08,
+    /// RF-F007-10, BE-43). 200; 401; 404 (também para uma conta por confirmar).
+    /// </summary>
     [HttpGet("utilizadores/{utilizadorId:guid}")]
     public async Task<IActionResult> Consultar(Guid utilizadorId, CancellationToken ct)
     {

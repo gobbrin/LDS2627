@@ -53,7 +53,10 @@ public static class RotaGuardada
     /// </summary>
     /// <param name="viagem">Viagem, já com a origem e o destino.</param>
     /// <param name="direta">Distância e duração da rota direta.</param>
-    /// <returns>A rota com dois pontos e um segmento, sem linha (a linha junta-se ao guardar).</returns>
+    /// <returns>
+    /// A rota com dois pontos e um segmento; com a linha se a rota direta já a trouxe (HERE, D-5), senão sem linha (a
+    /// linha junta-se ao guardar).
+    /// </returns>
     public static ResultadoRotaComPontos Direta(Viagem viagem, ResultadoRota direta)
     {
         ArgumentNullException.ThrowIfNull(viagem);
@@ -66,7 +69,8 @@ public static class RotaGuardada
             [origem, destino],
             [new SegmentoRota(origem, destino, direta.DistanciaKm, direta.DuracaoMinutos)],
             direta.DistanciaKm,
-            direta.DuracaoMinutos);
+            direta.DuracaoMinutos,
+            direta.Geometria);
     }
 
     /// <summary>Converte a rota para o texto JSON guardado na viagem.</summary>

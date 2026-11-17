@@ -29,7 +29,7 @@ public sealed class I052ParticipacaoServiceTests
     {
         var condutor = Guid.NewGuid();
         var viagem = new Viagem { DestinoLatitude = 41.55m, CondutorId = condutor, PartidaEm = DateTime.UtcNow.AddDays(2), LugaresOferecidos = 2, LugaresDisponiveis = 2, Estado = EstadoViagem.Ativa };
-        var pedido = new Participacao { ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() };
+        var pedido = new Participacao { Destino = viagem.Destino, DestinoLatitude = viagem.DestinoLatitude, DestinoLongitude = viagem.DestinoLongitude, ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() };
         viagens.Item = viagem;
         participacoes.Item = pedido;
         return (pedido, viagem, condutor);
@@ -145,7 +145,7 @@ public sealed class I052ParticipacaoServiceTests
         public Task<EstadoViagem?> ObterEstadoAsync(Guid id, CancellationToken ct) => Task.FromResult(Item?.Id == id ? Item.Estado : (EstadoViagem?)null);
         public Task<IReadOnlyList<ViagemEmCurso>> ListarAtivasJaPartidasAsync(DateTime agora, CancellationToken ct) => Task.FromResult<IReadOnlyList<ViagemEmCurso>>(Array.Empty<ViagemEmCurso>());
         public Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct) => throw new NotSupportedException();
-        public Task<IReadOnlyList<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct) => throw new NotSupportedException();
+        public Task<PaginaDe<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, int pagina, int tamanho, CancellationToken ct) => throw new NotSupportedException();
         public void Adicionar(Viagem viagem) => throw new NotSupportedException();
     }
     private sealed class TrabalhoFake : IUnidadeDeTrabalho

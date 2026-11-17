@@ -42,8 +42,8 @@ public sealed class MensagensControllerTests
             return Task.FromResult<Resultado<List<MensagemIndividual>>>(Historico);
         }
 
-        public Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ResumoConversa>>([]);
+        public Task<PaginaConversas> ListarConversasAsync(Guid utilizadorId, int pagina, int tamanho, CancellationToken ct) =>
+            Task.FromResult(new PaginaConversas(0, pagina, tamanho, []));
     }
 
     private static MensagensController CriarController(ServicoMensagensFalso servico, Guid? utilizadorId)

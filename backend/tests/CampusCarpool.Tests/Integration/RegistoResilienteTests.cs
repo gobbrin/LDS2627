@@ -208,9 +208,11 @@ public sealed class RegistoResilienteTests : IDisposable
         email.EmBaixo = true;
         Assert.IsType<AcceptedResult>(await controller.ReenviarConfirmacaoEmail(new(Endereco), CancellationToken.None));
 
-        // A ligação anterior deixou de servir.
-        Assert.Equal(400, Assert.IsType<BadRequestObjectResult>(
-            await controller.ConfirmarConta(new(ligacao), CancellationToken.None)).StatusCode);
+        // A ligação anterior deixou de servir: o reenvio invalida-a e a API trata-a como expirada.
+        RespostasDeErro.AssertErro(
+            await controller.ConfirmarConta(new(ligacao), CancellationToken.None),
+            400,
+            "Esta ligação expirou. Pede uma nova ligação de confirmação.");
 
         foreach (var confirmacao in await db.ConfirmacoesConta.ToListAsync())
             confirmacao.ExpiraEm -= TimeSpan.FromMinutes(2);

@@ -136,6 +136,124 @@ public sealed class MigracoesSqlServerTests
             indice.Properties.Select(propriedade => propriedade.Name));
     }
 
+    /// <summary>
+    /// BE-33 (modelo de dados v07), SQL Server com as migrations: as restrições que só existem em SQL Server recusam a
+    /// linha que as viola, pelo nome, e os índices novos existem com as colunas certas.
+    /// </summary>
+    [SqlServerFact]
+    public async Task I112_99_MigrationV07_RestricoesEIndicesNoSqlServer()
+    {
+        await using var db = new CampusCarpoolDbContext(OpcoesBaseDadosNova());
+
+        try
+        {
+            await db.Database.MigrateAsync();
+
+            var condutor = new Utilizador { Nome = "Condutor", Email = "v07@estg.ipp.pt", EmailConfirmado = true };
+            db.Utilizadores.Add(condutor);
+            db.Viagens.Add(NovaViagem(condutor.Id));
+            await db.SaveChangesAsync();
+
+            // Cada SQL estraga uma só regra da viagem; a mensagem do SQL Server traz o nome da restrição.
+            await AssertRecusaAsync(db, "UPDATE Viagens SET OrigemLatitude = 91", "CK_Viagens_Coordenadas");
+            await AssertRecusaAsync(db, "UPDATE Viagens SET DestinoLongitude = -181", "CK_Viagens_Coordenadas");
+            await AssertRecusaAsync(db, "UPDATE Viagens SET DistanciaKm = 0", "CK_Viagens_Medidas");
+            await AssertRecusaAsync(db, "UPDATE Viagens SET DuracaoMinutos = -5", "CK_Viagens_Medidas");
+            await AssertRecusaAsync(db, "UPDATE Utilizadores SET Nome = N'   '", "CK_Utilizadores_Nome");
+            await AssertRecusaAsync(db, "UPDATE Viagens SET RotaPontos = N'não é JSON'", "CK_Viagens_Rota");
+
+            // Valores dentro das regras continuam a gravar (a distância e a duração podem ficar por calcular).
+            Assert.Equal(1, await db.Database.ExecuteSqlRawAsync(
+                "UPDATE Viagens SET DistanciaKm = 12.5, DuracaoMinutos = 20, OrigemLatitude = -90, DestinoLongitude = 180"));
+            Assert.Equal(1, await db.Database.ExecuteSqlRawAsync("UPDATE Viagens SET DistanciaKm = NULL, DuracaoMinutos = NULL"));
+
+            // Os 5 índices da v07 criados por esta migration (o 6.º, da conversa, é testado em I112_IndiceDaConversa).
+            Assert.Equal("ViagemId,Estado", await ColunasDoIndiceAsync(db, "Participacoes", "IX_Participacoes_ViagemId_Estado"));
+            Assert.Equal("DestinatarioId,EnviadoEm", await ColunasDoIndiceAsync(db, "Mensagens", "IX_Mensagens_DestinatarioId_EnviadoEm"));
+            Assert.Equal("ViagemId,CriadoEm", await ColunasDoIndiceAsync(db, "Avisos", "IX_Avisos_ViagemId_CriadoEm"));
+            Assert.Equal("UtilizadorId,CriadaEm DESC", await ColunasDoIndiceAsync(db, "Notificacoes", "IX_Notificacoes_UtilizadorId_CriadaEm"));
+            Assert.Equal(
+                "Estado,PartidaEm,+OrigemPesquisa,+DestinoPesquisa,+LugaresDisponiveis",
+                await ColunasDoIndiceAsync(db, "Viagens", "IX_Viagens_Estado_PartidaEm"));
+        }
+        finally
+        {
+            await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    /// <summary>
+    /// BE-33: a migration v07 sobre uma BD com dados antigos do m3. Um pedido sem pontos não a impede (as restrições
+    /// novas são <c>WITH NOCHECK</c>) e continua a poder ser cancelado; um aceite sem data fica com a data do pedido.
+    /// </summary>
+    [SqlServerFact]
+    public async Task I112_100_MigrationV07ComDadosAntigos_NaoFalhaECorrigeAAceitacao()
+    {
+        await using var db = new CampusCarpoolDbContext(OpcoesBaseDadosNova());
+
+        try
+        {
+            var migrador = db.GetInfrastructure().GetRequiredService<IMigrator>();
+            await migrador.MigrateAsync("20261116213457_I112_IndiceConversaECamposSemUso");
+
+            var condutor = Guid.NewGuid();
+            var passageiro = Guid.NewGuid();
+            var viagem = Guid.NewGuid();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO Utilizadores (Id, Nome, Email, PasswordHash, EmailConfirmado, CriadoEm)
+                VALUES ({condutor}, N'Condutor', N'antigo.c@estg.ipp.pt', N'hash', 1, SYSUTCDATETIME()),
+                       ({passageiro}, N'Passageiro', N'antigo.p@estg.ipp.pt', N'hash', 1, SYSUTCDATETIME());
+
+                INSERT INTO Viagens (Id, CondutorId, Origem, Destino, OrigemLatitude, OrigemLongitude, DestinoLatitude,
+                    DestinoLongitude, PartidaEm, LugaresOferecidos, LugaresDisponiveis, Estado, OrigemPesquisa,
+                    DestinoPesquisa, PartidaMinutoDoDia)
+                VALUES ({viagem}, {condutor}, N'Porto', N'Braga', 41.1, -8.6, 41.5, -8.4, '2030-07-15T08:30:00', 3, 2,
+                    N'Ativa', N'PORTO', N'BRAGA', 570);
+
+                INSERT INTO Participacoes (Id, ViagemId, PassageiroId, Estado, CriadoEm)
+                VALUES (NEWID(), {viagem}, {passageiro}, N'Aceite', '2030-07-01T10:00:00');
+                """);
+
+            await db.Database.MigrateAsync();
+
+            var antigo = await db.Participacoes.AsNoTracking().SingleAsync();
+            Assert.Null(antigo.Recolha);
+            Assert.Null(antigo.Destino);
+            Assert.Equal(new DateTime(2030, 7, 1, 10, 0, 0, DateTimeKind.Utc), antigo.AceiteEm);
+
+            // Cancelar só mexe no estado: o SQL Server não volta a verificar o CHECK dos pontos.
+            Assert.Equal(1, await db.Database.ExecuteSqlRawAsync("UPDATE Participacoes SET Estado = N'Cancelada'"));
+        }
+        finally
+        {
+            await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    // Executa o SQL e confirma que o SQL Server o recusa pela restrição indicada.
+    private static async Task AssertRecusaAsync(CampusCarpoolDbContext db, string sql, string restricao)
+    {
+        var erro = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlRawAsync(sql));
+
+        Assert.Contains(restricao, erro.Message, StringComparison.Ordinal);
+    }
+
+    // Colunas de um índice, pela ordem: «DESC» nas descendentes e «+» nas incluídas.
+    private static async Task<string> ColunasDoIndiceAsync(CampusCarpoolDbContext db, string tabela, string indice)
+    {
+        var colunas = await db.Database.SqlQuery<string>($"""
+            SELECT (CASE WHEN ic.is_included_column = 1 THEN '+' ELSE '' END) + c.name
+                   + (CASE WHEN ic.is_descending_key = 1 THEN ' DESC' ELSE '' END) AS Value
+            FROM sys.indexes AS i
+            JOIN sys.index_columns AS ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+            JOIN sys.columns AS c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+            WHERE i.object_id = OBJECT_ID({tabela}) AND i.name = {indice}
+            ORDER BY ic.is_included_column, ic.key_ordinal, ic.index_column_id
+            """).ToListAsync();
+
+        return string.Join(",", colunas);
+    }
+
     [SqlServerFact]
     public async Task I110_59_Migrations_AplicamSeAUmaBaseDeDadosVazia()
     {

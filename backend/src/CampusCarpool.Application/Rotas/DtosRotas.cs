@@ -1,7 +1,7 @@
 namespace CampusCarpool.Application.Rotas;
 
 // Respostas da API de rotas (BE-06): tipos próprios, sem tipos do Domain nem da integração. O modelo interno
-// (ResultadoRotaComPontos, SegmentoRota, PontoRota) está em ModeloRota.cs; a conversão faz-se no ConsultaRotasService.
+// (ResultadoRotaComPontos, SegmentoRota, PontoRota) está em ModeloRota.cs; a conversão faz-se em RespostasDaRota.
 
 /// <summary>Par de coordenadas devolvido ao cliente (<c>GET /rotas/geocodificar</c> e <see cref="RotaCalculada"/>).</summary>
 public sealed record CoordenadasResposta(decimal Latitude, decimal Longitude);

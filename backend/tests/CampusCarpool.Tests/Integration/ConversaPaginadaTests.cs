@@ -145,9 +145,11 @@ public sealed class ConversaPaginadaTests : IDisposable
         using HttpResponseMessage resposta = await _cliente.GetAsync("/api/v1/mensagens/conversas");
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
 
-        List<ResumoConversa> conversas = (await resposta.Content.ReadFromJsonAsync<List<ResumoConversa>>())!;
+        // D-4: a lista de conversas vem paginada ({ total, pagina, tamanho, conversas }).
+        PaginaConversas pagina = (await resposta.Content.ReadFromJsonAsync<PaginaConversas>())!;
 
-        ResumoConversa conversa = Assert.Single(conversas);
+        Assert.Equal(1, pagina.Total);
+        ResumoConversa conversa = Assert.Single(pagina.Conversas);
         Assert.Equal(_ids[4], conversa.UltimaMensagemId);
         Assert.Equal("m4", conversa.UltimaMensagem);
     }

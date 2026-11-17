@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -29,9 +30,14 @@ public interface IRepositorioViagens
     /// <returns>O total de resultados e as viagens da página pedida.</returns>
     Task<PaginaViagens> PesquisarAsync(FiltroPesquisaViagens filtro, DateTime agora, CancellationToken ct);
 
-    /// <summary>Lista as viagens ativas do condutor, por ordem de partida, sem seguimento.</summary>
+    /// <summary>Lista uma página das viagens ativas do condutor, por ordem de partida, sem seguimento (D-4).</summary>
     /// <remarks>Devolve as entidades; a resposta da API monta-se no serviço (BE-07).</remarks>
-    Task<IReadOnlyList<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct);
+    /// <param name="condutorId">Condutor.</param>
+    /// <param name="pagina">Página, a contar de 1.</param>
+    /// <param name="tamanho">Viagens por página.</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>As viagens da página e o total de viagens ativas do condutor.</returns>
+    Task<PaginaDe<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, int pagina, int tamanho, CancellationToken ct);
 
     /// <summary>Acrescenta uma viagem; só fica gravada com a unidade de trabalho.</summary>
     void Adicionar(Viagem viagem);

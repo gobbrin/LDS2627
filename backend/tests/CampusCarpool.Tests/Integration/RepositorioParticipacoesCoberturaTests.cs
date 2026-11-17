@@ -60,7 +60,7 @@ public sealed class RepositorioParticipacoesCoberturaTests
         var encontrada = await repo.ObterPorIdAsync(participacao.Id, CancellationToken.None);
         Assert.NotNull(encontrada);
         Assert.Equal(EntityState.Unchanged, fixture.Db.Entry(encontrada!).State);
-        encontrada.Estado = EstadoParticipacao.Aceite;
+        encontrada.Aceitar(DateTime.UtcNow);
         await fixture.Db.SaveChangesAsync();
         fixture.Db.ChangeTracker.Clear();
 
@@ -100,7 +100,18 @@ public sealed class RepositorioParticipacoesCoberturaTests
 
         public async Task<Participacao> AdicionarAsync(Guid viagemId, Guid passageiroId, EstadoParticipacao estado)
         {
-            var participacao = new Participacao { ViagemId = viagemId, PassageiroId = passageiroId, Estado = estado };
+            // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+            var viagem = await Db.Viagens.FindAsync(viagemId);
+            var participacao = new Participacao
+            {
+                Destino = viagem!.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
+                ViagemId = viagemId,
+                PassageiroId = passageiroId,
+                Estado = estado
+            };
             Db.Participacoes.Add(participacao);
             await Db.SaveChangesAsync();
             return participacao;

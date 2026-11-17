@@ -60,9 +60,10 @@ public sealed class ConsultaRotasService(
                 if (rota is null)
                     return new Erro(TipoErro.NaoProcessavel, "Rota indisponível.");
 
-                // DEF-BE-054: a linha vem da HERE; sem ela, uma reta da origem ao destino. Usa o ct do pedido e não o
-                // limite: a HERE tem o seu próprio limite de 10 s e uma falha dela nunca faz falhar a operação.
-                IReadOnlyList<Coordenadas>? linha = await rotas.PedirLinhaAsync([pontoOrigem, pontoDestino], ct);
+                // DEF-BE-054 / D-5: a rota direta da HERE já traz a linha. Se a rota veio da reserva (OpenRouteService),
+                // pede-se a linha à HERE; sem ela, uma reta da origem ao destino. Usa o ct do pedido e não o limite: a
+                // HERE tem o seu próprio limite de 10 s e uma falha dela nunca faz falhar a operação.
+                IReadOnlyList<Coordenadas>? linha = rota.Geometria ?? await rotas.PedirLinhaAsync([pontoOrigem, pontoDestino], ct);
                 bool aproximada = linha is null;
                 linha ??= [pontoOrigem, pontoDestino];
 
@@ -90,83 +91,35 @@ public sealed class ConsultaRotasService(
 
         if (!await consultas.PodeConsultarAsync(viagem, utilizadorId, ct)) return ViagemNaoEncontrada;
 
+        // D-1 (P-13): o condutor e os passageiros aceites veem os pontos de todos os aceites e a linha da HERE.
         var veOsPontos = PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceites.Any(p => p.PassageiroId == utilizadorId));
 
-        if (viagem.RotaPontos is null && !mapas.Configurado) return ChamadaMapas.NaoConfigurado;
+        // Rota guardada: sem chamadas. Por recalcular: a matriz corre com o limite de 10 s e a linha fora dele (BE-36).
+        Resultado<ResultadoRotaComPontos> obtida = await rotas.ObterAsync(viagem, aceites, ct);
 
-        return await ChamadaMapas.ExecutarAsync<RotaDaViagem>(
-            async limite =>
-            {
-                var rota = await rotas.ObterAsync(viagem, aceites, limite);
+        if (obtida.Erro is { } erro)
+            return erro;
 
-                if (rota is null)
-                    return new Erro(TipoErro.NaoProcessavel, "Não foi possível calcular a rota.");
+        ResultadoRotaComPontos rota = obtida.Valor;
 
-                if (rota.DistanciaTotalKm <= 0)
-                    return new Erro(TipoErro.NaoProcessavel, "Não existem dados suficientes para estimar o custo.");
+        if (rota.DistanciaTotalKm <= 0)
+            return new Erro(TipoErro.NaoProcessavel, "Não existem dados suficientes para estimar o custo.");
 
-                var visivel = veOsPontos ? rota : SemPontosDasParticipacoes(rota);
-                IReadOnlyList<Coordenadas>? linha = LinhaVisivel(rota, veOsPontos);
+        var visivel = veOsPontos ? rota : SemPontosDasParticipacoes(rota);
+        // SP-01: a linha guardada é uma só e é igual para todos (percurso real da HERE). O que muda com quem vê são
+        // os pontos (P-13): quem não participa não recebe as paragens dos passageiros nem os troços entre elas.
+        IReadOnlyList<Coordenadas>? linha = rota.Geometria;
 
-                return new RotaDaViagem(
-                    viagem.Id,
-                    aceites.Count,
-                    PontosParaResposta(visivel),
-                    TrocosParaResposta(visivel),
-                    rota.DistanciaTotalKm,
-                    rota.DuracaoTotalMinutos,
-                    custos.Calcular(rota.DistanciaTotalKm, aceites.Count),
-                    GeometriaRota.EmPares(linha ?? GeometriaRota.LinhaReta(visivel.PontosOrdenados)),
-                    linha is null);
-            },
-            "Serviço de mapas indisponível.",
-            "Tempo de resposta do serviço de mapas excedido.",
-            ct);
-    }
-
-    /// <summary>Converte os pontos do modelo interno nos pontos da resposta, com a ordem e sem a participação (BE-06).</summary>
-    /// <remarks>Também usado pela simulação da alteração da viagem (<c>ViagemService.SimularAlteracaoAsync</c>).</remarks>
-    internal static List<PontoDaRota> PontosParaResposta(ResultadoRotaComPontos rota)
-    {
-        var pontos = new List<PontoDaRota>();
-
-        for (int ordem = 0; ordem < rota.PontosOrdenados.Count; ordem++)
-        {
-            PontoRota ponto = rota.PontosOrdenados[ordem];
-            pontos.Add(new PontoDaRota(ordem, ponto.Tipo, ponto.Local, ponto.Coordenadas.Latitude, ponto.Coordenadas.Longitude));
-        }
-
-        return pontos;
-    }
-
-    /// <summary>Converte os segmentos em troços: o troço i vai do ponto de ordem i ao de ordem i + 1.</summary>
-    internal static List<TrocoDaRota> TrocosParaResposta(ResultadoRotaComPontos rota)
-    {
-        var trocos = new List<TrocoDaRota>();
-
-        for (int i = 0; i < rota.Segmentos.Count; i++)
-        {
-            SegmentoRota segmento = rota.Segmentos[i];
-            trocos.Add(new TrocoDaRota(i, i + 1, segmento.DistanciaKm, segmento.DuracaoMinutos));
-        }
-
-        return trocos;
-    }
-
-    /// <summary>Linha da HERE que o utilizador pode ver; <c>null</c> se tiver de ver retas entre os pontos.</summary>
-    /// <remarks>
-    /// P-13: quem não participa na viagem não vê por onde a rota passa quando há paragens de passageiros, porque a
-    /// linha mostraria as recolhas. Sem paragens (só origem e destino), a linha não revela nada e mostra-se.
-    /// </remarks>
-    private static IReadOnlyList<Coordenadas>? LinhaVisivel(ResultadoRotaComPontos rota, bool veOsPontos)
-    {
-        if (rota.Geometria is null)
-            return null;
-
-        if (veOsPontos || rota.PontosOrdenados.Count == 2)
-            return rota.Geometria;
-
-        return null;
+        return new RotaDaViagem(
+            viagem.Id,
+            aceites.Count,
+            RespostasDaRota.Pontos(visivel),
+            RespostasDaRota.Trocos(visivel),
+            rota.DistanciaTotalKm,
+            rota.DuracaoTotalMinutos,
+            custos.Calcular(rota.DistanciaTotalKm, aceites.Count),
+            GeometriaRota.EmPares(linha ?? GeometriaRota.LinhaReta(visivel.PontosOrdenados)),
+            linha is null);
     }
 
     // P-13: um só segmento da origem ao destino, com os totais, sem revelar por onde a rota passa.

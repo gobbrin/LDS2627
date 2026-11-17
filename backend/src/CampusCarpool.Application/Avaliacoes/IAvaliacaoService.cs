@@ -31,7 +31,7 @@ public interface IAvaliacaoService
     /// <returns>A avaliação; erro 404 se não existir avaliação deste avaliador sobre este avaliado.</returns>
     Task<Resultado<AvaliacaoRegistada>> ObterMinhaAsync(Guid avaliadorId, Guid avaliadoId, CancellationToken ct);
 
-    /// <summary>Devolve as avaliações recebidas por um utilizador e a média (RF-F007-08 a RF-F007-11).</summary>
-    /// <returns>O resumo, ou erro 404 se o utilizador não existir ou tiver a conta por confirmar.</returns>
+    /// <summary>Devolve a média e o número de avaliações recebidas por um utilizador (RF-F007-08 a RF-F007-10, BE-43).</summary>
+    /// <returns>A média e o contador, ou erro 404 se o utilizador não existir ou tiver a conta por confirmar.</returns>
     Task<Resultado<ResumoAvaliacoes>> ConsultarAsync(Guid utilizadorId, CancellationToken ct);
 }

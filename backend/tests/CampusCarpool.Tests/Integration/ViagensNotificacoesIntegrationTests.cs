@@ -115,12 +115,19 @@ public sealed class ViagensNotificacoesIntegrationTests
         f.Db.Participacoes.AddRange(
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = DateTime.UtcNow,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroAceite.Id,
                 Estado = EstadoParticipacao.Aceite
             },
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroPendente.Id,
                 Estado = EstadoParticipacao.Pendente
@@ -176,12 +183,19 @@ public sealed class ViagensNotificacoesIntegrationTests
         f.Db.Participacoes.AddRange(
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = DateTime.UtcNow,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroAceite.Id,
                 Estado = EstadoParticipacao.Aceite
             },
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroPendente.Id,
                 Estado = EstadoParticipacao.Pendente

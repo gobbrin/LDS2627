@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,9 +8,16 @@ namespace CampusCarpool.Api.Controllers;
 /// <summary>
 /// Ciclo de vida das viagens (F002): criar, consultar, editar, indisponibilizar e concluir. Rotas em <c>/api/v1/viagens</c>.
 /// </summary>
-/// <remarks>As regras estão no <see cref="IViagemService"/>.</remarks>
+/// <remarks>
+/// As regras estão nos serviços: <see cref="IViagemService"/> (criar, consultar, listar, editar),
+/// <see cref="ISimulacaoDeAlteracaoService"/> (simular a alteração) e <see cref="ICicloDeVidaDaViagemService"/>
+/// (indisponibilizar e concluir).
+/// </remarks>
 [ApiController, Authorize, Route("api/v1/viagens")]
-public sealed class ViagensController(IViagemService viagens) : ControllerBase
+public sealed class ViagensController(
+    IViagemService viagens,
+    ISimulacaoDeAlteracaoService simulacoes,
+    ICicloDeVidaDaViagemService cicloDeVida) : ControllerBase
 {
     /// <summary>Corpo de <c>POST /viagens</c>. <c>PartidaEm</c> em UTC; <c>Lugares</c> de 1 a 8 (P-11).</summary>
     public sealed record CriarViagem(string Origem, string Destino, DateTime PartidaEm, int Lugares);
@@ -42,13 +50,20 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
 
     /// <summary>Viagens ativas do condutor autenticado, por ordem de partida, para as gerir (RF-F002-15, DEF-BE-010).</summary>
     /// <remarks>As viagens noutros estados estão no histórico (RF-F009-02).</remarks>
-    /// <returns>200 lista; 401.</returns>
+    /// <returns>200 <see cref="PaginaViagensDoCondutor"/> (<c>{ total, pagina, tamanho, viagens }</c>); 400 paginação inválida; 401.</returns>
     [HttpGet("minhas")]
-    public async Task<IActionResult> ListarMinhas(CancellationToken ct)
+    public async Task<IActionResult> ListarMinhas(
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanho = Paginacao.TamanhoPorOmissao,
+        CancellationToken ct = default)
     {
         if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
-        return Ok(await viagens.ListarDoCondutorAsync(userId, ct));
+        // D-4: a lista é paginada; a paginação valida-se aqui (BE-41).
+        if (Paginacao.Validar(pagina, tamanho) is { } paginacaoInvalida)
+            return this.RespostaDeErro(paginacaoInvalida);
+
+        return Ok(await viagens.ListarDoCondutorAsync(userId, pagina, tamanho, ct));
     }
 
     /// <summary>Passageiros aceites de uma viagem, com os respetivos pontos (RF-F003-07, P-13, DEF-BE-012).</summary>
@@ -93,7 +108,7 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
     /// Simula a alteração da origem ou do destino, sem gravar: rota com as paragens dos passageiros aceites,
     /// distância, duração e custo, para o ecrã de edição mostrar antes de guardar (RF-F002-07, RF-F008-05, RF-F008-10).
     /// </summary>
-    /// <remarks>Ver <see cref="IViagemService.SimularAlteracaoAsync"/>.</remarks>
+    /// <remarks>Ver <see cref="ISimulacaoDeAlteracaoService.SimularAlteracaoAsync"/>.</remarks>
     /// <returns>
     /// 200 rota simulada (mesmos campos de <c>GET /rotas/viagens/{id}</c>); 400 locais vazios, com mais de 200
     /// caracteres ou no mesmo local; 401; 403 não é o condutor; 404; 409 viagem não editável; 422 local ou rota não
@@ -105,29 +120,29 @@ public sealed class ViagensController(IViagemService viagens) : ControllerBase
         if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
         return this.Responder(
-            await viagens.SimularAlteracaoAsync(id, userId, input.Origem, input.Destino, ct),
+            await simulacoes.SimularAlteracaoAsync(id, userId, input.Origem, input.Destino, ct),
             rota => Ok(rota));
     }
 
     /// <summary>Indisponibiliza uma viagem ativa (RF-F002-09, RF-F002-10, P-25).</summary>
-    /// <remarks>Ver <see cref="IViagemService.IndisponibilizarAsync"/>.</remarks>
+    /// <remarks>Ver <see cref="ICicloDeVidaDaViagemService.IndisponibilizarAsync"/>.</remarks>
     /// <returns>204; 401; 403 não é o condutor; 404; 409 viagem já não está ativa.</returns>
     [HttpPost("{id:guid}/indisponibilizar")]
     public async Task<IActionResult> Indisponibilizar(Guid id, CancellationToken ct)
     {
         if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
-        return this.Responder(await viagens.IndisponibilizarAsync(id, userId, ct), () => NoContent());
+        return this.Responder(await cicloDeVida.IndisponibilizarAsync(id, userId, ct), () => NoContent());
     }
 
     /// <summary>Conclusão manual pelo condutor, depois da hora de partida.</summary>
-    /// <remarks>Ver <see cref="IViagemService.ConcluirAsync"/>.</remarks>
+    /// <remarks>Ver <see cref="ICicloDeVidaDaViagemService.ConcluirAsync"/>.</remarks>
     /// <returns>204; 401; 403 não é o condutor; 404; 409 viagem não ativa ou ainda por partir.</returns>
     [HttpPost("{id:guid}/concluir")]
     public async Task<IActionResult> Concluir(Guid id, CancellationToken ct)
     {
         if (User.IdUtilizador() is not Guid userId) return Unauthorized();
 
-        return this.Responder(await viagens.ConcluirAsync(id, userId, ct), () => NoContent());
+        return this.Responder(await cicloDeVida.ConcluirAsync(id, userId, ct), () => NoContent());
     }
 }

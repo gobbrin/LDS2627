@@ -16,9 +16,6 @@ public sealed class MensagemService(
     /// <summary>Mensagens por página da conversa, quando o cliente não indica o tamanho (BE-13).</summary>
     public const int TamanhoPorOmissao = 50;
 
-    /// <summary>Máximo de mensagens por página da conversa.</summary>
-    public const int TamanhoMaximo = 100;
-
     /// <inheritdoc />
     /// <remarks>A mensagem e a notificação são gravadas juntas (DC-37). <c>NovaMensagem</c> não gera push (RF-F006-12).</remarks>
     public async Task<Resultado<MensagemIndividual>> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
@@ -67,9 +64,6 @@ public sealed class MensagemService(
         if (utilizadorId == outroUtilizadorId)
             return new Erro(TipoErro.DadosInvalidos, "Não é possível consultar uma conversa consigo próprio.");
 
-        if (tamanho < 1 || tamanho > TamanhoMaximo)
-            return new Erro(TipoErro.DadosInvalidos, "O tamanho da página tem de estar entre 1 e 100.");
-
         var outroUtilizador = await repositorioUtilizadores.ObterPorIdAsync(outroUtilizadorId, ct);
 
         if (outroUtilizador is null || !outroUtilizador.EmailConfirmado)
@@ -98,14 +92,21 @@ public sealed class MensagemService(
         || (mensagem.RemetenteId == outroUtilizadorId && mensagem.DestinatarioId == utilizadorId);
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct)
+    /// <remarks>
+    /// A base de dados devolve só a última mensagem de cada conversa (uma linha por interlocutor, não por mensagem);
+    /// a página corta-se depois, aqui, porque duas mensagens no mesmo instante só se desempatam em memória.
+    /// </remarks>
+    public async Task<PaginaConversas> ListarConversasAsync(Guid utilizadorId, int pagina, int tamanho, CancellationToken ct)
     {
         IReadOnlyList<Mensagem> ultimas = await repositorioMensagens.ListarUltimasMensagensAsync(utilizadorId, ct);
+
+        // Só as conversas da página pedida (D-4).
+        List<Mensagem> daPagina = ultimas.Skip(Paginacao.Saltar(pagina, tamanho)).Take(tamanho).ToList();
 
         // O interlocutor é quem não é o utilizador autenticado.
         var outrosIds = new List<Guid>();
 
-        foreach (Mensagem mensagem in ultimas)
+        foreach (Mensagem mensagem in daPagina)
             outrosIds.Add(Interlocutor(mensagem, utilizadorId));
 
         IReadOnlyDictionary<Guid, string> nomes = await repositorioUtilizadores.ObterNomesAsync(outrosIds, ct);
@@ -113,13 +114,13 @@ public sealed class MensagemService(
         // O resumo monta-se aqui, não no repositório (BE-07).
         var conversas = new List<ResumoConversa>();
 
-        foreach (Mensagem mensagem in ultimas)
+        foreach (Mensagem mensagem in daPagina)
         {
             Guid outroId = Interlocutor(mensagem, utilizadorId);
             conversas.Add(new ResumoConversa(outroId, nomes[outroId], mensagem.Id, mensagem.Conteudo, mensagem.EnviadoEm));
         }
 
-        return conversas;
+        return new PaginaConversas(ultimas.Count, pagina, tamanho, conversas);
     }
 
     // O outro participante de uma mensagem em que o utilizador é remetente ou destinatário.

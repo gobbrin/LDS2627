@@ -28,10 +28,10 @@ public interface IMensagemService
     /// <param name="utilizadorId">Utilizador autenticado.</param>
     /// <param name="outroUtilizadorId">Outro participante.</param>
     /// <param name="antesDe">Id de uma mensagem desta conversa (cursor); <c>null</c> para a página mais recente.</param>
-    /// <param name="tamanho">Mensagens por página, de 1 a 100 (o controller usa 50 por omissão).</param>
+    /// <param name="tamanho">Mensagens por página, de 1 a 100, já validado pelo controller (50 por omissão).</param>
     /// <param name="ct">Cancelamento.</param>
     /// <returns>
-    /// A página; erro 400 numa conversa consigo próprio, com tamanho fora de 1 a 100, com <c>antesDe</c> de outra
+    /// A página; erro 400 numa conversa consigo próprio, com <c>antesDe</c> de outra
     /// conversa, ou se o outro utilizador não existir ou não tiver a conta confirmada.
     /// </returns>
     Task<Resultado<List<MensagemIndividual>>> ObterConversaAsync(
@@ -41,7 +41,14 @@ public interface IMensagemService
         int tamanho,
         CancellationToken ct);
 
-    /// <summary>Lista as conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08).</summary>
+    /// <summary>
+    /// Lista uma página das conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08, D-4).
+    /// </summary>
     /// <remarks>Só inclui conversas em que o utilizador é remetente ou destinatário (RF-F005-04).</remarks>
-    Task<IReadOnlyList<ResumoConversa>> ListarConversasAsync(Guid utilizadorId, CancellationToken ct);
+    /// <param name="utilizadorId">Utilizador autenticado.</param>
+    /// <param name="pagina">Página, a contar de 1 (validada pelo controller).</param>
+    /// <param name="tamanho">Conversas por página, de 1 a 100 (validado pelo controller).</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A página, com o total de conversas.</returns>
+    Task<PaginaConversas> ListarConversasAsync(Guid utilizadorId, int pagina, int tamanho, CancellationToken ct);
 }

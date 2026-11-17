@@ -54,8 +54,10 @@ public sealed class SimularAlteracaoViagemHttpTests : IDisposable
     }
 
     [Fact]
-    /// <summary>Condutor com um passageiro aceite: 200 com a paragem e o custo; a viagem na BD fica igual e a HERE não é chamada.</summary>
-    public async Task SimularAlteracao_Condutor_200SemGravarNemChamarAHere()
+    /// <summary>
+    /// Condutor com um passageiro aceite: 200 com a paragem, o custo e (D-2) a linha da HERE; a viagem na BD fica igual.
+    /// </summary>
+    public async Task SimularAlteracao_Condutor_200SemGravarComALinhaDaHere()
     {
         var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
         await AplicacaoReal.AceitarAsync(
@@ -72,12 +74,12 @@ public sealed class SimularAlteracaoViagemHttpTests : IDisposable
         Assert.Equal(3, rota.GetProperty("pontosOrdenados").GetArrayLength());
         Assert.Equal("Recolha", rota.GetProperty("pontosOrdenados")[1].GetProperty("tipo").GetString());
         Assert.Equal(1, rota.GetProperty("estimativaCusto").GetProperty("passageirosAceites").GetInt32());
-        Assert.True(rota.GetProperty("geometriaAproximada").GetBoolean());
+        Assert.False(rota.GetProperty("geometriaAproximada").GetBoolean());
 
-        // Nada gravado: o destino e a rota guardada são os de antes.
+        // Nada gravado: o destino e a rota guardada são os de antes. A linha pediu-se uma vez à HERE (D-2).
         Assert.Equal("Braga", app.NaBaseDeDados(db => db.Viagens.Single(v => v.Id == viagemId).Destino));
         Assert.Equal(rotaAntes, app.NaBaseDeDados(db => db.Viagens.Single(v => v.Id == viagemId).RotaPontos));
-        Assert.Equal(chamadasHere, here.Chamadas);
+        Assert.Equal(chamadasHere + 1, here.Chamadas);
     }
 
     [Fact]
@@ -111,7 +113,7 @@ public sealed class SimularAlteracaoViagemHttpTests : IDisposable
         using var resposta = await clienteCondutor.PostAsJsonAsync(Caminho(viagemId), new { destino = "Guimarães", lugares = 2 });
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.False(string.IsNullOrWhiteSpace(await ErroAsync(resposta)));
+        Assert.Equal("Pedido inválido: campo em falta, a mais ou com tipo errado.", await ErroAsync(resposta));
     }
 
     [Fact]

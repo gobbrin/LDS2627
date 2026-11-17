@@ -51,10 +51,6 @@ public sealed class RepositorioAvaliacoes(CampusCarpoolDbContext db) : IReposito
         }
     }
     /// <inheritdoc />
-    public async Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct) =>
-        await db.Avaliacoes.AsNoTracking().Where(a => a.AvaliadoId == utilizadorId)
-            .OrderByDescending(a => a.CriadoEm).ToListAsync(ct);
-    /// <inheritdoc />
     /// <remarks>Agrupa-se em memória: o tipo decimal não tem AVG em SQLite (testes).</remarks>
     public async Task<IReadOnlyList<ClassificacaoRecebida>> ListarClassificacoesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
         await db.Avaliacoes.AsNoTracking().Where(a => ids.Contains(a.AvaliadoId))

@@ -11,7 +11,11 @@ using CampusCarpool.Domain.Rules;
 namespace CampusCarpool.Application.Viagens;
 
 /// <summary>Implementação de <see cref="IViagemService"/>.</summary>
-/// <remarks>As transições de estado estão nas entidades (AD-001); aqui coordenam-se os dados, a rota e as notificações.</remarks>
+/// <remarks>
+/// As transições de estado estão nas entidades (AD-001); aqui coordenam-se os dados, a rota e as notificações. Na fase
+/// R saíram daqui a simulação da alteração (<see cref="SimulacaoDeAlteracaoService"/>, AE-01) e o fim do ciclo de vida
+/// (<see cref="CicloDeVidaDaViagemService"/>, AE-02).
+/// </remarks>
 public sealed class ViagemService(
     IRepositorioViagens viagens,
     IRepositorioParticipacoes participacoes,
@@ -22,17 +26,8 @@ public sealed class ViagemService(
     EstimativaCustoService custos,
     INotificacaoService notificacoes) : IViagemService
 {
-    private const string MapasIndisponiveis = "Serviço de mapas indisponível.";
-    private const string TempoExcedido = "Tempo de resposta do serviço de mapas excedido.";
-
-    // Tamanho máximo dos textos de origem e destino (coluna da BD).
-    private const int TamanhoMaximoLocal = 200;
-
-    private static readonly Erro NaoEncontrada = new(TipoErro.NaoEncontrado, "Viagem não encontrada.");
-    private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para gerir esta viagem.");
-    private static readonly Erro LocalNaoEncontrado = new(TipoErro.NaoProcessavel, "Origem ou destino não encontrado.");
-    private static readonly Erro RotaNaoCalculada = new(TipoErro.NaoProcessavel, "Não foi possível calcular a rota.");
-    private static readonly Erro MesmoLocal = new(TipoErro.DadosInvalidos, "A origem e o destino não podem ser o mesmo local.");
+    // As regras e o cálculo da rota de uma alteração de origem ou destino, partilhados com a simulação (AE-01).
+    private readonly AlteracaoDeViagem alteracao = new(mapas, rotas);
 
     /// <inheritdoc />
     public async Task<Resultado<ViagemCriada>> CriarAsync(
@@ -57,17 +52,17 @@ public sealed class ViagemService(
                 var pontoDestino = await mapas.GeocodificarAsync(destino, limite);
 
                 if (pontoOrigem is null || pontoDestino is null)
-                    return LocalNaoEncontrado;
+                    return ErrosDaViagem.LocalNaoEncontrado;
 
-                if (MesmasCoordenadas(pontoOrigem, pontoDestino))
-                    return MesmoLocal;
+                if (AlteracaoDeViagem.MesmasCoordenadas(pontoOrigem, pontoDestino))
+                    return ErrosDaViagem.MesmoLocal;
 
                 var rota = await mapas.CalcularAsync(pontoOrigem, pontoDestino, limite);
 
-                return rota is null || rota.DistanciaKm <= 0 ? RotaNaoCalculada : rota;
+                return rota is null || rota.DistanciaKm <= 0 ? ErrosDaViagem.RotaNaoCalculada : rota;
             },
-            MapasIndisponiveis,
-            TempoExcedido,
+            ErrosDaViagem.MapasIndisponiveis,
+            ErrosDaViagem.TempoExcedido,
             ct);
 
         if (calculada.Erro is { } erro)
@@ -98,30 +93,16 @@ public sealed class ViagemService(
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
 
         if (viagem is null || !await consultas.PodeConsultarAsync(viagem, utilizadorId, ct))
-            return NaoEncontrada;
+            return ErrosDaViagem.NaoEncontrada;
 
         var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
 
-        var rota = RotaGuardada.Ler(viagem);
+        // A rota guardada lê-se sem chamadas. Uma rota por recalcular calcula-se aqui, com a linha fora do limite de
+        // 10 s (BE-36), e só numa viagem ativa (BE-38 d). Uma falha dos mapas não impede a consulta, só a estimativa.
+        Resultado<ResultadoRotaComPontos> obtida = await rotas.ObterAsync(viagem, aceites, ct);
+        ResultadoRotaComPontos? rota = obtida.Erro is null ? obtida.Valor : null;
+        string? motivo = obtida.Erro?.Mensagem;
         ResultadoEstimativaCusto? estimativa = null;
-        string? motivo = null;
-
-        if (rota is null && !mapas.Configurado)
-        {
-            motivo = "Serviço de mapas não configurado.";
-        }
-        else
-        {
-            // Uma rota por recalcular calcula-se aqui; uma falha dos mapas não impede a consulta, só a estimativa.
-            Resultado<ResultadoRotaComPontos?> obtida = await ChamadaMapas.ExecutarAsync<ResultadoRotaComPontos?>(
-                async limite => await rotas.ObterAsync(viagem, aceites, limite),
-                MapasIndisponiveis,
-                TempoExcedido,
-                ct);
-
-            rota = obtida.Erro is null ? obtida.Valor : null;
-            motivo = obtida.Erro?.Mensagem;
-        }
 
         if (rota is { DistanciaTotalKm: > 0 })
         {
@@ -152,13 +133,13 @@ public sealed class ViagemService(
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ViagemDoCondutor>> ListarDoCondutorAsync(Guid condutorId, CancellationToken ct)
+    public async Task<PaginaViagensDoCondutor> ListarDoCondutorAsync(Guid condutorId, int pagina, int tamanho, CancellationToken ct)
     {
-        IReadOnlyList<Viagem> ativas = await viagens.ListarAtivasDoCondutorAsync(condutorId, ct);
+        PaginaDe<Viagem> ativas = await viagens.ListarAtivasDoCondutorAsync(condutorId, pagina, tamanho, ct);
         var resposta = new List<ViagemDoCondutor>();
 
         // O repositório devolve as entidades; a resposta da API monta-se aqui (BE-07).
-        foreach (Viagem viagem in ativas)
+        foreach (Viagem viagem in ativas.Itens)
         {
             resposta.Add(new ViagemDoCondutor(
                 viagem.Id,
@@ -169,21 +150,24 @@ public sealed class ViagemService(
                 viagem.LugaresDisponiveis));
         }
 
-        return resposta;
+        return new PaginaViagensDoCondutor(ativas.Total, pagina, tamanho, resposta);
     }
 
     /// <inheritdoc />
     public async Task<Resultado<List<PassageiroAceite>>> ListarPassageirosAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct)
     {
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
+        if (viagem is null) return ErrosDaViagem.NaoEncontrada;
 
         IReadOnlyList<Participacao> aceites = await participacoes.ListarPassageirosAceitesAsync(viagemId, ct);
 
         var aceite = aceites.Any(p => p.PassageiroId == utilizadorId);
 
         if (!PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceite))
-            return Proibido;
+            return ErrosDaViagem.Proibido;
+
+        // BE-37 (P-13): todos os aceites veem os pontos dos outros (D-1), mas só o condutor recebe o id da participação.
+        bool eCondutor = viagem.CondutorId == utilizadorId;
 
         // O repositório devolve as entidades; a resposta da API monta-se aqui (BE-07).
         var passageiros = new List<PassageiroAceite>();
@@ -191,7 +175,7 @@ public sealed class ViagemService(
         foreach (Participacao participacao in aceites)
         {
             passageiros.Add(new PassageiroAceite(
-                participacao.Id,
+                eCondutor ? participacao.Id : null,
                 participacao.PassageiroId,
                 participacao.Passageiro.Nome,
                 participacao.Recolha,
@@ -205,8 +189,8 @@ public sealed class ViagemService(
     public async Task<Resultado<List<PedidoPendente>>> ListarPedidosPendentesAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct)
     {
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
-        if (viagem.CondutorId != utilizadorId) return Proibido;
+        if (viagem is null) return ErrosDaViagem.NaoEncontrada;
+        if (viagem.CondutorId != utilizadorId) return ErrosDaViagem.Proibido;
 
         IReadOnlyList<Participacao> pendentes = await participacoes.ListarPedidosPendentesAsync(viagemId, ct);
 
@@ -242,11 +226,11 @@ public sealed class ViagemService(
         CancellationToken ct)
     {
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
+        if (viagem is null) return ErrosDaViagem.NaoEncontrada;
 
         var agora = DateTime.UtcNow;
 
-        if (ValidarQuemAltera(viagem, utilizadorId, agora) is { } recusado)
+        if (AlteracaoDeViagem.ValidarQuemAltera(viagem, utilizadorId, agora) is { } recusado)
             return recusado;
 
         // Um local omitido mantém-se.
@@ -262,15 +246,16 @@ public sealed class ViagemService(
 
         var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
 
-        if (novaOrigem == viagem.Origem && novoDestino == viagem.Destino)
+        // BE-38 c: «Porto» e «porto» são o mesmo local (RegraMesmoLocal), por isso não chamam os mapas.
+        if (RegraMesmoLocal.MesmoTexto(novaOrigem, viagem.Origem) && RegraMesmoLocal.MesmoTexto(novoDestino, viagem.Destino))
         {
-            // Os locais não mudam: a rota e a duração ficam como estão.
-            viagem.Alterar(LocaisAtuais(viagem), partidaEm, lugares, viagem.DuracaoMinutos, agora);
+            // Os locais não mudam: a rota, as coordenadas e a duração ficam como estão; só o texto pode mudar.
+            viagem.Alterar(LocaisComNovoTexto(viagem, novaOrigem, novoDestino), partidaEm, lugares, viagem.DuracaoMinutos, agora);
         }
         else
         {
             // A viagem só muda depois de a rota estar calculada: uma falha aqui deixa-a como estava (RF-F002-17).
-            Resultado<NovaRota> calculada = await CalcularRotaComNovosLocaisAsync(viagem, novaOrigem, novoDestino, aceites, ct);
+            Resultado<AlteracaoDeViagem.NovaRota> calculada = await alteracao.CalcularRotaComNovosLocaisAsync(viagem, novaOrigem, novoDestino, aceites, ct);
 
             if (calculada.Erro is { } erro)
                 return erro;
@@ -294,210 +279,16 @@ public sealed class ViagemService(
         return Resultado.Sucesso;
     }
 
-    /// <inheritdoc />
-    /// <remarks>
-    /// Faz as mesmas verificações e o mesmo cálculo da alteração (<see cref="EditarAsync"/>), mas não grava nada, não
-    /// notifica ninguém e não pede a linha à HERE: a linha só se pede ao gravar (DEF-BE-054). Por isso o mapa da
-    /// simulação mostra retas entre os pontos (<c>GeometriaAproximada = true</c>).
-    /// </remarks>
-    public async Task<Resultado<RotaDaViagem>> SimularAlteracaoAsync(
-        Guid viagemId,
-        Guid utilizadorId,
-        string? origem,
-        string? destino,
-        CancellationToken ct)
-    {
-        var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
-
-        if (ValidarQuemAltera(viagem, utilizadorId, DateTime.UtcNow) is { } recusado)
-            return recusado;
-
-        // Como no PUT: um local omitido mantém-se.
-        string novaOrigem = origem?.Trim() ?? viagem.Origem;
-        string novoDestino = destino?.Trim() ?? viagem.Destino;
-
-        if (ValidarLocais(novaOrigem, novoDestino) is { } invalido)
-            return invalido;
-
-        var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
-
-        // R-B01: com os mesmos locais, a rota simulada é a guardada; os mapas só se chamam se ela estiver por recalcular.
-        ResultadoRotaComPontos? rota = RotaGuardada.Ler(viagem);
-        bool locaisMudam = novaOrigem != viagem.Origem || novoDestino != viagem.Destino;
-
-        if (rota is null || locaisMudam)
-        {
-            // O mesmo cálculo do PUT, com as paragens dos passageiros aceites (RF-F002-07, RF-F008-05).
-            Resultado<NovaRota> calculada = await CalcularRotaComNovosLocaisAsync(viagem, novaOrigem, novoDestino, aceites, ct);
-
-            if (calculada.Erro is { } erro)
-                return erro;
-
-            rota = calculada.Valor.Rota;
-        }
-
-        // O custo exige uma distância positiva (EstimativaCustoService).
-        if (rota.DistanciaTotalKm <= 0)
-            return RotaNaoCalculada;
-
-        return RespostaDaSimulacao(viagem.Id, aceites.Count, rota);
-    }
-
-    /// <summary>Converte a rota simulada na resposta da API, com o custo para os passageiros aceites (RF-F008-10).</summary>
-    /// <param name="viagemId">Viagem simulada.</param>
-    /// <param name="passageirosAceites">Número de passageiros aceites (entram no custo por participante).</param>
-    /// <param name="rota">Rota simulada (ou a guardada, se os locais não mudam).</param>
-    /// <returns>A rota no mesmo formato de <c>GET /rotas/viagens/{id}</c>: o condutor vê todos os pontos.</returns>
-    private RotaDaViagem RespostaDaSimulacao(Guid viagemId, int passageirosAceites, ResultadoRotaComPontos rota)
-    {
-        // Sem linha da HERE (rota calculada agora), o mapa usa retas entre os pontos pela ordem da rota.
-        IReadOnlyList<Coordenadas> linha = rota.Geometria ?? GeometriaRota.LinhaReta(rota.PontosOrdenados);
-
-        return new RotaDaViagem(
-            viagemId,
-            passageirosAceites,
-            ConsultaRotasService.PontosParaResposta(rota),
-            ConsultaRotasService.TrocosParaResposta(rota),
-            rota.DistanciaTotalKm,
-            rota.DuracaoTotalMinutos,
-            custos.Calcular(rota.DistanciaTotalKm, passageirosAceites),
-            GeometriaRota.EmPares(linha),
-            rota.Geometria is null);
-    }
-
     /// <summary>
-    /// Regras de quem pode alterar (ou simular a alteração de) uma viagem: só o condutor, com a viagem ativa e ainda
-    /// por partir (RF-F002-07).
+    /// Locais de uma edição que não muda de sítio: o texto indicado (pode mudar só a capitalização ou os espaços,
+    /// BE-38 c) com as coordenadas já guardadas.
     /// </summary>
-    /// <returns>O erro 403 ou 409; <c>null</c> se a alteração for permitida.</returns>
-    private static Erro? ValidarQuemAltera(Viagem viagem, Guid utilizadorId, DateTime agora)
-    {
-        if (viagem.CondutorId != utilizadorId)
-            return Proibido;
-
-        if (!viagem.PorPartir(agora))
-            return new Erro(TipoErro.Conflito, "Viagem não editável.");
-
-        return null;
-    }
-
-    // Locais e rota calculados para uma edição que muda a origem ou o destino.
-    private sealed record NovaRota(LocaisViagem Locais, ResultadoRotaComPontos Rota);
-
-    /// <summary>
-    /// Obtém as coordenadas dos locais novos e calcula a rota com os passageiros aceites (RF-F002-07, RF-F008-05).
-    /// Não altera a viagem.
-    /// </summary>
-    /// <returns>Os locais e a rota; ou o erro: 400 mesmo local, 422 local ou rota não encontrados, 502/503/504 mapas.</returns>
-    private async Task<Resultado<NovaRota>> CalcularRotaComNovosLocaisAsync(
-        Viagem viagem,
-        string novaOrigem,
-        string novoDestino,
-        IReadOnlyList<Participacao> aceites,
-        CancellationToken ct)
-    {
-        if (!mapas.Configurado)
-            return ChamadaMapas.NaoConfigurado;
-
-        return await ChamadaMapas.ExecutarAsync<NovaRota>(
-            async limite =>
-            {
-                // Só o local que muda é geocodificado de novo.
-                var pontoOrigem = novaOrigem == viagem.Origem
-                    ? new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude)
-                    : await mapas.GeocodificarAsync(novaOrigem, limite);
-                var pontoDestino = novoDestino == viagem.Destino
-                    ? new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude)
-                    : await mapas.GeocodificarAsync(novoDestino, limite);
-
-                if (pontoOrigem is null || pontoDestino is null)
-                    return LocalNaoEncontrado;
-
-                if (MesmasCoordenadas(pontoOrigem, pontoDestino))
-                    return MesmoLocal;
-
-                var rota = await rotas.CalcularEntreAsync(
-                    new PontoRota(null, TiposPontoRota.Origem, novaOrigem, pontoOrigem),
-                    new PontoRota(null, TiposPontoRota.DestinoViagem, novoDestino, pontoDestino),
-                    aceites,
-                    limite);
-
-                if (rota is null)
-                    return RotaNaoCalculada;
-
-                return new NovaRota(new LocaisViagem(novaOrigem, pontoOrigem, novoDestino, pontoDestino), rota);
-            },
-            MapasIndisponiveis,
-            TempoExcedido,
-            ct);
-    }
-
-    // Origem e destino atuais da viagem, com as coordenadas guardadas.
-    private static LocaisViagem LocaisAtuais(Viagem viagem) => new(
-        viagem.Origem,
+    /// <remarks>Os pontos da rota guardada mantêm o texto antigo até ao próximo recálculo da rota.</remarks>
+    private static LocaisViagem LocaisComNovoTexto(Viagem viagem, string novaOrigem, string novoDestino) => new(
+        novaOrigem,
         new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
-        viagem.Destino,
+        novoDestino,
         new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude));
-
-    /// <inheritdoc />
-    public async Task<Resultado> IndisponibilizarAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct)
-    {
-        var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
-        if (viagem.CondutorId != utilizadorId) return Proibido;
-        if (!viagem.EstaAtiva) return new Erro(TipoErro.Conflito, "A viagem já não está ativa.");
-
-        viagem.Indisponibilizar();
-
-        // P-25 / RF-F002-10 (DEF-BE-008): cancela os pedidos pendentes e as participações aceites.
-        var afetadas = await participacoes.ListarAtivasParaAlterarAsync(viagemId, ct);
-
-        foreach (var participacao in afetadas)
-            participacao.CancelarPorIndisponibilidade();
-
-        // BE-29: a indisponibilização não chama os mapas (P-19). A viagem já não se realiza, por isso não se gasta um
-        // pedido para recalcular a rota sem passageiros: sem paragens, a rota guardada continua certa; com paragens,
-        // fica por recalcular e só se calcula se alguém a consultar.
-        ResultadoRotaComPontos? guardada = RotaGuardada.Ler(viagem);
-
-        if (guardada is not null && guardada.PontosOrdenados.Count > 2)
-            viagem.MarcarRotaPorRecalcular();
-
-        // P-23 / RF-F006-03 (DEF-BE-020): notifica os passageiros com pedido pendente ou
-        // participação aceite antes da indisponibilização; o condutor originou a alteração.
-        notificacoes.RegistarAlteracaoViagem(
-            viagem.Id,
-            viagem.CondutorId,
-            afetadas.Select(p => p.PassageiroId),
-            utilizadorId,
-            "A viagem foi marcada como indisponível pelo condutor e o teu pedido ou participação foi cancelado.");
-
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
-
-        return Resultado.Sucesso;
-    }
-
-    /// <inheritdoc />
-    public async Task<Resultado> ConcluirAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct)
-    {
-        var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
-        if (viagem is null) return NaoEncontrada;
-        if (viagem.CondutorId != utilizadorId) return Proibido;
-
-        var agora = DateTime.UtcNow;
-
-        if (!viagem.PodeConcluir(agora))
-            return new Erro(TipoErro.Conflito, "A viagem só pode ser concluída depois da partida e enquanto estiver ativa.");
-
-        // RF-F004-19: os pedidos pendentes são cancelados com a conclusão (regra na entidade, BE-31).
-        var pendentes = await participacoes.ListarPendentesParaAlterarAsync(viagemId, ct);
-        viagem.Concluir(agora, pendentes);
-
-        await unidadeDeTrabalho.ConfirmarAsync(ct);
-
-        return Resultado.Sucesso;
-    }
 
     /// <summary>
     /// Valida os dados de uma viagem antes de chamar os mapas (criação e edição, RF-F002-16).
@@ -505,7 +296,7 @@ public sealed class ViagemService(
     /// <returns>O erro da primeira regra que falha, com uma mensagem própria (BE-15); <c>null</c> se estiver tudo certo.</returns>
     private static Erro? ValidarDadosDaViagem(string origem, string destino, DateTime partidaEm, int lugares)
     {
-        if (ValidarLocais(origem, destino) is { } locaisInvalidos)
+        if (AlteracaoDeViagem.ValidarLocais(origem, destino) is { } locaisInvalidos)
             return locaisInvalidos;
 
         // A API só aceita datas em UTC (com Z); outro desvio chega aqui com outro Kind.
@@ -521,33 +312,4 @@ public sealed class ViagemService(
 
         return null;
     }
-
-    /// <summary>
-    /// Valida a origem e o destino pelo texto: preenchidos, até 200 caracteres e diferentes (criação, alteração e
-    /// simulação da alteração, RF-F002-04, RF-F002-16).
-    /// </summary>
-    /// <returns>O erro da primeira regra que falha; <c>null</c> se estiver tudo certo.</returns>
-    private static Erro? ValidarLocais(string origem, string destino)
-    {
-        if (string.IsNullOrWhiteSpace(origem))
-            return new Erro(TipoErro.DadosInvalidos, "Indica a origem da viagem.");
-
-        if (string.IsNullOrWhiteSpace(destino))
-            return new Erro(TipoErro.DadosInvalidos, "Indica o destino da viagem.");
-
-        if (origem.Length > TamanhoMaximoLocal)
-            return new Erro(TipoErro.DadosInvalidos, "A origem tem no máximo 200 caracteres.");
-
-        if (destino.Length > TamanhoMaximoLocal)
-            return new Erro(TipoErro.DadosInvalidos, "O destino tem no máximo 200 caracteres.");
-
-        // RF-F002-04: origem e destino diferentes (aqui pelo texto; pelas coordenadas depois de geocodificar).
-        if (RegraMesmoLocal.MesmoTexto(origem, destino))
-            return MesmoLocal;
-
-        return null;
-    }
-
-    private static bool MesmasCoordenadas(Coordenadas a, Coordenadas b) =>
-        RegraMesmoLocal.MesmasCoordenadas(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
 }

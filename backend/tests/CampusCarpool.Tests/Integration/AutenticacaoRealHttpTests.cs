@@ -179,13 +179,21 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
     {
         var servidor = _app.Server;
 
-        return new HubConnectionBuilder()
+        HubConnection ligacao = new HubConnectionBuilder()
             .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={token}"), opcoes =>
             {
                 opcoes.HttpMessageHandlerFactory = _ => servidor.CreateHandler();
                 opcoes.Transports = HttpTransportType.LongPolling;
             })
             .Build();
+
+        // R5: o cliente do SignalR tem limites próprios (handshake 15 s, silêncio do servidor 30 s), mais curtos do que
+        // a espera do teste. Com a máquina carregada (suite em SQL Server) o handshake passava dos 15 s e o teste falhava
+        // sem haver erro. Os dois limites passam a ser a espera máxima dos testes.
+        ligacao.HandshakeTimeout = AplicacaoReal.EsperaMaxima;
+        ligacao.ServerTimeout = AplicacaoReal.EsperaMaxima;
+
+        return ligacao;
     }
 
     /// <summary>
@@ -210,7 +218,7 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
     /// pedido seguinte já não chega a essa ligação.
     /// </summary>
     [Fact]
-    public async Task I112_FimDeSessao_FechaLigacaoAoHub()
+    public async Task I112_54_FimDeSessao_FechaLigacaoAoHub()
     {
         var condutor = _app.CriarUtilizador("Condutor");
         var passageiro = _app.CriarUtilizador("Passageiro");
@@ -256,7 +264,8 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
             "/api/v1/autenticacao/login",
             new { email = _utilizador.Email, password = "Outra-palavra-passe-9" });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, emailInexistente.StatusCode);
+        // O 401 do login traz { erro } (só o 401 do JwtBearer vem sem corpo) e é igual nos dois casos.
+        await RespostasDeErro.AssertErroAsync(emailInexistente, HttpStatusCode.Unauthorized, "Credenciais inválidas.");
         Assert.Equal(emailInexistente.StatusCode, palavraPasseErrada.StatusCode);
         Assert.Equal(
             await emailInexistente.Content.ReadAsStringAsync(),
@@ -277,7 +286,7 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         Assert.Equal(HttpStatusCode.Accepted, registo.StatusCode);
 
         using var porConfirmar = await cliente.PostAsJsonAsync("/api/v1/autenticacao/login", credenciais);
-        Assert.Equal(HttpStatusCode.Forbidden, porConfirmar.StatusCode);
+        await RespostasDeErro.AssertErroAsync(porConfirmar, HttpStatusCode.Forbidden, "Conta por confirmar.");
 
         using var confirmacao = await cliente.PostAsJsonAsync(
             "/api/v1/autenticacao/confirmar",

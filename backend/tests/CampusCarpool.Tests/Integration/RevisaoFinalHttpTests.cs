@@ -41,7 +41,7 @@ public sealed class RevisaoFinalHttpTests
 
         using var resposta = await cliente.GetAsync($"/api/v1/notificacoes?pagina={int.MaxValue}&tamanhoPagina=100");
 
-        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Parâmetros de paginação inválidos.");
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A página pedida não existe.");
     }
 
     [Fact]

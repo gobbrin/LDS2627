@@ -58,15 +58,18 @@ public sealed class ConsultasViagemTests : IDisposable
         };
         db.Viagens.Add(viagem);
         db.Participacoes.AddRange(
-            new Participacao { ViagemId = viagem.Id, PassageiroId = passageiro.Id, Estado = EstadoParticipacao.Aceite, Recolha = "Maia" },
-            new Participacao { ViagemId = viagem.Id, PassageiroId = pendente.Id, Estado = EstadoParticipacao.Pendente, Destino = "Trofa" });
+            new Participacao { AceiteEm = DateTime.UtcNow, ViagemId = viagem.Id, PassageiroId = passageiro.Id, Estado = EstadoParticipacao.Aceite, Recolha = "Maia", RecolhaLatitude = 41.23m, RecolhaLongitude = -8.62m },
+            new Participacao { ViagemId = viagem.Id, PassageiroId = pendente.Id, Estado = EstadoParticipacao.Pendente, Destino = "Trofa", DestinoLatitude = 41.34m, DestinoLongitude = -8.56m });
         await db.SaveChangesAsync();
         return viagem;
     }
 
     private static readonly IServicoMapasRotas Mapas = new MapasFalsos().CriarServico(configurado: false);
 
-    private ViagensController Controller(Guid utilizadorId) => new(ServicosDeTeste.CriarViagens(db, Mapas))
+    private ViagensController Controller(Guid utilizadorId) => new(
+        ServicosDeTeste.CriarViagens(db, Mapas),
+        ServicosDeTeste.CriarSimulacoesDeAlteracao(db, Mapas),
+        ServicosDeTeste.CriarCicloDeVida(db))
     {
         ControllerContext = new ControllerContext
         {
@@ -147,9 +150,9 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal("Maia", Campo<string>(passageiroListado, "Recolha"));
 
         Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).ListarPassageiros(viagem.Id, default));
-        RespostaEsperada.Proibido(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default));
-        RespostaEsperada.Proibido(await Controller(outro.Id).ListarPassageiros(viagem.Id, default));
-        Assert.IsType<NotFoundObjectResult>(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default));
+        RespostasDeErro.AssertErro(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para gerir esta viagem.");
+        RespostasDeErro.AssertErro(await Controller(outro.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para gerir esta viagem.");
+        RespostasDeErro.AssertErro(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -163,8 +166,8 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal("Pendente", Campo<string>(pedido, "Nome"));
         Assert.Equal("Trofa", Campo<string>(pedido, "Destino"));
 
-        RespostaEsperada.Proibido(await Controller(passageiro.Id).ListarPedidosPendentes(viagem.Id, default));
-        Assert.IsType<NotFoundObjectResult>(await Controller(condutor.Id).ListarPedidosPendentes(Guid.NewGuid(), default));
+        RespostasDeErro.AssertErro(await Controller(passageiro.Id).ListarPedidosPendentes(viagem.Id, default), 403, "Não tens permissão para gerir esta viagem.");
+        RespostasDeErro.AssertErro(await Controller(condutor.Id).ListarPedidosPendentes(Guid.NewGuid(), default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -174,13 +177,18 @@ public sealed class ConsultasViagemTests : IDisposable
         var ativa = await CriarViagem(lugaresDisponiveis: 1);
         await CriarViagem(EstadoViagem.Indisponibilizada);
 
-        var lista = Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarMinhas(default)).Value!;
-        var viagem = Assert.Single((System.Collections.IEnumerable)lista);
-        Assert.Equal(ativa.Id, Campo<Guid>(viagem, "Id"));
-        Assert.Equal(1, Campo<int>(viagem, "LugaresDisponiveis"));
+        // D-4: a lista vem paginada ({ total, pagina, tamanho, viagens }).
+        var pagina = Assert.IsType<PaginaViagensDoCondutor>(
+            Assert.IsType<OkObjectResult>(await Controller(condutor.Id).ListarMinhas(1, 20, default)).Value);
+        var viagem = Assert.Single(pagina.Viagens);
+        Assert.Equal(1, pagina.Total);
+        Assert.Equal(ativa.Id, viagem.Id);
+        Assert.Equal(1, viagem.LugaresDisponiveis);
 
-        Assert.Empty((System.Collections.IEnumerable)Assert.IsType<OkObjectResult>(
-            await Controller(outro.Id).ListarMinhas(default)).Value!);
+        var doOutro = Assert.IsType<PaginaViagensDoCondutor>(
+            Assert.IsType<OkObjectResult>(await Controller(outro.Id).ListarMinhas(1, 20, default)).Value);
+        Assert.Empty(doOutro.Viagens);
+        Assert.Equal(0, doOutro.Total);
     }
 
     [Theory]
@@ -235,12 +243,12 @@ public sealed class ConsultasViagemTests : IDisposable
         await db.SaveChangesAsync();
 
         // I112 (BE-07): o repositório devolve as mensagens e o serviço monta o resumo.
-        var conversas = await new CampusCarpool.Application.Comunicacao.MensagemService(
+        var conversas = (await new CampusCarpool.Application.Comunicacao.MensagemService(
                 new CampusCarpool.Infrastructure.Repositories.RepositorioMensagens(db),
                 new CampusCarpool.Infrastructure.Repositories.RepositorioUtilizadores(db),
                 ServicosDeTeste.CriarNotificacoes(db),
                 new CampusCarpool.Infrastructure.Persistence.UnidadeDeTrabalhoEfCore(db))
-            .ListarConversasAsync(condutor.Id, default);
+            .ListarConversasAsync(condutor.Id, 1, 20, default)).Conversas;
 
         Assert.Equal(2, conversas.Count);
         Assert.Equal("Pendente", conversas[0].OutroUtilizadorNome);

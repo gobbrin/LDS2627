@@ -138,7 +138,7 @@ public sealed class I051ValidacoesControllersTests
     [Fact]
     public async Task F002_CriarViagemSemIdentidade_Devolve401()
     {
-        var controller = new ViagensController(null!)
+        var controller = new ViagensController(null!, null!, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
@@ -147,15 +147,16 @@ public sealed class I051ValidacoesControllersTests
     }
 
     [Theory]
-    [InlineData(0, 20)]
-    [InlineData(1, 0)]
-    [InlineData(1, 101)]
-    [InlineData(-1, 20)]
-    public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho)
+    [InlineData(0, 20, "A página começa em 1.")]
+    [InlineData(1, 0, "O tamanho da página tem de estar entre 1 e 100.")]
+    [InlineData(1, 101, "O tamanho da página tem de estar entre 1 e 100.")]
+    [InlineData(-1, 20, "A página começa em 1.")]
+    public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho, string mensagem)
     {
+        // BE-41: uma mensagem por regra, a mesma em todas as listas paginadas (Paginacao.Validar).
         var controller = new PesquisaController(null!);
         var result = await controller.Pesquisar(null, null, null, null, pagina, tamanho);
-        RespostasDeErro.AssertErro(result, 400, "Paginação inválida.");
+        RespostasDeErro.AssertErro(result, 400, mensagem);
     }
 
     [Fact]
@@ -577,7 +578,10 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico(configurado: false);
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -648,7 +652,10 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico();
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -752,7 +759,10 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {

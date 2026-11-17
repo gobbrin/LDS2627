@@ -16,8 +16,6 @@ public interface IRepositorioAvaliacoes
     /// <summary>Insere a avaliação, se for nova, e grava as alterações.</summary>
     /// <returns><c>false</c> se a BD recusar a gravação, por exemplo pelo índice único do par.</returns>
     Task<bool> GuardarAsync(Avaliacao avaliacao, CancellationToken ct);
-    /// <summary>Lista as avaliações recebidas pelo utilizador, das mais recentes para as mais antigas.</summary>
-    Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct);
     /// <summary>Lista as classificações recebidas pelos utilizadores indicados, para calcular as médias em memória.</summary>
     Task<IReadOnlyList<ClassificacaoRecebida>> ListarClassificacoesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
 }

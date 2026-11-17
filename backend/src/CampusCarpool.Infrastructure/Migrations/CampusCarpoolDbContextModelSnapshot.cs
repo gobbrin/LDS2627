@@ -79,9 +79,12 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ViagemId");
+                    b.HasIndex("ViagemId", "CriadoEm");
 
-                    b.ToTable("Avisos");
+                    b.ToTable("Avisos", t =>
+                        {
+                            t.HasCheckConstraint("CK_Avisos_Conteudo", "TRIM([Conteudo]) <> ''");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.ConfirmacaoConta", b =>
@@ -98,8 +101,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -125,8 +128,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -166,7 +169,10 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("UtilizadorId");
 
-                    b.ToTable("LigacoesExternas");
+                    b.ToTable("LigacoesExternas", t =>
+                        {
+                            t.HasCheckConstraint("CK_LigacoesExternas_Url", "[Url] LIKE 'http://%' OR [Url] LIKE 'https://%'");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Mensagem", b =>
@@ -191,7 +197,7 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DestinatarioId");
+                    b.HasIndex("DestinatarioId", "EnviadoEm");
 
                     b.HasIndex("RemetenteId", "DestinatarioId", "EnviadoEm")
                         .HasDatabaseName("IX_Mensagens_RemetenteId_DestinatarioId_EnviadoEm");
@@ -223,13 +229,13 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<Guid>("UtilizadorId")
                         .HasColumnType("uniqueidentifier");
@@ -239,9 +245,10 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UtilizadorId");
-
                     b.HasIndex("ViagemId");
+
+                    b.HasIndex("UtilizadorId", "CriadaEm")
+                        .IsDescending(false, true);
 
                     b.ToTable("Notificacoes", t =>
                         {
@@ -306,15 +313,25 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("PassageiroId");
 
+                    b.HasIndex("ViagemId", "Estado");
+
                     b.HasIndex("ViagemId", "PassageiroId")
                         .IsUnique()
                         .HasFilter("[Estado] IN ('Pendente', 'Aceite')");
 
                     b.ToTable("Participacoes", t =>
                         {
+                            t.HasCheckConstraint("CK_Participacoes_AceiteEm", "[Estado] <> 'Aceite' OR [AceiteEm] IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_Participacoes_CoordDestino", "([Destino] IS NULL AND [DestinoLatitude] IS NULL AND [DestinoLongitude] IS NULL) OR ([Destino] IS NOT NULL AND [DestinoLatitude] IS NOT NULL AND [DestinoLongitude] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Participacoes_CoordRecolha", "([Recolha] IS NULL AND [RecolhaLatitude] IS NULL AND [RecolhaLongitude] IS NULL) OR ([Recolha] IS NOT NULL AND [RecolhaLatitude] IS NOT NULL AND [RecolhaLongitude] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_Participacoes_Estado", "[Estado] IN ('Pendente', 'Aceite', 'Rejeitada', 'Cancelada')");
 
                             t.HasCheckConstraint("CK_Participacoes_Locais", "NOT ([RecolhaLatitude] = [DestinoLatitude] AND [RecolhaLongitude] = [DestinoLongitude])");
+
+                            t.HasCheckConstraint("CK_Participacoes_UmPonto", "[Recolha] IS NOT NULL OR [Destino] IS NOT NULL");
                         });
                 });
 
@@ -379,7 +396,10 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Utilizadores");
+                    b.ToTable("Utilizadores", t =>
+                        {
+                            t.HasCheckConstraint("CK_Utilizadores_Nome", "TRIM([Nome]) <> ''");
+                        });
                 });
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Viagem", b =>
@@ -418,8 +438,8 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("LugaresDisponiveis")
                         .HasColumnType("int");
@@ -466,13 +486,19 @@ namespace CampusCarpool.Infrastructure.Migrations
 
                     b.HasIndex("Estado", "PartidaEm");
 
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Estado", "PartidaEm"), new[] { "OrigemPesquisa", "DestinoPesquisa", "LugaresDisponiveis" });
+
                     b.ToTable("Viagens", t =>
                         {
+                            t.HasCheckConstraint("CK_Viagens_Coordenadas", "[OrigemLatitude] BETWEEN -90 AND 90 AND [DestinoLatitude] BETWEEN -90 AND 90 AND [OrigemLongitude] BETWEEN -180 AND 180 AND [DestinoLongitude] BETWEEN -180 AND 180");
+
                             t.HasCheckConstraint("CK_Viagens_Estado", "[Estado] IN ('Ativa', 'Indisponibilizada', 'Concluida')");
 
                             t.HasCheckConstraint("CK_Viagens_Locais", "NOT ([OrigemLatitude] = [DestinoLatitude] AND [OrigemLongitude] = [DestinoLongitude])");
 
                             t.HasCheckConstraint("CK_Viagens_Lugares", "[LugaresOferecidos] BETWEEN 1 AND 8 AND [LugaresDisponiveis] BETWEEN 0 AND [LugaresOferecidos]");
+
+                            t.HasCheckConstraint("CK_Viagens_Medidas", "([DistanciaKm] IS NULL OR [DistanciaKm] > 0) AND ([DuracaoMinutos] IS NULL OR [DuracaoMinutos] > 0)");
 
                             t.HasCheckConstraint("CK_Viagens_Rota", "[RotaPontos] IS NULL OR ISJSON([RotaPontos]) = 1");
                         });

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using CampusCarpool.Domain.Entities;
 using Xunit;
 
@@ -85,9 +84,9 @@ public sealed class ServicoMapasEmFalhaHttpTests : IDisposable
 
     /// <summary>RF-F008-12: criar uma viagem informa o utilizador, com 502 (erro) ou 504 (sem resposta), e não grava nada.</summary>
     [Theory]
-    [InlineData(false, HttpStatusCode.BadGateway)]
-    [InlineData(true, HttpStatusCode.GatewayTimeout)]
-    public async Task I110_107_CriarViagemSemMapas_InformaEDeixaTudoComoEstava(bool semResposta, HttpStatusCode esperado)
+    [InlineData(false, HttpStatusCode.BadGateway, "Serviço de mapas indisponível.")]
+    [InlineData(true, HttpStatusCode.GatewayTimeout, "Tempo de resposta do serviço de mapas excedido.")]
+    public async Task I110_107_CriarViagemSemMapas_InformaEDeixaTudoComoEstava(bool semResposta, HttpStatusCode esperado, string erro)
     {
         DesligarMapas(semResposta);
 
@@ -95,8 +94,7 @@ public sealed class ServicoMapasEmFalhaHttpTests : IDisposable
             "/api/v1/viagens",
             new { origem = "Porto", destino = "Braga", partidaEm = DateTime.UtcNow.AddDays(1), lugares = 3 });
 
-        Assert.Equal(esperado, resposta.StatusCode);
-        Assert.False(string.IsNullOrWhiteSpace(await LerDetalheAsync(resposta)));
+        await RespostasDeErro.AssertErroAsync(resposta, esperado, erro);
         Assert.Equal(0, _app.NaBaseDeDados(db => db.Viagens.Count()));
     }
 
@@ -112,15 +110,5 @@ public sealed class ServicoMapasEmFalhaHttpTests : IDisposable
         using var resposta = await _clienteCondutor.GetAsync($"/api/v1/rotas/viagens/{viagemId}");
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
-    }
-
-    private static async Task<string?> LerDetalheAsync(HttpResponseMessage resposta)
-    {
-        using var json = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
-        var raiz = json.RootElement;
-
-        return raiz.TryGetProperty("detail", out var detalhe) ? detalhe.GetString()
-            : raiz.TryGetProperty("mensagem", out var mensagem) ? mensagem.GetString()
-            : raiz.GetRawText();
     }
 }

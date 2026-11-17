@@ -245,7 +245,7 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, Guid.NewGuid());
-        RespostaEsperada.Proibido(await c.Indisponibilizar(v.Id, default));
+        RespostasDeErro.AssertErro(await c.Indisponibilizar(v.Id, default), 403, "Não tens permissão para gerir esta viagem.");
     }
     [Fact]
     public async Task ConcluirViagemFutura_Devolve409()

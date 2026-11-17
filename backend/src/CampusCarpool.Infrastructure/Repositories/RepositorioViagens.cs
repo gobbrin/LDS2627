@@ -1,4 +1,5 @@
 using CampusCarpool.Application.Abstractions.Persistence;
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Viagens;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
@@ -93,13 +94,23 @@ public sealed class RepositorioViagens(CampusCarpoolDbContext context) : IReposi
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, CancellationToken ct)
+    public async Task<PaginaDe<Viagem>> ListarAtivasDoCondutorAsync(Guid condutorId, int pagina, int tamanho, CancellationToken ct)
     {
-        return await context.Viagens
+        IQueryable<Viagem> ativas = context.Viagens
             .AsNoTracking()
-            .Where(v => v.CondutorId == condutorId && v.Estado == EstadoViagem.Ativa)
+            .Where(v => v.CondutorId == condutorId && v.Estado == EstadoViagem.Ativa);
+
+        int total = await ativas.CountAsync(ct);
+
+        // O Id desempata viagens com a mesma partida, para nenhuma se repetir ou perder entre páginas.
+        List<Viagem> daPagina = await ativas
             .OrderBy(v => v.PartidaEm)
+            .ThenBy(v => v.Id)
+            .Skip(Paginacao.Saltar(pagina, tamanho))
+            .Take(tamanho)
             .ToListAsync(ct);
+
+        return new PaginaDe<Viagem>(daPagina, total);
     }
 
     /// <inheritdoc />

@@ -50,7 +50,7 @@ public sealed class HistoricoIntegrationTests
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
-            Guid.NewGuid(), CancellationToken.None);
+            Guid.NewGuid(), 1, 100, CancellationToken.None);
 
         Assert.Empty(resultado.ViagensComoCondutor);
         Assert.Empty(resultado.ViagensComoPassageiro);
@@ -86,8 +86,7 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            utilizador.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(utilizador.Id, 1, 100, CancellationToken.None);
 
         Assert.Single(resultado.ViagensComoCondutor);
         Assert.Empty(resultado.ViagensComoPassageiro);
@@ -127,7 +126,7 @@ public sealed class HistoricoIntegrationTests
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
         var resultado = await service.ConsultarAsync(
-            Guid.NewGuid(), CancellationToken.None);
+            Guid.NewGuid(), 1, 100, CancellationToken.None);
 
         Assert.Empty(resultado.ViagensComoCondutor);
         Assert.Empty(resultado.ViagensComoPassageiro);
@@ -168,6 +167,9 @@ public sealed class HistoricoIntegrationTests
 
         fixture.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Aceite,
@@ -178,8 +180,7 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            passageiro.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(passageiro.Id, 1, 100, CancellationToken.None);
 
         Assert.Empty(resultado.ViagensComoCondutor);
         Assert.Single(resultado.ViagensComoPassageiro);
@@ -230,8 +231,7 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            condutor.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(condutor.Id, 1, 100, CancellationToken.None);
 
         Assert.Equal(2, resultado.ViagensComoCondutor.Count);
         Assert.Equal(
@@ -278,6 +278,9 @@ public sealed class HistoricoIntegrationTests
 
         var pedido = new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Pendente
@@ -288,11 +291,9 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var historicoPassageiro = await service.ConsultarAsync(
-            passageiro.Id, CancellationToken.None);
+        var historicoPassageiro = await service.ConsultarAsync(passageiro.Id, 1, 100, CancellationToken.None);
 
-        var historicoCondutor = await service.ConsultarAsync(
-            condutor.Id, CancellationToken.None);
+        var historicoCondutor = await service.ConsultarAsync(condutor.Id, 1, 100, CancellationToken.None);
 
         Assert.Single(historicoPassageiro.PedidosEfetuados);
         Assert.Equal(
@@ -351,8 +352,7 @@ public sealed class HistoricoIntegrationTests
         // Consultar apenas o historico do primeiro utilizador
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            utilizador.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(utilizador.Id, 1, 100, CancellationToken.None);
 
         // Verificar que apenas a notificacao pessoal aparece
         Assert.Single(resultado.Notificacoes);
@@ -405,6 +405,9 @@ public sealed class HistoricoIntegrationTests
         fixture.Db.Participacoes.AddRange(
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = aceite.Id,
                 Estado = EstadoParticipacao.Aceite,
@@ -413,6 +416,9 @@ public sealed class HistoricoIntegrationTests
             },
             new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = rejeitado.Id,
                 Estado = EstadoParticipacao.Rejeitada
@@ -428,14 +434,11 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var historicoCondutor = await service.ConsultarAsync(
-            condutor.Id, CancellationToken.None);
+        var historicoCondutor = await service.ConsultarAsync(condutor.Id, 1, 100, CancellationToken.None);
 
-        var historicoAceite = await service.ConsultarAsync(
-            aceite.Id, CancellationToken.None);
+        var historicoAceite = await service.ConsultarAsync(aceite.Id, 1, 100, CancellationToken.None);
 
-        var historicoRejeitado = await service.ConsultarAsync(
-            rejeitado.Id, CancellationToken.None);
+        var historicoRejeitado = await service.ConsultarAsync(rejeitado.Id, 1, 100, CancellationToken.None);
 
         Assert.Single(historicoCondutor.Avisos);
         Assert.Single(historicoAceite.Avisos);
@@ -482,6 +485,10 @@ public sealed class HistoricoIntegrationTests
 
         fixture.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
+            AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = estado
@@ -491,8 +498,7 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            passageiro.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(passageiro.Id, 1, 100, CancellationToken.None);
 
         Assert.Empty(resultado.ViagensComoPassageiro);
 
@@ -533,8 +539,7 @@ public sealed class HistoricoIntegrationTests
 
         var service = ServicosDeTeste.CriarHistorico(fixture.Db);
 
-        var resultado = await service.ConsultarAsync(
-            condutor.Id, CancellationToken.None);
+        var resultado = await service.ConsultarAsync(condutor.Id, 1, 100, CancellationToken.None);
 
         Assert.Single(resultado.ViagensComoCondutor);
         Assert.Equal(
@@ -577,6 +582,9 @@ public sealed class HistoricoIntegrationTests
         // Aceite e cancelado depois pelo próprio passageiro: o AceiteEm fica preenchido.
         fixture.Db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Cancelada,
@@ -589,7 +597,7 @@ public sealed class HistoricoIntegrationTests
         });
         await fixture.Db.SaveChangesAsync();
 
-        var historico = await ServicosDeTeste.CriarHistorico(fixture.Db).ConsultarAsync(passageiro.Id, CancellationToken.None);
+        var historico = await ServicosDeTeste.CriarHistorico(fixture.Db).ConsultarAsync(passageiro.Id, 1, 100, CancellationToken.None);
 
         Assert.Equal("Partida adiada 10 minutos", Assert.Single(historico.Avisos).Conteudo);
         Assert.Single(historico.ViagensComoPassageiro);

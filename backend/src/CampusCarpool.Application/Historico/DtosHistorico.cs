@@ -72,7 +72,24 @@ public sealed record AvisoHistorico(
     DateTime CriadoEm
 );
 
-/// <summary>Histórico completo, devolvido por <c>GET /api/v1/historico</c>.</summary>
+/// <summary>Número de elementos de cada lista do histórico, sem paginação (para o cliente saber quantas páginas há).</summary>
+public sealed record TotaisHistorico(
+    int ViagensComoCondutor,
+    int ViagensComoPassageiro,
+    int PedidosEfetuados,
+    int PedidosRecebidos,
+    int Notificacoes,
+    int Avisos
+);
+
+/// <summary>Uma página do histórico, devolvida por <c>GET /api/v1/historico?pagina=&amp;tamanho=</c> (D-4).</summary>
+/// <remarks>
+/// A mesma página e o mesmo tamanho aplicam-se a cada uma das seis listas: a página 2 traz os elementos 21 a 40 de
+/// cada lista (com o tamanho 20). <c>Totais</c> diz quantos elementos tem cada lista inteira.
+/// </remarks>
+/// <param name="Pagina">Página devolvida, a contar de 1.</param>
+/// <param name="Tamanho">Elementos por página, em cada lista.</param>
+/// <param name="Totais">Total de elementos de cada lista.</param>
 /// <param name="ViagensComoCondutor">
 /// Viagens criadas pelo utilizador, em qualquer estado, incluindo as ativas futuras (RF-F009-02).
 /// </param>
@@ -88,6 +105,9 @@ public sealed record AvisoHistorico(
 /// depois (RF-F009-05, DEF-BE-024).
 /// </param>
 public sealed record HistoricoResultado(
+    int Pagina,
+    int Tamanho,
+    TotaisHistorico Totais,
     IReadOnlyList<ViagemHistorico> ViagensComoCondutor,
     IReadOnlyList<ViagemHistorico> ViagensComoPassageiro,
     IReadOnlyList<PedidoHistorico> PedidosEfetuados,

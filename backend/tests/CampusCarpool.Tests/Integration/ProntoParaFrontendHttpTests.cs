@@ -1,7 +1,6 @@
 using System.Data.Common;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -126,8 +125,10 @@ public sealed class ProntoParaFrontendHttpTests
             // Em simultâneo não se sabe qual chega em último: procura-se a única resposta recusada.
             HttpResponseMessage recusada = Assert.Single(respostas, resposta => resposta.StatusCode == HttpStatusCode.TooManyRequests);
 
-            var corpo = await recusada.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.Contains("Demasiados pedidos", corpo.GetProperty("erro").GetString(), StringComparison.Ordinal);
+            await RespostasDeErro.AssertErroAsync(
+                recusada,
+                HttpStatusCode.TooManyRequests,
+                "Demasiados pedidos. Aguarda um minuto e tenta novamente.");
         }
         finally
         {

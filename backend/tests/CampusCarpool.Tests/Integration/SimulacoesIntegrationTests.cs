@@ -159,10 +159,10 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_02_ApenasCondutorPodeSimular()
     {
         using var f = new Fixture();
-        RespostaEsperada.Proibido(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        RespostaEsperada.Proibido(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 403, "Só o condutor da viagem pode simular este pedido.");
+        RespostasDeErro.AssertErro(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 403, "Só o condutor da viagem pode simular este pedido.");
     }
 
     [Fact]
@@ -209,6 +209,8 @@ public sealed class SimulacoesIntegrationTests
     {
         using var f = new Fixture();
         f.Pedido.Estado = estado;
+        // Uma participação aceite guarda a data da aceitação (CK_Participacoes_AceiteEm).
+        if (estado == EstadoParticipacao.Aceite) f.Pedido.AceiteEm = DateTime.UtcNow;
         await f.Db.SaveChangesAsync();
         RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "Só é possível simular pedidos pendentes.");
@@ -251,10 +253,29 @@ public sealed class SimulacoesIntegrationTests
     {
         using var f = new Fixture();
         f.Pedido.Recolha = null;
+        f.Pedido.RecolhaLatitude = null;
+        f.Pedido.RecolhaLongitude = null;
         f.Pedido.Destino = null;
-        await f.Db.SaveChangesAsync();
+        f.Pedido.DestinoLatitude = null;
+        f.Pedido.DestinoLongitude = null;
+        // Pedidos sem pontos só existem como dados antigos (anteriores ao CHECK de BE-33).
+        await f.Db.GravarDadosAntigosAsync();
         RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default), 400, "O pedido deve indicar recolha ou destino.");
+    }
+
+    /// <summary>
+    /// Um pedido sem <c>pedidoId</c> (corpo vazio ou o Guid só com zeros) dá 400 antes de ler a viagem ou chamar os mapas.
+    /// </summary>
+    [Fact]
+    public async Task I112_108_SemPedidoId_Devolve400()
+    {
+        using var f = new Fixture();
+
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(Guid.Empty), default), 400, "Indica um pedidoId válido.");
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id, null, default),
+            400, "Indica um pedidoId válido.");
     }
 
     [Fact]
@@ -299,8 +320,9 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_12_P20_PontoOpcional(bool soRecolha)
     {
         using var f = new Fixture();
-        if (soRecolha) f.Pedido.Destino = null;
-        else f.Pedido.Recolha = null;
+        // Um ponto omitido não tem texto nem coordenadas (CK_Participacoes_CoordRecolha/CoordDestino).
+        if (soRecolha) (f.Pedido.Destino, f.Pedido.DestinoLatitude, f.Pedido.DestinoLongitude) = (null, null, null);
+        else (f.Pedido.Recolha, f.Pedido.RecolhaLatitude, f.Pedido.RecolhaLongitude) = (null, null, null);
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
@@ -315,6 +337,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Db.Participacoes.Add(new Participacao
         {
+            AceiteEm = DateTime.UtcNow,
             ViagemId = f.Viagem.Id,
             PassageiroId = f.Terceiro.Id,
             Estado = EstadoParticipacao.Aceite,
