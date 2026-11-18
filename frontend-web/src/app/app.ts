@@ -1,3 +1,4 @@
+import { TempoRealService } from './features/notificacoes/tempo-real.service';
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -24,6 +25,11 @@ import { AutenticacaoApiService } from './features/autenticacao/autenticacao-api
       @if (sessao.autenticado()) {
         <nav class="sidebar" aria-label="Navegação principal">
           <p class="eyebrow">A TUA COMUNIDADE</p>
+          <a routerLink="/historico" routerLinkActive="active">Histórico</a>
+          <a routerLink="/notificacoes" routerLinkActive="active">Notificações</a>
+          <a routerLink="/mensagens" routerLinkActive="active">Mensagens</a>
+          <a routerLink="/participacoes" routerLinkActive="active">Participações</a>
+          <a routerLink="/pesquisa" routerLinkActive="active">Encontrar viagem</a>
           <a routerLink="/inicio" routerLinkActive="active">Início</a
           ><a routerLink="/viagens" routerLinkActive="active">As minhas viagens</a
           ><a routerLink="/perfil" routerLinkActive="active">Perfil</a
@@ -49,6 +55,7 @@ import { AutenticacaoApiService } from './features/autenticacao/autenticacao-api
     <footer><span>Campus Carpool</span><span>Uma comunidade. Muitos caminhos.</span></footer>`,
 })
 export class App {
+  readonly tempoReal = inject(TempoRealService);
   readonly sessao = inject(SessaoService);
   readonly ui = inject(NotificacaoUiService);
   private readonly auth = inject(AutenticacaoApiService);
