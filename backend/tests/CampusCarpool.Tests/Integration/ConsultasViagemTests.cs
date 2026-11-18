@@ -150,8 +150,8 @@ public sealed class ConsultasViagemTests : IDisposable
         Assert.Equal("Maia", Campo<string>(passageiroListado, "Recolha"));
 
         Assert.IsType<OkObjectResult>(await Controller(passageiro.Id).ListarPassageiros(viagem.Id, default));
-        RespostasDeErro.AssertErro(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para gerir esta viagem.");
-        RespostasDeErro.AssertErro(await Controller(outro.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para gerir esta viagem.");
+        RespostasDeErro.AssertErro(await Controller(pendente.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para ver os passageiros desta viagem.");
+        RespostasDeErro.AssertErro(await Controller(outro.Id).ListarPassageiros(viagem.Id, default), 403, "Não tens permissão para ver os passageiros desta viagem.");
         RespostasDeErro.AssertErro(await Controller(condutor.Id).ListarPassageiros(Guid.NewGuid(), default), 404, "Viagem não encontrada.");
     }
 

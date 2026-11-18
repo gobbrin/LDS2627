@@ -39,6 +39,12 @@ public sealed class ServicoMapasComReserva(
         new EventId(8102, nameof(LogReserva)),
         "HERE falhou ({Operacao}); a usar o OpenRouteService (reserva).");
 
+    // PM-1: sem reserva configurada, uma falha da HERE fica visível no log (só o código HTTP; nunca a chave).
+    private static readonly Action<ILogger, string, string, Exception?> LogSemReserva = LoggerMessage.Define<string, string>(
+        LogLevel.Warning,
+        new EventId(8103, nameof(LogSemReserva)),
+        "HERE falhou ({Operacao}, estado HTTP {Estado}) e não há reserva configurada.");
+
     /// <summary>Indica se há pelo menos um fornecedor configurado; sem nenhum, a Application responde 503.</summary>
     public bool Configurado => here.Configurado || openRouteService.Configurado;
 
@@ -112,6 +118,12 @@ public sealed class ServicoMapasComReserva(
         {
             // Esgotou o tempo do HttpClient da HERE (5 s), não o limite da operação: ainda há tempo para a reserva.
             LogReserva(logger, operacao, ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Sem reserva (a condição anterior não se verificou): regista a causa e deixa o erro seguir (502).
+            LogSemReserva(logger, operacao, ex.StatusCode?.ToString() ?? "sem resposta", ex);
+            throw;
         }
 
         return await reserva(ct);

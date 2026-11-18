@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -120,6 +121,27 @@ public sealed class MapasHereComReservaTests : IDisposable
     }
 
     [Fact]
+    /// <summary>
+    /// PM-1: a HERE recusa a chave (401) e não há reserva configurada: o erro segue (502), mas fica um aviso no log com o
+    /// código HTTP e sem a chave.
+    /// </summary>
+    public async Task I112_125_HereRecusadaSemReserva_FicaAvisoNoLogSemAChave()
+    {
+        here.Falha = HttpStatusCode.Unauthorized;
+        var logs = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        using var fabrica = LoggerFactory.Create(b => b.AddProvider(new RegistadorDeLogs(logs)));
+        var mapas = new ServicoMapasComReserva(
+            here.CriarServico(), openRouteService.CriarServico(false), memoria, fabrica.CreateLogger<ServicoMapasComReserva>());
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => mapas.GeocodificarAsync("Porto", default));
+
+        string aviso = Assert.Single(logs, l => l.Contains("não há reserva configurada", StringComparison.Ordinal));
+        Assert.Contains("Warning", aviso, StringComparison.Ordinal);
+        Assert.Contains("Unauthorized", aviso, StringComparison.Ordinal);
+        Assert.DoesNotContain("chave-here-ficticia", aviso, StringComparison.Ordinal);
+    }
+
+    [Fact]
     /// <summary>As duas falham: a API responde 502 com a mensagem dos mapas, como antes da D-5; houve um pedido a cada uma.</summary>
     public async Task I112_70_HereEReservaEmErro_Devolve502()
     {
@@ -129,7 +151,7 @@ public sealed class MapasHereComReservaTests : IDisposable
 
         IActionResult resposta = await controller.Geocodificar("Porto", default);
 
-        RespostasDeErro.AssertErro(resposta, 502, "Falha no serviço externo de mapas.");
+        RespostasDeErro.AssertErro(resposta, 502, "Serviço de mapas indisponível.");
         Assert.Equal(1, here.ChamadasGeocodificacao);
         Assert.Equal(1, openRouteService.PedidosRecebidos);
     }

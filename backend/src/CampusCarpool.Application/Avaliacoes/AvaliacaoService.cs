@@ -22,7 +22,7 @@ public sealed class AvaliacaoService(IRepositorioAvaliacoes repositorio) : IAval
         if (!Avaliacao.ValorValido(classificacao)) return ClassificacaoInvalida;
 
         if (avaliadorId == avaliadoId)
-            return new Erro(TipoErro.DadosInvalidos, "Não é permitido avaliar-se a si próprio.");
+            return new Erro(TipoErro.DadosInvalidos, "Não podes avaliar-te a ti próprio.");
 
         var viagem = await repositorio.ObterViagemAsync(viagemId, ct);
 

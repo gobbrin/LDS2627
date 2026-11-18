@@ -49,6 +49,8 @@ builder.Services.AddSingleton<
     PedidosUserIdProvider>();
 // Ligações abertas ao hub por sessão, para o fim de sessão as fechar logo (BE-18).
 builder.Services.AddSingleton<LigacoesPorSessao>();
+// Bilhetes de uso único para ligar ao hub sem o JWT no endereço (DEF-BE-055).
+builder.Services.AddSingleton(new BilhetesHub(TimeProvider.System));
 builder.Services.Configure<OpcoesCustos>(builder.Configuration.GetSection(OpcoesCustos.Seccao));
 builder.Services.Configure<OpcoesEmailAcademico>(builder.Configuration.GetSection(OpcoesEmailAcademico.Seccao));
 builder.Services.AddLimitesPedidos();
@@ -87,17 +89,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
     options.Events = new JwtBearerEvents
     {
-        // O WebSocket do SignalR não envia o cabeçalho Authorization: aceita o token na query string,
-        // mas só no caminho do hub (DC-46: fica nos logs de acesso).
+        // O WebSocket do browser não envia o cabeçalho Authorization. No caminho do hub, o cliente manda um bilhete
+        // de uso único (?bilhete=, pedido em POST /autenticacao/bilhete-hub), que se troca aqui pelo JWT da sessão;
+        // o JWT nunca vai no endereço, que fica nos logs de acesso (DEF-BE-055). ?access_token= já não é aceite.
+        // Bilhete desconhecido, gasto ou expirado: fica sem token e o pedido recebe 401 sem corpo.
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            var requestPath = context.HttpContext.Request.Path;
+            string? bilhete = context.Request.Query["bilhete"];
 
-            if (!string.IsNullOrEmpty(accessToken) &&
-                requestPath.StartsWithSegments("/hubs/pedidos"))
+            if (!string.IsNullOrEmpty(bilhete) && context.Request.Path.StartsWithSegments("/hubs/pedidos"))
             {
-                context.Token = accessToken;
+                var bilhetes = context.HttpContext.RequestServices.GetRequiredService<BilhetesHub>();
+                context.Token = bilhetes.Consumir(bilhete);
             }
 
             return Task.CompletedTask;

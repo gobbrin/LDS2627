@@ -25,6 +25,7 @@ public sealed class AvisoService(
 
     private static readonly Erro ViagemNaoEncontrada = new(TipoErro.NaoEncontrado, "Viagem não encontrada.");
     private static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para aceder aos avisos desta viagem.");
+    private static readonly Erro ProibidoCriar = new(TipoErro.Proibido, "Não tens permissão para criar avisos nesta viagem.");
 
     /// <inheritdoc />
     public async Task<Resultado<AvisoCriado>> CriarAsync(
@@ -39,7 +40,7 @@ public sealed class AvisoService(
 
         var viagem = await viagens.ObterPorIdAsync(viagemId, ct);
         if (viagem is null) return ViagemNaoEncontrada;
-        if (viagem.CondutorId != condutorId) return Proibido;
+        if (viagem.CondutorId != condutorId) return ProibidoCriar;
 
         // RF-F005-05 (DEF-BE-017): só em viagens Ativas.
         if (!viagem.EstaAtiva)

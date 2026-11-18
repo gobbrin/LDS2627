@@ -29,7 +29,7 @@ public sealed record TrocoDaRota(int DeOrdem, int AteOrdem, decimal DistanciaKm,
 /// <remarks>
 /// <c>Geometria</c> é a linha a desenhar no mapa, como lista de pares <c>[latitude, longitude]</c> (RF-F008-07,
 /// DEF-BE-054). <c>GeometriaAproximada</c> é <c>true</c> quando a linha são só retas entre os pontos (a HERE não
-/// está configurada ou falhou, ou P-13 esconde por onde a rota passa).
+/// está configurada ou falhou).
 /// </remarks>
 public sealed record RotaDaViagem(
     Guid ViagemId,

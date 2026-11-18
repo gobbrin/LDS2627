@@ -139,6 +139,9 @@ public sealed class CampusCarpoolDbContext(DbContextOptions<CampusCarpoolDbConte
         modelBuilder.Entity<Aviso>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Notificacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.UtilizadorId).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Notificacao>().HasOne<Viagem>().WithMany().HasForeignKey(x => x.ViagemId).OnDelete(DeleteBehavior.NoAction);
+        // DEF-BE-053: remetente da notificação NovaMensagem, anulável. Sem cascata, como as outras chaves para o
+        // Utilizador: a plataforma não apaga contas, e a chave impede um id que não existe.
+        modelBuilder.Entity<Notificacao>().HasOne<Utilizador>().WithMany().HasForeignKey(x => x.RemetenteId).OnDelete(DeleteBehavior.NoAction);
         // RF-F007-04 (I048): uma só avaliação por par, seja qual for a viagem.
         modelBuilder.Entity<Avaliacao>().HasIndex(x => new { x.AvaliadorId, x.AvaliadoId }).IsUnique();
         modelBuilder.Entity<Dispositivo>().HasIndex(x => x.Token).IsUnique();

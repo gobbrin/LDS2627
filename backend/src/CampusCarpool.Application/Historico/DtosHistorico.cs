@@ -45,6 +45,7 @@ public sealed record PedidoHistorico(
 /// <summary>Notificação no histórico (RF-F009-05).</summary>
 /// <param name="Id">Identificador.</param>
 /// <param name="ViagemId">Viagem relacionada, se existir.</param>
+/// <param name="RemetenteId">Quem enviou a mensagem, só em <c>NovaMensagem</c>; <c>null</c> nos outros tipos (DEF-BE-053).</param>
 /// <param name="Tipo">Nome do <c>TipoNotificacao</c>.</param>
 /// <param name="Titulo">Título.</param>
 /// <param name="Conteudo">Texto.</param>
@@ -53,6 +54,7 @@ public sealed record PedidoHistorico(
 public sealed record NotificacaoHistorico(
     Guid Id,
     Guid? ViagemId,
+    Guid? RemetenteId,
     string Tipo,
     string Titulo,
     string Conteudo,

@@ -14,7 +14,10 @@ namespace CampusCarpool.Api.Controllers;
 /// Registo, confirmação de conta, início e fim de sessão (F001). Rotas em <c>/api/v1/autenticacao</c>.
 /// </summary>
 [ApiController, Route("api/v1/autenticacao")]
-public sealed class AutenticacaoController(IAutenticacaoService autenticacao, LigacoesPorSessao ligacoesHub) : ControllerBase
+public sealed class AutenticacaoController(
+    IAutenticacaoService autenticacao,
+    LigacoesPorSessao ligacoesHub,
+    BilhetesHub bilhetesHub) : ControllerBase
 {
     private const string MensagemReenvio = "Se existir uma conta pendente associada a este email, receberás uma nova ligação de confirmação.";
 
@@ -109,6 +112,41 @@ public sealed class AutenticacaoController(IAutenticacaoService autenticacao, Li
         ligacoesHub.FecharDaSessao(jti);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Emite um bilhete de ligação ao hub <c>/hubs/pedidos</c>: de uso único, válido 30 s, ligado ao token desta sessão
+    /// (DEF-BE-055). O cliente pede um bilhete antes de cada ligação e de cada religação e liga a
+    /// <c>/hubs/pedidos?bilhete=…</c>, para o JWT não ir no endereço nem ficar nos logs de acesso.
+    /// </summary>
+    /// <remarks>
+    /// Conta para o limite global de 100 pedidos por minuto. A ligação entra com este token: fecha no fim de sessão
+    /// (BE-18) e quando o token expira, como antes.
+    /// </remarks>
+    /// <returns>
+    /// 200 <c>{ bilhete, expiraEm }</c>; 401 sem sessão, sem corpo; 503 se o servidor já guarda o máximo de bilhetes por
+    /// usar.
+    /// </returns>
+    [Authorize, HttpPost("bilhete-hub")]
+    public IActionResult EmitirBilheteHub()
+    {
+        // O token chega no cabeçalho Authorization, já validado pelo JwtBearer; é ele que o bilhete vai representar.
+        const string prefixo = "Bearer ";
+        string cabecalho = Request.Headers.Authorization.ToString();
+
+        if (!cabecalho.StartsWith(prefixo, StringComparison.OrdinalIgnoreCase))
+            return Unauthorized();
+
+        string jwt = cabecalho[prefixo.Length..].Trim();
+
+        var emitido = bilhetesHub.Emitir(jwt);
+
+        if (emitido is null)
+            return this.RespostaDeErro(new Erro(
+                TipoErro.ServicoIndisponivel,
+                "O tempo real está ocupado de momento. Tenta novamente daqui a pouco."));
+
+        return Ok(new BilheteHub(emitido.Value.Bilhete, emitido.Value.ExpiraEm.UtcDateTime));
     }
 
     /// <summary>Devolve o id do utilizador autenticado (útil para o frontend validar o token). 200; 401 sem sessão.</summary>

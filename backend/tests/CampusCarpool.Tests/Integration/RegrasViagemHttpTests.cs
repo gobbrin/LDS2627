@@ -51,7 +51,7 @@ public sealed class RegrasViagemHttpTests : IDisposable
         }
 
         using (var abaixo = await EditarLugaresAsync(viagemId, 1))
-            await RespostasDeErro.AssertErroAsync(abaixo, HttpStatusCode.Conflict, "Lugares inferiores às participações aceites.");
+            await RespostasDeErro.AssertErroAsync(abaixo, HttpStatusCode.Conflict, "Os lugares não podem ser inferiores às participações aceites.");
 
         using (var igual = await EditarLugaresAsync(viagemId, 2))
             Assert.Equal(HttpStatusCode.NoContent, igual.StatusCode);

@@ -2,7 +2,7 @@
 
 Campus Carpool | Grupo 15 | m4, Sprint 08 | Issue I112
 
-**Versão m4 v01** • 17/11/2026 • Estado: suite automatizada verde em SQLite e em SQL Server real, local e na CI; lacunas registadas na secção 7.
+**Versão m4 v01** • 17/11/2026, atualizada a 18/11/2026 (ligação aos testes de sistema dos frontends e CT-075, CT-076, na secção 5) • Estado: suite automatizada verde em SQLite e em SQL Server real, local e na CI; lacunas registadas na secção 7.
 
 Este documento é a versão de m4 do plano de testes de m3 (`m3-s03-i031-plano-testes-backend.docx`, versão 2.1 de 13/10/2026, Issue I031), que fica como está. Mantém a estrutura e a numeração de m3 e acrescenta só o que mudou com a I112 (correção e melhoria do backend, branch `fix/i112-corrigir-melhorar-backend`). O que não é referido aqui continua válido tal como no plano de m3.
 
@@ -123,6 +123,29 @@ A matriz de m3 (CT-001 a CT-038, I029 a I037) mantém-se. Na I112 mudou o result
 | CT-073 Correções sem resposta própria (BE-19, BE-21 a BE-24) | Ler `.editorconfig`, `CodeMetricsConfig.txt`, `Directory.Build.props`, `appsettings.json`; reflexão nos repositórios e entidades; login de conta por confirmar | Regras CA1502 (≤ 15), CA1505, CA1506, IDE0051/52/60; sem `ListarPorPassageiroAsync`, `ListarRecebidasAsync`, `Mensagem.ViagemId`, `Aviso.CondutorId`, `Maps:Provider`/`BaseUrl`; login 403 e só uma conta confirmada cria viagens | `CorrecoesDeConfiguracaoECodigoTests` (`I112_101` a `I112_104`) |
 | CT-074 Casos de erro com cobertura em falta (17/11) | HERE: `routes` vazio, sem `Here:ApiKey`, matriz com um ponto; simulação sem `pedidoId`; indisponibilizar/concluir viagem inexistente, já indisponível ou de outro condutor | Rota `null`; `InvalidOperationException` sem pedido à rede; `ArgumentException` sem pedido; 400 «Indica um pedidoId válido.»; 404, 409 e 403 sem mudar a viagem | `ServicoMapasHereTests` (`I112_105` a `I112_107`), `SimulacoesIntegrationTests` (`I112_108`), `CicloDeVidaDaViagemTests` (`I112_109` a `I112_111`) |
 
+### Testes de sistema dos frontends ligados ao backend (novo, 18/11/2026)
+
+Os cenários de I112 que os frontends têm de demonstrar estão escritos por inteiro (objetivo, precondições, dados, passos, resultado esperado e rastreio) nas especificações dos testes de sistema: web em `docs/frontend-web/testes-de-sistema/m4-especificacao-testes-sistema-frontend-web-v01.md` (§2.2) e mobile em `docs/frontend-mobile/testes-de-sistema/m4-especificacao-testes-sistema-frontend-mobile-v01.md` (§6.1). Este plano não os repete; indica, para cada um, os testes automáticos do backend que já cobrem o mesmo cenário pela API. Um teste de sistema que falhe com o backend verde aponta para o frontend; com o backend vermelho, para o backend.
+
+| Cenário de sistema | Web | Mobile | Requisito e caso de uso | Caso do backend | Testes automáticos do backend |
+| --- | --- | --- | --- | --- | --- |
+| Simular o pedido antes de enviar | ST-WEB-F004-19 | TSM-067 | RF-F004-22, RF-F008-06, RF-F008-09; UC-F004-01 A4 | CT-061, CT-063, CT-062 | `SimularPedidoPassageiroHttpTests` (`I112_81_SimularPedido_NaoParticipante_VeSoOsSeusPontos`, `I112_86_SimularPedido_NadaGravado`, `I112_83_SimularPedido_SemPontosNovos_ZeroChamadasExternas`) |
+| Simulação do pedido recusada | ST-WEB-F004-20 | TSM-068 | RF-F004-22, RF-F004-06; UC-F004-01 A4 | CT-062 | `SimularPedidoPassageiroHttpTests` (`I112_82_SimularPedido_Condutor_403SemChamarOsMapas`, `I112_84_SimularPedido_ViagemCheia_409`, `I112_85_SimularPedido_PedidoRepetido_409`, `I112_88_SimularPedido_HereEmBaixo_UsaAReserva`) |
+| Simular a alteração antes de guardar | ST-WEB-F002-13 | TSM-069 | RF-F002-16, RF-F008-05, RF-F008-10; UC-F002-03 A2 | CT-047 | `SimularAlteracaoViagemHttpTests` (`SimularAlteracao_Condutor_200SemGravarComALinhaDaHere`, `SimularAlteracao_SemMapas_503`) |
+| Alterar só a hora e os lugares sem mapas | ST-WEB-F002-14 | TSM-070 | RF-F002-17 (v06); UC-F002-03 A1 | CT-045 | `RotaGuardadaTests.I112_17_AlterarSoHoraELugares_SemServicoDeMapas_EAceite`; `GeometriaRotaTests.I112_49_AlterarSoAHora_ReutilizaALinha` |
+| Abrir a conversa a partir da notificação de nova mensagem | ST-WEB-F006-06 | TSM-071 | RF-F006-06; UC-F006-01 passo 4 | CT-075 | `ContratoRespostasHttpTests.I112_114_NotificacaoNovaMensagem_LevaRemetenteId` |
+| O aviso fica nas notificações depois de cancelar | ST-WEB-F006-07 | TSM-072 | RF-F009-05 (v06); UC-F006-01 passo 3 | — | `HistoricoIntegrationTests.BE27_AvisoMantemSeDepoisDeOPassageiroCancelar` |
+| A mesma linha do mapa para todos | ST-WEB-F008-06 | TSM-073 | RF-F008-07, RF-F008-09; UC-F008-01; P-13 | CT-064, CT-069 | `GeometriaRotaTests` (`I112_08_QuemNaoParticipa_VeALinhaRealSemOsPontosIntermedios`, `I112_95_PassageiroPendente_VeALinhaRealSemAsParagensDosAceites`); `SimularPedidoPassageiroHttpTests.I112_87_RotaDaViagem_AceiteVeTodos_NaoParticipanteNaoVe` |
+| Tempo real sem o token no endereço | ST-WEB-TR-06 | TSM-074 | RNF-MAN-05, RF-F006-15; UC-F006-03 | CT-076 | `BilheteHubHttpTests` (`I112_115` a `I112_120`); `BilhetesHubTests` (`I112_122`, `I112_123`); `AutenticacaoRealHttpTests.I110_82_PedidoSubmetido_ChegaAoCondutorPeloHub` |
+| Média e número das avaliações; ler a própria antes de alterar (resultado corrigido) | ST-WEB-F007-06, ST-WEB-F007-07 | TSM-055 | RF-F007-05, RF-F007-11 (v06); UC-F007-02, UC-F007-03 | CT-070 | `AvaliacoesHttpIntegrationTests.BE14_ObterMinha_DevolveValorDadoOu404`; `ContratoRespostasHttpTests.I112_05_Avaliacoes_MantemOsCamposDasRespostas`; `AvaliacaoServiceTests.Consultar_CalculaMediaComUmaCasaDecimal` |
+
+Casos novos do backend para as correções de 18/11/2026 (escritos pelo Executor da correção; aqui só o rastreio):
+
+| ID / teste | Condição e execução | Resultado esperado | Testes automatizados |
+| --- | --- | --- | --- |
+| CT-075 Remetente na notificação de nova mensagem (DEF-BE-053) | Uma mensagem e um aviso ao mesmo utilizador; `GET /notificacoes` e `GET /historico` | A notificação `NovaMensagem` traz `remetenteId` igual ao autor; a de aviso traz `remetenteId: null`; migration `I112_NotificacaoRemetente` (coluna anulável, chave para `Utilizadores` sem cascata) | `ContratoRespostasHttpTests.I112_114_NotificacaoNovaMensagem_LevaRemetenteId` |
+| CT-076 Bilhete do hub (DEF-BE-055) | `POST /autenticacao/bilhete-hub` com e sem sessão; ligar ao hub com `?bilhete=` (sem negociação, só WebSocket), repetir o bilhete, usá-lo aos 29 e aos 30 s, ligar com `?access_token=` ou com um bilhete inventado; limite de 10 000 bilhetes por usar | 200 `{ bilhete, expiraEm }` (30 s, UTC); 401 sem corpo sem sessão; a 2.ª utilização, o bilhete expirado, `access_token` e o inventado dão 401 sem corpo; nem o bilhete nem o JWT aparecem noutras respostas nem nos logs; acima do limite, recusa até os expirados serem limpos | `BilheteHubHttpTests` (`I112_115` a `I112_120`); `BilhetesHubTests` (`I112_122`, `I112_123`); `PedidosHubIntegrationTests` e `AutenticacaoRealHttpTests` adaptados ao bilhete |
+
 ## 6. Critérios de entrada, saída e evidências
 
 ### Entrada
@@ -146,6 +169,8 @@ Igual a m3, com: a suite passa nos dois modos (SQLite e SQL Server real), sem te
 | BE-09: testes de erro leem a mensagem `{ erro }` (local, SQLite) | 17/11/2026 | G15 (I112) | 848 aprovados, 0 falhados, 8 saltados (856, a mesma lista de testes; 30 testes passaram a verificar a mensagem exata) | Só testes alterados; regra na secção 4.2 |
 | Análise estática final (E5, R-Q01, R-Q02) | 17/11/2026 | G15 (I112) | Build `--no-incremental` com as regras da CI: 0 erros, 0 avisos; CA1502 ≥ 8: 18 métodos, máximo 13; CA1506 ≥ 30: 18, máximo 55 (`ViagemService`); `dotnet format whitespace` e `style` limpos; `dotnet list package --vulnerable --include-transitive`: nenhum | Relatório local `14-analise-estatica-e-classes-grandes.md` §6 |
 | Postman, fluxo completo (E5, R-Q06) | 17/11/2026 | G15 (I112) | 90 pedidos; corridos 88 (2 saltados: confirmação por token do email), 168 testes, 0 falhas | API local em SQL Server (Docker), sem chaves de mapas nem Brevo: contas confirmadas e viagens gravadas na BD; os pedidos de mapas responderam 503 `{ erro }`, a resposta esperada sem chave. Com a chave HERE: por correr |
+| Postman com o Newman 6.2.3 (I112, bilhete do hub) | 18/11/2026 | G15 (I112) | 92 pedidos; sem chave de mapas: corridos 90 (2 saltados), 172 testes, 0 falhas. Com a `Here:ApiKey` local: 90 corridos, 181 testes, 19 falhas, todas nos 8 pedidos de mapas (502 `{ erro }`) | API local em SQL Server (Docker), base `CampusCarpoolPostman` apagada no fim. A HERE recusou a chave (401 «apiKey invalid. apiKey not enabled.») nas 13 chamadas; o resto do fluxo passou. Com uma chave HERE válida: por correr. Três pedidos da coleção corrigidos (mensagens alteradas na I112) e os ids das viagens só guardados com 201 |
+| Postman com o Newman 6.2.3 e a chave HERE válida (R-Q06) | 18/11/2026 | G15 (I112) | 92 pedidos; corridos 90 (2 saltados: confirmação por token), 180 testes, 0 falhas | API local em SQL Server (Docker), `Here:ApiKey` nos User Secrets, sem `Maps:ApiKey` (sem reserva) nem Brevo; viagens criadas pela API. Os 7 pedidos de mapas com 200/201 e linha real (`geometriaAproximada: false`; Porto → Braga 54,50 km, 44 min, 1068 pontos; simulação para Guimarães 55,53 km, 48 min). 8 chamadas à HERE, todas 200 (3 geocodificações, 4 rotas, 1 matriz); nenhum aviso de falha da HERE no log |
 
 ### Cobertura por classe (17/11/2026, noite)
 
@@ -243,7 +268,7 @@ Os riscos de m3 mantêm-se, com estas atualizações:
 | R4 | Simulação completa em Docker (API + SQL Server + frontend web) | Adiada por decisão do Vítor |
 | — | Paginação das avaliações recebidas (BE-14 c) e do histórico (AP-10, BE-27) | **Fechada:** `/historico` paginado (`I112_75`); as avaliações recebidas deram só média e contagem, sem lista (BE-43, CT-070) |
 | R-Q01, R-Q02 | Relatório de análise estática final (analisadores corridos de novo) | **Feito a 17/11 (E5):** build sem avisos com as regras da CI; complexidade máxima 13 (limite 15); acoplamento máximo 55 (limiar 60, sem o `Program`); `dotnet format` limpo; nenhum pacote vulnerável |
-| R-Q06 | Postman com a resposta esperada (código e corpo) e asserções em cada pedido | **Feito a 17/11 (E5):** `postman/CampusCarpool.postman_collection.json`, 90 pedidos, todos os endpoints; corrida local sem chaves de mapas: 88 pedidos, 168 testes, 0 falhas (ver secção 6 e `LEIA-ME.md`). Por verificar: a corrida com a chave HERE (respostas 200 dos mapas) |
+| R-Q06 | Postman com a resposta esperada (código e corpo) e asserções em cada pedido | **Feito a 17/11 (E5):** `postman/CampusCarpool.postman_collection.json`, 92 pedidos (18/11: bilhete do hub), todos os endpoints; corrida local sem chaves de mapas com o Newman (18/11): 90 pedidos, 172 testes, 0 falhas (ver secção 6 e `LEIA-ME.md`). Com a chave HERE válida (18/11): 90 pedidos, 180 testes, 0 falhas, os 7 pedidos de mapas com a linha real da HERE |
 
 ## 8. Execução automatizada e entrega
 
@@ -292,5 +317,4 @@ Não se reproduz aqui (856 testes no estado final). A lista sai de `dotnet test 
 
 - Rever os testes dos frontends contra o contrato novo do backend (R2, R3).
 - Suite completa em SQL Server (local) e CI verde com o estado final (856 testes).
-- Correr a coleção Postman com a chave HERE (respostas 200 dos mapas, `geometria` real); sem chave já foi corrida (secção 6).
-- Teste com o serviço HERE real, com a chave fora do git.
+- ~~Correr a coleção Postman com uma chave HERE válida~~ feito a 18/11 (secção 6): os 7 pedidos de mapas com a linha real da HERE, 0 falhas. Fica assim feito o teste com o serviço HERE real, com a chave fora do git (manual, pela coleção; os testes automatizados continuam com respostas controladas).

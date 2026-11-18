@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "6f1d0c52-3a1e-4f8e-9a51-1c2a7d0e1112",
     "name": "Campus Carpool — API v1 (I112)",
-    "description": "Todos os endpoints da API (45 em /api/v1, mais / e /health), 90 pedidos, na ordem de um fluxo que funciona: registo e login, perfil, mapas, viagens, pesquisa, pedido, simulações, aceitar, comunicação, notificações, concluir, avaliar, histórico e fim de sessão. Cada pedido tem a resposta esperada como testes (código HTTP, campos principais e `erro` nos erros). Erros sempre `{ erro }`, exceto o 401 do JwtBearer, sem corpo. Sem chave de mapas, os pedidos que precisam deles aceitam 503 `{ erro }`. Como correr: docs/backend/testes/LEIA-ME.md. Usar só em desenvolvimento: cria dados.",
+    "description": "Todos os endpoints da API (46 em /api/v1, mais / e /health), 92 pedidos, na ordem de um fluxo que funciona: registo e login, perfil, mapas, viagens, pesquisa, pedido, simulações, aceitar, comunicação, notificações, concluir, avaliar, histórico e fim de sessão. Cada pedido tem a resposta esperada como testes (código HTTP, campos principais e `erro` nos erros). Erros sempre `{ erro }`, exceto o 401 do JwtBearer, sem corpo. Sem chave de mapas, os pedidos que precisam deles aceitam 503 `{ erro }`. Como correr: docs/backend/testes/LEIA-ME.md. Usar só em desenvolvimento: cria dados.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -798,6 +798,79 @@
             },
             "description": "401 sem corpo (JwtBearer)."
           }
+        },
+        {
+          "name": "Bilhete do hub (condutor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Bilhete e validade em UTC', () => {",
+                  "    pm.expect(corpo.bilhete).to.be.a('string').and.not.empty;",
+                  "    pm.expect(corpo.expiraEm).to.be.a('string').and.match(/Z$/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/bilhete-hub",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "bilhete-hub"
+              ]
+            },
+            "description": "200 `{ bilhete, expiraEm }` (DEF-BE-055): bilhete de uso único, válido 30 s, para ligar a `/hubs/pedidos?bilhete=…` por WebSocket. `expiraEm` em UTC, terminado em `Z`. Pedir um novo antes de cada ligação e de cada religação."
+          }
+        },
+        {
+          "name": "Bilhete do hub sem sessão",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/bilhete-hub",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "bilhete-hub"
+              ]
+            },
+            "description": "401 sem corpo (JwtBearer)."
+          }
         }
       ]
     },
@@ -1252,7 +1325,7 @@
                   "pm.test('Corpo { erro } com a mensagem', () => {",
                   "    const corpo = pm.response.json();",
                   "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
-                  "    pm.expect(corpo.erro).to.eql(\"Pedido inválido: campo em falta, a mais ou com tipo errado.\");",
+                  "    pm.expect(corpo.erro).to.eql(\"Indica o local a procurar.\");",
                   "});"
                 ]
               }
@@ -1284,7 +1357,7 @@
                 }
               ]
             },
-            "description": "400 `{ erro }` (validação do modelo, antes dos mapas: `texto` vazio conta como em falta)."
+            "description": "400 `{ erro }` «Indica o local a procurar.» (validado no controller, antes dos mapas; E5-a)."
           }
         },
         {
@@ -1441,7 +1514,8 @@
                   "        pm.expect(v.lugaresDisponiveis).to.eql(3);",
                   "        pm.expect(v.distanciaKm).to.be.above(0);",
                   "    });",
-                  "    pm.environment.set('viagemId', v.id);",
+                  "    // Só guarda o id com a viagem criada: noutra resposta mantém o valor que já existia.",
+                  "    if (pm.response.code === 201) pm.environment.set('viagemId', v.id);",
                   "}",
                   "if (pm.response.code === 503) {",
                   "    // Sem mapas a viagem não é criada: o fluxo continua só se o id foi preenchido à mão (LEIA-ME).",
@@ -1516,7 +1590,8 @@
                   "        pm.expect(v.lugaresDisponiveis).to.eql(3);",
                   "        pm.expect(v.distanciaKm).to.be.above(0);",
                   "    });",
-                  "    pm.environment.set('viagemBId', v.id);",
+                  "    // Só guarda o id com a viagem criada: noutra resposta mantém o valor que já existia.",
+                  "    if (pm.response.code === 201) pm.environment.set('viagemBId', v.id);",
                   "}",
                   "if (pm.response.code === 503) {",
                   "    // Sem mapas a viagem não é criada: o fluxo continua só se o id foi preenchido à mão (LEIA-ME).",
@@ -3128,7 +3203,7 @@
                   "pm.test('Corpo { erro } com a mensagem', () => {",
                   "    const corpo = pm.response.json();",
                   "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
-                  "    pm.expect(corpo.erro).to.eql(\"Não tens permissão para aceder aos avisos desta viagem.\");",
+                  "    pm.expect(corpo.erro).to.eql(\"Não tens permissão para criar avisos nesta viagem.\");",
                   "});"
                 ]
               }
@@ -3323,7 +3398,7 @@
                   "pm.test('Corpo { erro } com a mensagem', () => {",
                   "    const corpo = pm.response.json();",
                   "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
-                  "    pm.expect(corpo.erro).to.eql(\"Não é possível enviar mensagens para si próprio.\");",
+                  "    pm.expect(corpo.erro).to.eql(\"Não podes enviar mensagens para ti próprio.\");",
                   "});"
                 ]
               }

@@ -213,7 +213,7 @@ public sealed class SimulacaoDePedidoService(
 
                 return new RotasDaSimulacao(original, simulada);
             },
-            "Falha na comunicação com o serviço de mapas.",
+            "Serviço de mapas indisponível.",
             MensagemTempo,
             ct);
 

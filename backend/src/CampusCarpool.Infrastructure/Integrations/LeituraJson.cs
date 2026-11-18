@@ -23,7 +23,7 @@ internal static class LeituraJson
             return ler(json.RootElement);
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException
-            or FormatException or IndexOutOfRangeException)
+            or FormatException or IndexOutOfRangeException or OverflowException)
         {
             throw new HttpRequestException("Resposta do Serviço de Mapas sem o formato esperado.", ex);
         }

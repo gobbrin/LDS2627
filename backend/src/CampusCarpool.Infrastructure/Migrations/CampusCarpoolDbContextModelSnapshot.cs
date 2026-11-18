@@ -227,6 +227,9 @@ namespace CampusCarpool.Infrastructure.Migrations
                     b.Property<DateTime?>("LidaEm")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("RemetenteId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -244,6 +247,8 @@ namespace CampusCarpool.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RemetenteId");
 
                     b.HasIndex("ViagemId");
 
@@ -578,6 +583,11 @@ namespace CampusCarpool.Infrastructure.Migrations
 
             modelBuilder.Entity("CampusCarpool.Domain.Entities.Notificacao", b =>
                 {
+                    b.HasOne("CampusCarpool.Domain.Entities.Utilizador", null)
+                        .WithMany()
+                        .HasForeignKey("RemetenteId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("CampusCarpool.Domain.Entities.Utilizador", null)
                         .WithMany()
                         .HasForeignKey("UtilizadorId")

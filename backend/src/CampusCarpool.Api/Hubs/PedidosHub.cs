@@ -8,10 +8,10 @@ namespace CampusCarpool.Api.Hubs;
 /// </summary>
 /// <remarks>
 /// Não tem métodos: o cliente só recebe eventos, enviados pelo <c>NotificadorPedidosSignalR</c>. Exige
-/// autenticação; como o WebSocket não envia cabeçalhos, o JWT vai na query string <c>?access_token=</c>, aceite
-/// só neste caminho (<c>OnMessageReceived</c> no <c>Program.cs</c>). Esse token pode ficar nos logs de acesso
-/// (DC-46, DEF-BE-055: inevitável no WebSocket; mitigação no manual de instalação). Um token revogado é recusado ao
-/// ligar, a ligação fecha quando o token expira e fecha logo no fim de sessão (BE-18), pela
+/// autenticação; como o WebSocket do browser não envia cabeçalhos, a ligação leva na query string um bilhete de uso
+/// único (<c>?bilhete=</c>, <see cref="BilhetesHub"/>), que o <c>OnMessageReceived</c> do <c>Program.cs</c> troca pelo
+/// JWT da sessão; o JWT não vai no endereço, que fica nos logs de acesso (DC-46, DEF-BE-055). Um token revogado é
+/// recusado ao ligar, a ligação fecha quando o token expira e fecha logo no fim de sessão (BE-18), pela
 /// <see cref="LigacoesPorSessao"/>.
 /// </remarks>
 /// <param name="ligacoes">Lista das ligações abertas por sessão (Singleton).</param>

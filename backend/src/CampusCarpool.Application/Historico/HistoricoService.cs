@@ -85,6 +85,7 @@ public sealed class HistoricoService(IRepositorioHistorico historico) : IHistori
     private static NotificacaoHistorico NotificacaoDoHistorico(Notificacao notificacao) => new(
         notificacao.Id,
         notificacao.ViagemId,
+        notificacao.RemetenteId,
         notificacao.Tipo.ToString(),
         notificacao.Titulo,
         notificacao.Conteudo,

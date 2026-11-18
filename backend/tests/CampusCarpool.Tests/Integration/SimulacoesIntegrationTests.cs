@@ -293,7 +293,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var result = Assert.IsType<ObjectResult>(await f.Controller(f.Condutor.Id, true, new FakeMapasHandler(true))
             .Simular(f.Viagem.Id, new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        RespostasDeErro.AssertErro(result, 502, "Falha na comunicação com o serviço de mapas.");
+        RespostasDeErro.AssertErro(result, 502, "Serviço de mapas indisponível.");
     }
 
     [Fact]

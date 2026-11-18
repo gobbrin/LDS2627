@@ -23,6 +23,9 @@ internal static class ErrosDaViagem
     /// <summary>403: o utilizador não é o condutor da viagem.</summary>
     public static readonly Erro Proibido = new(TipoErro.Proibido, "Não tens permissão para gerir esta viagem.");
 
+    /// <summary>403: quem consulta os passageiros não participa na viagem (consulta, não gestão).</summary>
+    public static readonly Erro ProibidoConsultar = new(TipoErro.Proibido, "Não tens permissão para ver os passageiros desta viagem.");
+
     /// <summary>422: a origem ou o destino não foram encontrados pelo Serviço de Mapas.</summary>
     public static readonly Erro LocalNaoEncontrado = new(TipoErro.NaoProcessavel, "Origem ou destino não encontrado.");
 

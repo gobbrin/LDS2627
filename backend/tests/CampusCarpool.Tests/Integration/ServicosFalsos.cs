@@ -280,7 +280,7 @@ public static class ServicosDeTeste
         CampusCarpoolDbContext db,
         IConfiguration configuracao,
         IServicoEmail email) =>
-        new(CriarAutenticacaoService(db, configuracao, email), new LigacoesPorSessao());
+        new(CriarAutenticacaoService(db, configuracao, email), new LigacoesPorSessao(), new BilhetesHub(TimeProvider.System));
 
     public static AutenticacaoService CriarAutenticacaoService(
         CampusCarpoolDbContext db,

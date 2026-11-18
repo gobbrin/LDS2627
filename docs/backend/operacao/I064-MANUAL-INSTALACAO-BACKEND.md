@@ -286,7 +286,7 @@ curl http://localhost:5100/health     # Healthy (503 se a base de dados não res
 curl http://localhost:5100/           # {"service":"Campus Carpool API","status":"running"}
 ```
 
-Endpoints úteis: API REST em `/api/v1/...`, hub SignalR em `/hubs/pedidos` (o token JWT segue em `?access_token=` apenas neste caminho), OpenAPI apenas em `Development`. Limites de pedidos (resposta `429`): 100 por minuto por utilizador ou IP e 10 por minuto por IP no login, no registo e no reenvio da confirmação.
+Endpoints úteis: API REST em `/api/v1/...`, hub SignalR em `/hubs/pedidos` (a ligação leva um bilhete de uso único em `?bilhete=`, pedido em `POST /api/v1/autenticacao/bilhete-hub`; ver §9.2), OpenAPI apenas em `Development`. Limites de pedidos (resposta `429`): 100 por minuto por utilizador ou IP e 10 por minuto por IP no login, no registo e no reenvio da confirmação.
 
 > O `/health` executa uma consulta real à base de dados: responde `503` se ela não estiver acessível.
 
@@ -365,9 +365,9 @@ export ProxyReverso__Redes__0=10.0.0.0/24
 - **Azure App Service em Linux** define `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`: o próprio ASP.NET Core passa a ler os cabeçalhos do *front end* do Azure, que não é acessível de fora. Não é preciso `ProxyReverso`. Em **Windows** essa variável não existe: definir `ProxyReverso:Redes` com a rede do *front end*, ou a variável `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` só se a aplicação não for acessível sem passar por ele.
 - Sem proxy (acesso direto à API), deixar `ProxyReverso` vazio.
 
-### 9.2 Token do hub na query string (DEF-BE-055)
+### 9.2 Credencial do hub na query string (DEF-BE-055)
 
-O WebSocket do SignalR não envia cabeçalhos, por isso o JWT do hub `/hubs/pedidos` segue em `?access_token=`, e pode ficar nos registos de acesso do servidor ou do proxy. Mitigações: o token só é aceite nesse caminho; dura 60 minutos; o fim de sessão revoga-o e fecha logo as ligações abertas com ele (I112). No proxy, não registar a query string dos pedidos a `/hubs/` (por exemplo, no Nginx, um `log_format` sem `$args` para essa `location`).
+O WebSocket do browser não envia cabeçalhos, por isso a credencial do hub `/hubs/pedidos` tem de ir no endereço, que pode ficar nos registos de acesso do servidor ou do proxy. Desde a I112 (18/11) não é o JWT: o cliente pede `POST /api/v1/autenticacao/bilhete-hub` e liga com `?bilhete=`, um valor aleatório de uso único, válido 30 segundos e só aceite nesse caminho. Um bilhete que fique num registo já foi gasto ou expirou. `?access_token=` deixou de ser aceite. Os bilhetes ficam só na memória do processo da API (até 10 000 por usar): com mais do que uma instância atrás de um balanceador, o pedido do bilhete e a ligação têm de chegar à mesma instância (afinidade de sessão), como as próprias ligações SignalR. Continua a ser boa prática não registar a query string dos pedidos a `/hubs/` (por exemplo, no Nginx, um `log_format` sem `$args` para essa `location`).
 
 ## 10. Pontos de atenção conhecidos
 

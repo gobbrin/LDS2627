@@ -175,6 +175,7 @@ public sealed class I052ParticipacaoServiceTests
                 Registar(id, TipoNotificacao.AlteracaoViagem, mensagem);
         }
         public void RegistarAviso(Guid viagemId, IEnumerable<Guid> passageiros, string texto) => throw new NotSupportedException();
+        public void RegistarNovaMensagem(Guid destinatarioId, Guid remetenteId, string nomeRemetente) => throw new NotSupportedException();
         public Task EnviarPushAsync(Notificacao notificacao, CancellationToken ct) => Task.CompletedTask;
         public Task<PaginaNotificacoes> ListarAsync(Guid id, int pagina, int tamanho, CancellationToken ct) => throw new NotSupportedException();
         public Task<Resultado> MarcarComoLidaAsync(Guid id, Guid utilizador, CancellationToken ct) => throw new NotSupportedException();

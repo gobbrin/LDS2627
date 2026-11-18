@@ -190,7 +190,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Criar(
             viagem.Id, new("Mensagem não autorizada"), default);
 
-        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para criar avisos nesta viagem.");
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }

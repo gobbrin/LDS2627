@@ -43,6 +43,18 @@ public sealed class NotificacaoService(
     }
 
     /// <inheritdoc />
+    public void RegistarNovaMensagem(Guid destinatarioId, Guid remetenteId, string nomeRemetente)
+    {
+        Notificacao notificacao = Registar(
+            destinatarioId,
+            TipoNotificacao.NovaMensagem,
+            $"Recebeste uma nova mensagem de {nomeRemetente}.");
+
+        // Só este tipo leva o remetente: é o que o cliente usa para abrir a conversa (DEF-BE-053).
+        notificacao.RemetenteId = remetenteId;
+    }
+
+    /// <inheritdoc />
     public void RegistarAlteracaoViagem(Guid viagemId, Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
     {
         var destinatarios = passageiros
@@ -101,7 +113,7 @@ public sealed class NotificacaoService(
 
         var dtos = itens
             .Select(n => new NotificacaoPessoal(
-                n.Id, n.UtilizadorId, n.ViagemId, n.Tipo.ToString(), n.Titulo, n.Conteudo, n.LidaEm, n.CriadaEm))
+                n.Id, n.UtilizadorId, n.ViagemId, n.RemetenteId, n.Tipo.ToString(), n.Titulo, n.Conteudo, n.LidaEm, n.CriadaEm))
             .ToList();
 
         return new PaginaNotificacoes(dtos, pagina, tamanhoPagina, total, totalPaginas, naoLidas);

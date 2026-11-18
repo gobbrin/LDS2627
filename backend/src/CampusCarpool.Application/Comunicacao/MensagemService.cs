@@ -2,7 +2,6 @@ using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Notificacoes;
 using CampusCarpool.Domain.Entities;
-using CampusCarpool.Domain.Enums;
 
 namespace CampusCarpool.Application.Comunicacao;
 
@@ -21,7 +20,7 @@ public sealed class MensagemService(
     public async Task<Resultado<MensagemIndividual>> EnviarAsync(Guid remetenteId, Guid destinatarioId, string conteudo, CancellationToken ct)
     {
         if (remetenteId == destinatarioId)
-            return new Erro(TipoErro.DadosInvalidos, "Não é possível enviar mensagens para si próprio.");
+            return new Erro(TipoErro.DadosInvalidos, "Não podes enviar mensagens para ti próprio.");
 
         // O conteúdo valida-se antes de consultar a base de dados.
         if (string.IsNullOrWhiteSpace(conteudo) || conteudo.Trim().Length > Mensagem.TamanhoMaximoConteudo)
@@ -43,10 +42,8 @@ public sealed class MensagemService(
 
         repositorioMensagens.Adicionar(mensagem);
 
-        notificacaoService.Registar(
-            destinatarioId,
-            TipoNotificacao.NovaMensagem,
-            $"Recebeste uma nova mensagem de {remetente.Nome}.");
+        // A notificação leva o id do remetente, para o cliente abrir a conversa (DEF-BE-053).
+        notificacaoService.RegistarNovaMensagem(destinatarioId, remetenteId, remetente.Nome);
 
         await unidadeDeTrabalho.ConfirmarAsync(ct);
 
@@ -62,7 +59,7 @@ public sealed class MensagemService(
         CancellationToken ct)
     {
         if (utilizadorId == outroUtilizadorId)
-            return new Erro(TipoErro.DadosInvalidos, "Não é possível consultar uma conversa consigo próprio.");
+            return new Erro(TipoErro.DadosInvalidos, "Não podes consultar uma conversa contigo próprio.");
 
         var outroUtilizador = await repositorioUtilizadores.ObterPorIdAsync(outroUtilizadorId, ct);
 

@@ -81,7 +81,7 @@ public sealed class MensagensServicoRealHttpTests : IDisposable
     {
         using var resposta = await EnviarComRespostaAsync(_clienteAna, _ana.Id, "Olá");
 
-        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Não é possível enviar mensagens para si próprio.");
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Não podes enviar mensagens para ti próprio.");
     }
 
     [Fact]

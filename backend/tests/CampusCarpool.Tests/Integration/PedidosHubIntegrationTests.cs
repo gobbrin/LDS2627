@@ -17,7 +17,7 @@ namespace CampusCarpool.Tests.Integration;
 
 /// <summary>Hub SignalR: ligação sem autenticação recusada e eventos entregues só ao destinatário.</summary>
 /// <remarks>
-/// Constrói uma aplicação mínima própria (Kestrel numa porta livre, esquema de autenticação de teste, só o hub), não o <c>Program.cs</c>. O <c>access_token</c> na query string e o JwtBearer real estão em <see cref="AutenticacaoRealHttpTests"/>.
+/// Constrói uma aplicação mínima própria (Kestrel numa porta livre, esquema de autenticação de teste, só o hub), não o <c>Program.cs</c>. O bilhete de ligação (<c>?bilhete=</c>, DEF-BE-055) e o JwtBearer real estão em <see cref="AutenticacaoRealHttpTests"/> e <see cref="BilheteHubHttpTests"/>.
 /// </remarks>
 public sealed class PedidosHubIntegrationTests
 {

@@ -97,6 +97,19 @@ public sealed class ServicoMapasHereTests : IDisposable
 
     [Fact]
     /// <summary>
+    /// DEF-BE-048: uma duração fora do intervalo de um <c>int</c> não pode dar 500: sai como <see cref="HttpRequestException"/>
+    /// (erro do Serviço de Mapas, 502) e o serviço com reserva passa ao OpenRouteService.
+    /// </summary>
+    public async Task I112_124_DuracaoForaDoIntervalo_SaiComoHttpRequestException()
+    {
+        here.RespostaRota = "{\"routes\":[{\"sections\":[{\"summary\":{\"length\":1000,\"duration\":1e30},\"polyline\":\"" + HereFalsa.Polilinha + "\"}]}]}";
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => here.CriarServico().CalcularAsync(
+            new Coordenadas(41.15m, -8.61m), new Coordenadas(41.55m, -8.42m), default));
+    }
+
+    [Fact]
+    /// <summary>
     /// Sem caminho de estrada entre os pontos (ex.: um ponto numa ilha), a HERE responde 200 com <c>routes</c> vazio:
     /// a rota é <c>null</c> («sem rota»), não um erro, e o serviço com reserva não chama o OpenRouteService por isso.
     /// </summary>

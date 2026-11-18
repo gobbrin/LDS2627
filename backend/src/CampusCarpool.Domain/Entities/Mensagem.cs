@@ -41,7 +41,7 @@ public sealed class Mensagem
     public static Mensagem Criar(Guid remetenteId, Guid destinatarioId, string conteudo, DateTime agora)
     {
         if (remetenteId == destinatarioId)
-            throw new RegraDeNegocioException("Não é possível enviar mensagens para si próprio.");
+            throw new RegraDeNegocioException("Não podes enviar mensagens para ti próprio.");
 
         string texto = conteudo?.Trim() ?? "";
 

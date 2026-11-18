@@ -164,7 +164,7 @@ public sealed class ViagemService(
         var aceite = aceites.Any(p => p.PassageiroId == utilizadorId);
 
         if (!PoliticaDeVisibilidade.ParticipaNaViagem(viagem, utilizadorId, aceite))
-            return ErrosDaViagem.Proibido;
+            return ErrosDaViagem.ProibidoConsultar;
 
         // BE-37 (P-13): todos os aceites veem os pontos dos outros (D-1), mas só o condutor recebe o id da participação.
         bool eCondutor = viagem.CondutorId == utilizadorId;
@@ -242,7 +242,7 @@ public sealed class ViagemService(
             return invalido;
 
         if (lugares < viagem.LugaresOcupados)
-            return new Erro(TipoErro.Conflito, "Lugares inferiores às participações aceites.");
+            return new Erro(TipoErro.Conflito, "Os lugares não podem ser inferiores às participações aceites.");
 
         var aceites = await participacoes.ListarPorViagemAsync(viagemId, EstadoParticipacao.Aceite, ct);
 

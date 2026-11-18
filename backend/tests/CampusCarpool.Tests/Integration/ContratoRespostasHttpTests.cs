@@ -252,7 +252,7 @@ public sealed class ContratoRespostasHttpTests : IDisposable
         AssertCampos(notificacoes, "itens", "pagina", "tamanhoPagina", "total", "totalPaginas", "naoLidas");
 
         var notificacao = notificacoes.GetProperty("itens")[0];
-        AssertCampos(notificacao, "id", "utilizadorId", "viagemId", "tipo", "titulo", "conteudo", "lidaEm", "criadaEm");
+        AssertCampos(notificacao, "id", "utilizadorId", "viagemId", "remetenteId", "tipo", "titulo", "conteudo", "lidaEm", "criadaEm");
         Assert.Equal("Aviso", notificacao.GetProperty("tipo").GetString());
 
         var marcadas = await JsonAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/notificacoes/ler-todas", passageiro.Id);
@@ -365,6 +365,50 @@ public sealed class ContratoRespostasHttpTests : IDisposable
             new { origem = "Porto", destino = " porto " });
 
         Assert.Equal("A origem e o destino não podem ser o mesmo local.", erro.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    /// <summary>
+    /// DEF-BE-053: a notificação <c>NovaMensagem</c> leva o <c>remetenteId</c>, em <c>GET /notificacoes</c> e no
+    /// histórico, para o cliente abrir a conversa; nos outros tipos o campo sai <c>null</c>.
+    /// </summary>
+    public async Task I112_114_NotificacaoNovaMensagem_LevaRemetenteId()
+    {
+        // Uma notificação de outro tipo (Aviso, gravada à mão) e a da mensagem do passageiro para o condutor.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>();
+            db.Notificacoes.Add(new Notificacao
+            {
+                UtilizadorId = condutor.Id,
+                Tipo = Domain.Enums.TipoNotificacao.Aviso,
+                Titulo = "Aviso do condutor",
+                Conteudo = "Outro tipo",
+                CriadaEm = DateTime.UtcNow.AddMinutes(-1)
+            });
+            db.SaveChanges();
+        }
+
+        await JsonAsync(
+            HttpStatusCode.Created,
+            HttpMethod.Post,
+            "/api/v1/mensagens",
+            passageiro.Id,
+            new { destinatarioId = condutor.Id, conteudo = "Olá." });
+
+        var notificacoes = (await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", condutor.Id))
+            .GetProperty("itens").EnumerateArray().ToList();
+        var historico = (await JsonAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/historico", condutor.Id))
+            .GetProperty("notificacoes").EnumerateArray().ToList();
+
+        foreach (var lista in new[] { notificacoes, historico })
+        {
+            var daMensagem = Assert.Single(lista, n => n.GetProperty("tipo").GetString() == "NovaMensagem");
+            Assert.Equal(passageiro.Id, daMensagem.GetProperty("remetenteId").GetGuid());
+
+            var doAviso = Assert.Single(lista, n => n.GetProperty("tipo").GetString() == "Aviso");
+            Assert.Equal(JsonValueKind.Null, doAviso.GetProperty("remetenteId").ValueKind);
+        }
     }
 
     // Viagem já concluída em que o passageiro participou: só assim se pode avaliar (RF-F007-01).

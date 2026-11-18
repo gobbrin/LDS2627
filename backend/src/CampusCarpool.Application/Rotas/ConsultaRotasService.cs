@@ -17,7 +17,7 @@ public sealed class ConsultaRotasService(
     IRepositorioViagens viagens,
     IRepositorioParticipacoes participacoes) : IConsultaRotasService
 {
-    private const string FalhaServicoExterno = "Falha no serviço externo de mapas.";
+    private const string FalhaServicoExterno = "Serviço de mapas indisponível.";
     private const string TempoExcedido = "Tempo de resposta do serviço de mapas excedido.";
 
     private static readonly Erro ViagemNaoEncontrada = new(TipoErro.NaoEncontrado, "Viagem não encontrada.");

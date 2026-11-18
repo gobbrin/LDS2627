@@ -194,6 +194,7 @@ sequenceDiagram
 - **Confirmação:** a ligação vale 24 horas (P-02). Na base de dados fica só o SHA-256 do token. Sem conta confirmada não há login.
 - **JWT:** HS256, 60 minutos, com as claims `sub` (id do utilizador) e `jti`. Não há refresh token. A tolerância de relógio é de 30 segundos (P-17).
 - **Logout:** `OnTokenValidated` chama `ValidacaoTokensRevogados` em cada pedido autenticado, que recusa tokens revogados e tokens sem `jti`. Aplica-se também ao hub. Uma ligação ao hub já aberta fecha logo no logout (BE-18): o `PedidosHub` regista cada ligação com o `jti` do token na `LigacoesPorSessao` (Singleton) e o `AutenticacaoController` fecha as dessa sessão depois de a revogar.
+- **Bilhete do hub (DEF-BE-055, I112):** o JWT já não vai no endereço do hub. O cliente pede `POST /autenticacao/bilhete-hub` (com sessão; conta para o limite de 100 por minuto) e recebe `{ bilhete, expiraEm }`: 32 bytes aleatórios (`RandomNumberGenerator`), de uso único, válidos 30 s. A `BilhetesHub` (Singleton, só em memória, relógio injetado) guarda cada bilhete com o JWT do pedido, até 10 000 por usar; cheia, retira primeiro os expirados e, se não chegar, o endpoint dá 503. Em `OnMessageReceived` (`Program.cs`), só no caminho `/hubs/pedidos`, `?bilhete=` é gasto e trocado pelo JWT, que o JwtBearer valida como qualquer outro (assinatura, validade, revogação); a ligação fica com o `jti` desse JWT, por isso o logout a fecha e um bilhete pedido antes do logout já não liga. Bilhete desconhecido, gasto ou expirado: 401 sem corpo. `?access_token=` deixou de ser aceite. Como o bilhete só serve uma vez, o cliente liga só por WebSocket sem negociação (`skipNegotiation`), um único pedido HTTP, e pede um bilhete novo antes de cada ligação e religação.
 - **Quem é o utilizador:** o controller lê-o com `User.IdUtilizador()`. Nenhuma rota recebe a identidade no corpo do pedido.
 - **Limites (`LimitesPedidos`):** 100 pedidos por minuto, por utilizador ou por IP, e 10 por minuto por IP no login, registo e reenvio da confirmação. Acima disso, 429.
 
@@ -210,11 +211,13 @@ Há três canais, e nem todos os tipos usam todos:
 | `Aviso` | Aviso do condutor | Sim | Não | Não |
 | `NovaMensagem` | Mensagem recebida | Sim | Não | Não |
 
+`Notificacao.RemetenteId` (DEF-BE-053) só se preenche em `NovaMensagem`, por `RegistarNovaMensagem`: é quem enviou a mensagem, para o cliente abrir a conversa. Sai como `remetenteId` em `GET /notificacoes` e nas notificações do histórico; nos outros tipos é `null`. Como `NovaMensagem` não tem push, o `data` do FCM não muda.
+
 Cancelar um pedido pendente não notifica ninguém (P-21). Concluir uma viagem também não.
 
 - **`Registar*` não grava.** Os métodos de `INotificacaoService` juntam a notificação às alterações pendentes, para ficar na mesma gravação da operação. Quem os chama é que confirma.
 - **P-23 está num só sítio.** `RegistarAlteracaoViagem` notifica o condutor e os passageiros indicados, exceto quem originou a alteração.
-- **Tempo real:** `INotificadorPedidosTempoReal` (Application) é implementado por `NotificadorPedidosSignalR` (Api). O hub `/hubs/pedidos` não tem métodos: o cliente só recebe eventos com o nome do tipo e o corpo `{ pedidoId }`, e vai buscar os detalhes por HTTP. O WebSocket não envia cabeçalhos, por isso o JWT segue em `?access_token=`, aceite só neste caminho.
+- **Tempo real:** `INotificadorPedidosTempoReal` (Application) é implementado por `NotificadorPedidosSignalR` (Api). O hub `/hubs/pedidos` não tem métodos: o cliente só recebe eventos com o nome do tipo e o corpo `{ pedidoId }`, e vai buscar os detalhes por HTTP. O WebSocket do browser não envia cabeçalhos, por isso a ligação leva um bilhete de uso único em `?bilhete=`, em vez do JWT ([§3](#3-autenticação), «Bilhete do hub»).
 - **Push:** `EnviarPushAsync` coloca a mensagem (`NotificacaoPushPendente`) em `FilaNotificacoesPush`, em memória, até 1000 elementos. Enfileirar nunca espera: com a fila cheia, o push é descartado com um aviso no log e a notificação fica só na caixa (BE-28). `TrabalhadorNotificacoesPush` lê a fila e chama `ServicoPush` (Firebase). Uma falha fica no log e não se tenta de novo. O campo `data` do FCM leva, sempre como texto, `tipo` (nome do `TipoNotificacao`), `notificacaoId` e `viagemId` (este só quando a notificação tem viagem; os três tipos com push têm sempre), para a aplicação abrir o ecrã certo e marcar a notificação como lida (BE-17).
 
 ## 5. Modelo de dados e entidades
@@ -277,6 +280,8 @@ dotnet ef migrations has-pending-model-changes --project src/CampusCarpool.Infra
 **`I112_IndiceConversaECamposSemUso` (16/11):** a primeira migration da I112. Retira `Mensagens.ViagemId` (nunca preenchido) e `Avisos.CondutorId` (o autor é o condutor da viagem; a resposta dos avisos continua a trazer `condutorId`, lido da viagem) e cria `IX_Mensagens_RemetenteId_DestinatarioId_EnviadoEm`, que substitui o índice só de `RemetenteId`. O `Down` repõe `CondutorId` a partir da viagem. A geometria da rota não precisou de coluna: vai no JSON de `RotaPontos`.
 
 **`I112_ModeloDadosV07` (17/11, BE-33, DEF-BE-052):** aplica o resto do modelo de dados v07. Nove `CHECK` novos (`CK_Utilizadores_Nome`, `CK_LigacoesExternas_Url`, `CK_Viagens_Coordenadas`, `CK_Viagens_Medidas`, `CK_Participacoes_UmPonto`, `CK_Participacoes_CoordRecolha`, `CK_Participacoes_CoordDestino`, `CK_Participacoes_AceiteEm`, `CK_Avisos_Conteudo`), cinco tamanhos (estado da viagem 20, tipo da notificação 30, título 150, token do dispositivo 450, hash da confirmação 450) e cinco índices (pesquisa com colunas incluídas, `(ViagemId, Estado)`, `(DestinatarioId, EnviadoEm)`, `(ViagemId, CriadoEm)`, `(UtilizadorId, CriadaEm DESC)`; o sexto da v07 é o da conversa). Ficou de fora `CK_ConfirmacoesConta_Prazo`: a tabela não tem `CriadoEm` e `Invalidar` põe `ExpiraEm` no momento atual. Os `CHECK` novos entram `WITH NOCHECK`: valem para o que se grava daqui em diante, e uma linha antiga (um pedido sem pontos do m3) não impede a migration; o SQL Server só volta a verificar um `CHECK` quando a gravação mexe nas suas colunas, por isso cancelar esse pedido continua a funcionar. Um aceite sem `AceiteEm` recebe a data do pedido. `CK_Viagens_Coordenadas` e `CK_Viagens_Medidas` só existem em SQL Server: o SQLite dos testes guarda os decimais como texto e compararia "-8" com "-90" letra a letra. Testes: `I112_96` a `I112_98` (SQLite e SQL Server) e `I112_99`, `I112_100` (SQL Server). Nos testes, um pedido antigo sem pontos grava-se com `GravarDadosAntigosAsync` (`BaseDeDadosDeTeste`), que desliga os `CHECK` só nessa gravação.
+
+**`I112_NotificacaoRemetente` (18/11, DEF-BE-053):** acrescenta `Notificacoes.RemetenteId`, anulável (os outros tipos e as notificações antigas ficam com `NULL`), com chave estrangeira para `Utilizadores` sem cascata, como as outras chaves para o utilizador, e o índice que o EF cria para cada chave estrangeira.
 
 ## 6. Ciclo de vida da viagem e da participação
 
@@ -379,6 +384,7 @@ Todas as rotas começam por `/api/v1`. Os requisitos e os casos de uso vêm da R
 | `POST /autenticacao/login` | RF-F001-10, 11 | UC-F001-04 | `AutenticacaoController` → `AutenticacaoService` |
 | `POST /autenticacao/logout` | RF-F001-12, RF-F006-18 | UC-F001-05 | `AutenticacaoController` → `AutenticacaoService` |
 | `GET /autenticacao/me` | Apoio ao frontend, sem requisito | — | `AutenticacaoController` |
+| `POST /autenticacao/bilhete-hub` | RF-F006-09, 15 (DEF-BE-055) | UC-F006-03 | `AutenticacaoController`, `BilhetesHub` |
 | `GET /utilizadores/me` | RF-F001-20 | UC-F001-06 | `UtilizadoresController` → `PerfilService` |
 | `PUT /utilizadores/me` | RF-F001-14, 18 | UC-F001-07 | `UtilizadoresController` → `PerfilService` |
 | `POST /utilizadores/me/ligacoes` | RF-F001-15, 16 | UC-F001-08 | `UtilizadoresController` → `PerfilService` |
@@ -457,7 +463,7 @@ O passageiro consulta os seus pedidos (RF-F004-14, UC-F004-06) em `GET /historic
 | `PUT /notificacoes/ler-todas` | RF-F006-19 | UC-F006-01 | `NotificacoesController` → `NotificacaoService` |
 | `POST /dispositivos` | RF-F006-10 | UC-F006-02 | `DispositivosController` → `DispositivoService` |
 | `DELETE /dispositivos` | RF-F006-18 | UC-F006-02 | `DispositivosController` → `DispositivoService` |
-| Hub `/hubs/pedidos` (fora de `/api/v1`) | RF-F006-09, 15 | UC-F006-03 | `PedidosHub`, `NotificadorPedidosSignalR` |
+| Hub `/hubs/pedidos?bilhete=` (fora de `/api/v1`) | RF-F006-09, 15 | UC-F006-03 | `PedidosHub`, `NotificadorPedidosSignalR`, `BilhetesHub` |
 | Sem rota: push | RF-F006-11, 12, 16, 17 | UC-F006-03 | `NotificacaoService` → `FilaNotificacoesPush` → `TrabalhadorNotificacoesPush` → `ServicoPush` |
 
 ### F007: avaliações
