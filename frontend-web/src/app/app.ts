@@ -27,6 +27,9 @@ import { AutenticacaoApiService } from './features/autenticacao/autenticacao-api
           <a routerLink="/inicio" routerLinkActive="active">Início</a
           ><a routerLink="/viagens" routerLinkActive="active">As minhas viagens</a
           ><a routerLink="/perfil" routerLinkActive="active">Perfil</a
+          <a routerLink="/mensagens" routerLinkActive="active">
+  Mensagens
+</a>
           ><button type="button" (click)="sair()" [disabled]="aSair()">
             {{ aSair() ? 'A terminar…' : 'Terminar sessão' }}
           </button>
