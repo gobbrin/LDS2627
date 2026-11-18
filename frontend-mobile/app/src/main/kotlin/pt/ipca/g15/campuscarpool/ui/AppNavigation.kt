@@ -82,6 +82,7 @@ private fun NavController.abrirEntrada() = navigate(ENTRADA) {
     // Mudar de sessão recria o grafo, eliminando destinos privados da pilha de Voltar.
     key(sessao?.accessToken) {
         val nav = rememberNavController()
+        if (sessao != null) pt.ipca.g15.campuscarpool.ui.comunidade.LigacaoTempoReal()
         val destino by nav.currentBackStackEntryAsState()
         Scaffold { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
