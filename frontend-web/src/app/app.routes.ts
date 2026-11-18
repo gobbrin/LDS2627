@@ -2,6 +2,18 @@ import { Routes } from '@angular/router';
 import { autenticadoGuard, visitanteGuard } from './core/guards';
 export const routes: Routes = [
   {
+    path: 'pesquisa',
+    canActivate: [autenticadoGuard],
+    loadComponent: () => import('./features/pesquisa/pesquisa.page').then((m) => m.PesquisaPage),
+    title: 'Encontrar viagem · Campus Carpool',
+  },
+  {
+    path: 'pesquisa/:id',
+    canActivate: [autenticadoGuard],
+    loadComponent: () => import('./features/pesquisa/detalhe.page').then((m) => m.DetalhePage),
+    title: 'Detalhe da viagem · Campus Carpool',
+  },
+  {
     path: '',
     pathMatch: 'full',
     canActivate: [visitanteGuard],
