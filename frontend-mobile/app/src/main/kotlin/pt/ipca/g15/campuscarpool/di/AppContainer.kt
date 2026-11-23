@@ -16,8 +16,17 @@ class AppContainer(context: Context) {
     private val url = ApiFactory.validarUrl(BuildConfig.API_BASE_URL, BuildConfig.DEBUG)
     val sessao = SessaoManager(AndroidSessionStore(context), url.toString(), scope)
     private val api = ApiFactory.criar(url, sessao)
-    val autenticacao = AutenticacaoRepository(api, sessao)
+    val comunidadeApi = ApiFactory.criarServico(
+        url,
+        sessao,
+        pt.ipca.g15.campuscarpool.data.remote.ComunidadeApi::class.java
+    )
+    val autenticacao =
+        AutenticacaoRepository(api, sessao) {
+            context.getSharedPreferences("push", Context.MODE_PRIVATE).getString("token", null)
+        }
     val perfil = PerfilRepository(api)
     val viagens = ViagemRepository(api)
     val conectividade = ConnectivityMonitor(context)
+    val push = pt.ipca.g15.campuscarpool.data.remote.PushGestor(context, this)
 }
