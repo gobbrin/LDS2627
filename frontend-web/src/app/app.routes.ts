@@ -94,4 +94,22 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/nao-encontrada.page').then((m) => m.NaoEncontradaPage),
     title: 'Página não encontrada · Campus Carpool',
   },
+
+  {
+  path: 'mensagens',
+  canActivate: [autenticadoGuard],
+  loadComponent: () =>
+    import('./features/comunicacao/mensagens.page')
+      .then((m) => m.MensagensPage),
+  title: 'Mensagens · Campus Carpool',
+},
+{
+  path: 'avisos/:id',
+  canActivate: [autenticadoGuard],
+  loadComponent: () =>
+    import('./features/comunicacao/avisos.page')
+      .then((m) => m.AvisosPage),
+  title: 'Avisos · Campus Carpool',
+},
+
 ];
