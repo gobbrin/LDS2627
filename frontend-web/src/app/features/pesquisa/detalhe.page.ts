@@ -70,13 +70,19 @@ import { DetalheViagem, PesquisaApi, RotaDaViagem, textoClassificacao } from './
           [aproximada]="r.geometriaAproximada"
         />
       }
+
+      <p><a [routerLink]="['/participacoes', id]">Pedir ou gerir participação</a></p>
+      <p>
+        <a [routerLink]="['/avisos', id]">Avisos da viagem</a> ·
+        <a routerLink="/mensagens" [queryParams]="{ destinatario: v.condutorId }">Contactar condutor</a>
+      </p>
     }
   </section>`,
 })
 export class DetalhePage {
   private readonly api = inject(PesquisaApi);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
+  readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
 
   readonly viagem = signal<DetalheViagem | null>(null);
   readonly aCarregar = signal(false);
