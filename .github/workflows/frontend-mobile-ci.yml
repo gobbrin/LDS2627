@@ -1,0 +1,37 @@
+name: CampusCarpool Frontend Mobile CI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend-mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Instalar o Android SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" > /dev/null
+      - run: chmod +x gradlew
+      # O check do app e do core corre os testes e falha abaixo de 80 % de linhas (QG-10 e QG-11).
+      - run: ./gradlew --console=plain :core:check :app:ktlintCheck :app:verificarCoberturaApp :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: m4-frontend-mobile-${{ github.sha }}
+          path: |
+            frontend-mobile/core/build/reports
+            frontend-mobile/app/build/reports
+            frontend-mobile/app/build/outputs/apk/debug
+          if-no-files-found: warn
