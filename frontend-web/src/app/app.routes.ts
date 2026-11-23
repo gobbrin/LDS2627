@@ -2,6 +2,40 @@ import { Routes } from '@angular/router';
 import { autenticadoGuard, visitanteGuard } from './core/guards';
 export const routes: Routes = [
   {
+    path: 'notificacoes',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/notificacoes/notificacoes.page').then((m) => m.NotificacoesPage),
+    title: 'Notificações · Campus Carpool',
+  },
+  {
+    path: 'avisos/:id',
+    canActivate: [autenticadoGuard],
+    loadComponent: () => import('./features/comunicacao/avisos.page').then((m) => m.AvisosPage),
+    title: 'Avisos · Campus Carpool',
+  },
+  {
+    path: 'mensagens',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/comunicacao/mensagens.page').then((m) => m.MensagensPage),
+    title: 'Mensagens · Campus Carpool',
+  },
+  {
+    path: 'participacoes',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/participacoes/participacoes.page').then((m) => m.ParticipacoesPage),
+    title: 'Participações · Campus Carpool',
+  },
+  {
+    path: 'participacoes/:id',
+    canActivate: [autenticadoGuard],
+    loadComponent: () =>
+      import('./features/participacoes/participacoes.page').then((m) => m.ParticipacoesPage),
+    title: 'Gerir participações · Campus Carpool',
+  },
+  {
     path: 'pesquisa',
     canActivate: [autenticadoGuard],
     loadComponent: () => import('./features/pesquisa/pesquisa.page').then((m) => m.PesquisaPage),
@@ -94,22 +128,4 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/nao-encontrada.page').then((m) => m.NaoEncontradaPage),
     title: 'Página não encontrada · Campus Carpool',
   },
-
-  {
-  path: 'mensagens',
-  canActivate: [autenticadoGuard],
-  loadComponent: () =>
-    import('./features/comunicacao/mensagens.page')
-      .then((m) => m.MensagensPage),
-  title: 'Mensagens · Campus Carpool',
-},
-{
-  path: 'avisos/:id',
-  canActivate: [autenticadoGuard],
-  loadComponent: () =>
-    import('./features/comunicacao/avisos.page')
-      .then((m) => m.AvisosPage),
-  title: 'Avisos · Campus Carpool',
-},
-
 ];
