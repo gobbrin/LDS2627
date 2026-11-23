@@ -13,11 +13,18 @@ public sealed class NotificacoesController(INotificacaoService notificacaoServic
     /// <summary>Lista notificações paginadas da mais recente para a mais antiga.</summary>
     /// <returns>200 <see cref="PaginaNotificacoes"/>; 400 paginação inválida.</returns>
     [HttpGet]
-    public async Task<IActionResult> Listar([FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken ct = default)
+    /// <remarks>O tamanho chama-se <c>tamanhoPagina</c> por ser anterior à convenção <c>tamanho</c> (BE-34); mantém-se.</remarks>
+    public async Task<IActionResult> Listar(
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = Paginacao.TamanhoPorOmissao,
+        CancellationToken ct = default)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
-        if (pagina < 1 || tamanhoPagina is < 1 or > 100 || (long)(pagina - 1) * tamanhoPagina > int.MaxValue)
-            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Parâmetros de paginação inválidos."));
+
+        // A paginação valida-se só aqui (BE-41).
+        if (Paginacao.Validar(pagina, tamanhoPagina) is { } paginacaoInvalida)
+            return this.RespostaDeErro(paginacaoInvalida);
+
         return Ok(await notificacaoService.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct));
     }
 

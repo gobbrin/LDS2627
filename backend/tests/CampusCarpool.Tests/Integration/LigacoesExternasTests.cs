@@ -70,7 +70,7 @@ public sealed class LigacoesExternasTests : IDisposable
     [InlineData("")]
     public async Task I110_55_LigacaoQueNaoEHttp_Devolve400(string url)
     {
-        Assert.IsType<BadRequestObjectResult>(await Controller(dono.Id).AdicionarLigacao(new(url, null), default));
+        RespostasDeErro.AssertErro(await Controller(dono.Id).AdicionarLigacao(new(url, null), default), 400, "Ligação inválida: indica um URL http ou https.");
         Assert.Empty(db.LigacoesExternas);
     }
 
@@ -80,7 +80,7 @@ public sealed class LigacoesExternasTests : IDisposable
         for (var i = 0; i < 5; i++)
             Assert.IsType<ObjectResult>(await Controller(dono.Id).AdicionarLigacao(new($"https://exemplo.pt/{i}", null), default));
 
-        Assert.IsType<BadRequestObjectResult>(await Controller(dono.Id).AdicionarLigacao(new("https://exemplo.pt/6", null), default));
+        RespostasDeErro.AssertErro(await Controller(dono.Id).AdicionarLigacao(new("https://exemplo.pt/6", null), default), 400, "O perfil já tem o número máximo de ligações.");
         Assert.Equal(5, await db.LigacoesExternas.CountAsync());
     }
 
@@ -90,7 +90,7 @@ public sealed class LigacoesExternasTests : IDisposable
         var criada = Assert.IsType<LigacaoPerfil>(
             Assert.IsType<ObjectResult>(await Controller(dono.Id).AdicionarLigacao(new("https://exemplo.pt", null), default)).Value);
 
-        Assert.IsType<NotFoundObjectResult>(await Controller(outro.Id).RemoverLigacao(criada.Id, default));
+        RespostasDeErro.AssertErro(await Controller(outro.Id).RemoverLigacao(criada.Id, default), 404, "Ligação não encontrada.");
         Assert.Equal(1, await db.LigacoesExternas.CountAsync());
 
         Assert.IsType<NoContentResult>(await Controller(dono.Id).RemoverLigacao(criada.Id, default));

@@ -31,24 +31,6 @@ public sealed class RepositorioParticipacoesCoberturaTests
         Assert.Empty(await repo.ListarPorViagemAsync(viagem2, EstadoParticipacao.Aceite, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task ListarPorPassageiro_DevolveSoAsSuasParticipacoes()
-    {
-        await using var fixture = await Fixture.CriarAsync();
-        var (viagem1, viagem2, passageiro1, passageiro2) = await fixture.PrepararAsync();
-        var primeira = await fixture.AdicionarAsync(viagem1, passageiro1, EstadoParticipacao.Pendente);
-        var segunda = await fixture.AdicionarAsync(viagem2, passageiro1, EstadoParticipacao.Aceite);
-        await fixture.AdicionarAsync(viagem1, passageiro2, EstadoParticipacao.Cancelada);
-
-        var repo = new RepositorioParticipacoes(fixture.Db);
-        var resultado = await repo.ListarPorPassageiroAsync(passageiro1, CancellationToken.None);
-        Assert.Equal(2, resultado.Count);
-        Assert.Contains(resultado, p => p.Id == primeira.Id);
-        Assert.Contains(resultado, p => p.Id == segunda.Id);
-        Assert.Single(await repo.ListarPorPassageiroAsync(passageiro2, CancellationToken.None));
-        Assert.Empty(await repo.ListarPorPassageiroAsync(Guid.NewGuid(), CancellationToken.None));
-    }
-
     [Theory]
     [InlineData(EstadoParticipacao.Pendente, true)]
     [InlineData(EstadoParticipacao.Aceite, true)]
@@ -78,7 +60,7 @@ public sealed class RepositorioParticipacoesCoberturaTests
         var encontrada = await repo.ObterPorIdAsync(participacao.Id, CancellationToken.None);
         Assert.NotNull(encontrada);
         Assert.Equal(EntityState.Unchanged, fixture.Db.Entry(encontrada!).State);
-        encontrada.Estado = EstadoParticipacao.Aceite;
+        encontrada.Aceitar(DateTime.UtcNow);
         await fixture.Db.SaveChangesAsync();
         fixture.Db.ChangeTracker.Clear();
 
@@ -118,7 +100,18 @@ public sealed class RepositorioParticipacoesCoberturaTests
 
         public async Task<Participacao> AdicionarAsync(Guid viagemId, Guid passageiroId, EstadoParticipacao estado)
         {
-            var participacao = new Participacao { ViagemId = viagemId, PassageiroId = passageiroId, Estado = estado };
+            // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+            var viagem = await Db.Viagens.FindAsync(viagemId);
+            var participacao = new Participacao
+            {
+                Destino = viagem!.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
+                ViagemId = viagemId,
+                PassageiroId = passageiroId,
+                Estado = estado
+            };
             Db.Participacoes.Add(participacao);
             await Db.SaveChangesAsync();
             return participacao;

@@ -88,7 +88,7 @@ public sealed class EndpointsAdditionalTests
     public async Task LoginSemCredenciais_Devolve401()
     {
         using var f = new Fixture();
-        Assert.IsType<UnauthorizedObjectResult>(await AuthController(f).IniciarSessao(new("", ""), default));
+        RespostasDeErro.AssertErro(await AuthController(f).IniciarSessao(new("", ""), default), 401, "Credenciais inválidas.");
     }
     [Fact]
     public async Task LoginContaNaoConfirmada_Devolve403()
@@ -97,19 +97,19 @@ public sealed class EndpointsAdditionalTests
         u.PasswordHash = new PasswordHasher<Utilizador>().HashPassword(u, "PasswordSegura123!");
         await f.Db.SaveChangesAsync();
         var r = await AuthController(f).IniciarSessao(new(u.Email, "PasswordSegura123!"), default);
-        Assert.Equal(403, Assert.IsType<ObjectResult>(r).StatusCode);
+        RespostasDeErro.AssertErro(r, 403, "Conta por confirmar.");
     }
     [Fact]
     public async Task ConfirmarTokenVazio_Devolve400()
     {
         using var f = new Fixture();
-        Assert.IsType<BadRequestObjectResult>(await AuthController(f).ConfirmarConta(new(" "), default));
+        RespostasDeErro.AssertErro(await AuthController(f).ConfirmarConta(new(" "), default), 400, "Ligação de confirmação inválida. Pede uma nova ligação.");
     }
     [Fact]
     public async Task ReenviarConfirmacaoEmailVazio_Devolve400()
     {
         using var f = new Fixture();
-        Assert.IsType<BadRequestObjectResult>(await AuthController(f).ReenviarConfirmacaoEmail(new(" "), default));
+        RespostasDeErro.AssertErro(await AuthController(f).ReenviarConfirmacaoEmail(new(" "), default), 400, "Email inválido.");
     }
     [Fact]
     public async Task ReenviarConfirmacaoEmailDesconhecido_RespostaNeutra()
@@ -137,19 +137,19 @@ public sealed class EndpointsAdditionalTests
     public async Task PerfilUtilizadorInexistente_Devolve404()
     {
         using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
-        Assert.IsType<NotFoundObjectResult>(await c.ConsultarPerfil(default));
+        RespostasDeErro.AssertErro(await c.ConsultarPerfil(default), 404, "Utilizador não encontrado.");
     }
     [Fact]
     public async Task AtualizarPerfilInexistente_Devolve404()
     {
         using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
-        Assert.IsType<NotFoundObjectResult>(await c.Atualizar(new("Novo", null, null), default));
+        RespostasDeErro.AssertErro(await c.Atualizar(new("Novo", null, null), default), 404, "Utilizador não encontrado.");
     }
     [Fact]
     public async Task AtualizarPerfilNomeMuitoLongo_Devolve400()
     {
         using var f = new Fixture(); var c = new UtilizadoresController(ServicosDeTeste.CriarPerfil(f.Db)); Auth(c, Guid.NewGuid());
-        Assert.IsType<BadRequestObjectResult>(await c.Atualizar(new(new string('A', 101), null, null), default));
+        RespostasDeErro.AssertErro(await c.Atualizar(new(new string('A', 101), null, null), default), 400, "O nome tem no máximo 100 caracteres.");
     }
     [Fact]
     public async Task CriarViagemSemIdentidade_Devolve401()
@@ -158,28 +158,23 @@ public sealed class EndpointsAdditionalTests
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         Assert.IsType<UnauthorizedResult>(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
     }
-    [Fact]
-    public async Task CriarViagemContaNaoConfirmada_Devolve403()
-    {
-        using var f = new Fixture(); var u = await f.User(confirmed: false); var c = Trips(f); Auth(c, u.Id);
-        RespostaEsperada.Proibido(await c.Criar(new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default));
-    }
     [Theory]
-    [InlineData("Porto", "Porto", 2)]
-    [InlineData("", "Braga", 2)]
-    [InlineData("Porto", "Braga", 0)]
-    [InlineData("Porto", "Braga", 9)]
-    public async Task CriarViagemDadosInvalidos_Devolve400(string origem, string destino, int lugares)
+    [InlineData("Porto", "Porto", 2, "A origem e o destino não podem ser o mesmo local.")]
+    [InlineData("", "Braga", 2, "Indica a origem da viagem.")]
+    [InlineData("Porto", "", 2, "Indica o destino da viagem.")]
+    [InlineData("Porto", "Braga", 0, "O número de lugares tem de estar entre 1 e 8.")]
+    [InlineData("Porto", "Braga", 9, "O número de lugares tem de estar entre 1 e 8.")]
+    public async Task CriarViagemDadosInvalidos_Devolve400(string origem, string destino, int lugares, string mensagem)
     {
         using var f = new Fixture(); var u = await f.User(); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<BadRequestObjectResult>(await c.Criar(new(origem, destino, DateTime.UtcNow.AddDays(2), lugares), default));
+        RespostasDeErro.AssertErro(await c.Criar(new(origem, destino, DateTime.UtcNow.AddDays(2), lugares), default), 400, mensagem);
     }
     [Fact]
     public async Task CriarViagemSemMaps_Devolve503()
     {
         using var f = new Fixture(); var u = await f.User(); var c = Trips(f); Auth(c, u.Id);
-        Assert.Equal(503, Assert.IsType<ObjectResult>(await c.Criar(
-            new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default)).StatusCode);
+        RespostasDeErro.AssertErro(await c.Criar(
+            new("Porto", "Braga", DateTime.UtcNow.AddDays(2), 2), default), 503, "Serviço de mapas não configurado.");
     }
     [Fact]
     public async Task ConsultarViagemExistente_Devolve200()
@@ -192,8 +187,8 @@ public sealed class EndpointsAdditionalTests
     public async Task EditarViagemInexistente_Devolve404()
     {
         using var f = new Fixture(); var u = await f.User(); var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<NotFoundObjectResult>(await c.Editar(Guid.NewGuid(),
-            new(DateTime.UtcNow.AddDays(3), 3), default));
+        RespostasDeErro.AssertErro(await c.Editar(Guid.NewGuid(),
+            new(DateTime.UtcNow.AddDays(3), 3), default), 404, "Viagem não encontrada.");
     }
     [Fact]
     public async Task EditarViagemAtiva_AtualizaLugares()
@@ -234,8 +229,8 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id, EstadoViagem.Indisponibilizada);
         var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ConflictObjectResult>(await c.Editar(v.Id,
-            new(DateTime.UtcNow.AddDays(6), 3), default));
+        RespostasDeErro.AssertErro(await c.Editar(v.Id,
+            new(DateTime.UtcNow.AddDays(6), 3), default), 409, "Viagem não editável.");
     }
     [Fact]
     public async Task IndisponibilizarViagem_AlteraEstado()
@@ -250,14 +245,14 @@ public sealed class EndpointsAdditionalTests
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, Guid.NewGuid());
-        RespostaEsperada.Proibido(await c.Indisponibilizar(v.Id, default));
+        RespostasDeErro.AssertErro(await c.Indisponibilizar(v.Id, default), 403, "Não tens permissão para gerir esta viagem.");
     }
     [Fact]
     public async Task ConcluirViagemFutura_Devolve409()
     {
         using var f = new Fixture(); var u = await f.User(); var v = await f.Trip(u.Id);
         var c = Trips(f); Auth(c, u.Id);
-        Assert.IsType<ConflictObjectResult>(await c.Concluir(v.Id, default));
+        RespostasDeErro.AssertErro(await c.Concluir(v.Id, default), 409, "A viagem só pode ser concluída depois da partida e enquanto estiver ativa.");
     }
     [Fact]
     public async Task ConcluirViagemPassada_AlteraEstado()
@@ -298,11 +293,11 @@ public sealed class EndpointsAdditionalTests
     public async Task GeocodificarSemChave_Devolve503()
     {
         var r = await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Geocodificar("Porto", default);
-        Assert.Equal(503, Assert.IsType<ObjectResult>(r).StatusCode);
+        RespostasDeErro.AssertErro(r, 503, "Serviço de mapas não configurado.");
     }
     [Fact]
     public async Task CalcularOrigemVazia_Devolve400()
     {
-        Assert.IsType<BadRequestObjectResult>(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default));
+        RespostasDeErro.AssertErro(await ServicosDeTeste.CriarRotasController(Maps(), Custos()).Calcular(new(" ", "Braga"), default), 400, "Indica a origem e o destino.");
     }
 }

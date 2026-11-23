@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CampusCarpool.Api.Middleware;
 using CampusCarpool.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -6,45 +7,29 @@ using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
 
-/// <summary>O <c>GlobalExceptionHandler</c> escreve um <c>ProblemDetails</c> com o código e os textos esperados.</summary>
+/// <summary>O <c>GlobalExceptionHandler</c> escreve <c>{ erro }</c> com o código e o texto esperados (BE-08, I112).</summary>
 public sealed class GlobalExceptionHandlerCoverageTests
 {
-    private sealed class ProblemDetailsRecorder(bool escrever) : IProblemDetailsService
-    {
-        public ProblemDetailsContext? Recebido { get; private set; }
-        public ValueTask<bool> TryWriteAsync(ProblemDetailsContext context)
-        {
-            Recebido = context;
-            return ValueTask.FromResult(escrever);
-        }
-        public ValueTask WriteAsync(ProblemDetailsContext context)
-        {
-            Recebido = context;
-            return ValueTask.CompletedTask;
-        }
-    }
-
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public async Task TrataExcecaoComEstadoEDetalhesCorretos(bool negocio, bool escreveu)
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TrataExcecaoComEstadoEMensagemCorretos(bool negocio)
     {
-        var gravador = new ProblemDetailsRecorder(escreveu);
-        var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance, gravador);
+        var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance);
+        using var corpo = new MemoryStream();
         var contexto = new DefaultHttpContext { TraceIdentifier = "teste-123" };
+        contexto.Response.Body = corpo;
         Exception excecao = negocio ? new RegraDeNegocioException("Conflito") : new InvalidOperationException("Erro interno confidencial");
 
         var resultado = await handler.TryHandleAsync(contexto, excecao, CancellationToken.None);
 
-        Assert.Equal(escreveu, resultado);
+        Assert.True(resultado);
         Assert.Equal(negocio ? 409 : 500, contexto.Response.StatusCode);
-        Assert.NotNull(gravador.Recebido);
-        Assert.Same(contexto, gravador.Recebido!.HttpContext);
-        Assert.Same(excecao, gravador.Recebido.Exception);
-        Assert.Equal(negocio ? 409 : 500, gravador.Recebido.ProblemDetails.Status);
-        Assert.Equal(negocio ? "Conflito de regra de negócio" : "Erro interno do servidor", gravador.Recebido.ProblemDetails.Title);
-        Assert.DoesNotContain("confidencial", gravador.Recebido.ProblemDetails.Detail ?? "");
+
+        corpo.Position = 0;
+        using JsonDocument json = await JsonDocument.ParseAsync(corpo);
+        JsonProperty campo = Assert.Single(json.RootElement.EnumerateObject());
+        Assert.Equal("erro", campo.Name);
+        Assert.Equal(negocio ? "Conflito" : GlobalExceptionHandler.MensagemErroInterno, campo.Value.GetString());
     }
 }

@@ -59,6 +59,9 @@ public sealed class FalhaTransacaoIntegrationTests
 
         var participacao = new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
             Estado = EstadoParticipacao.Pendente
@@ -68,7 +71,7 @@ public sealed class FalhaTransacaoIntegrationTests
         await db.SaveChangesAsync();
 
         // Simula a aceitação do pedido.
-        participacao.Estado = EstadoParticipacao.Aceite;
+        participacao.Aceitar(DateTime.UtcNow);
         viagem.LugaresDisponiveis = 0;
 
         // Provoca uma falha real de integridade referencial:

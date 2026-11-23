@@ -10,13 +10,15 @@ namespace CampusCarpool.Infrastructure.Integrations;
 
 /// <summary>
 /// Cliente do Serviço de Mapas e Rotas: OpenRouteService alojado pela HeiGIT (<c>api.heigit.org</c>), perfil
-/// <c>driving-car</c> (F008).
+/// <c>driving-car</c> (F008). Desde a D-5 (I112) é a <b>reserva</b>: o <see cref="ServicoMapasComReserva"/> só o chama
+/// quando a HERE (<see cref="ServicoMapasHere"/>) não está configurada ou falha.
 /// </summary>
 /// <remarks>
 /// Configuração: <c>Maps:ApiKey</c> (obrigatória; sem ela <see cref="Configurado"/> é falso e os serviços da
 /// Application devolvem 503) e <c>Maps:TimeoutSeconds</c> (10 por omissão, no <c>HttpClient</c> registado em
 /// <c>AddInfrastructureServices</c>).
-/// Os URLs são absolutos e fixos, por isso <c>Maps:BaseUrl</c> e <c>Maps:Provider</c> não têm efeito (IN-04).
+/// Os URLs do OpenRouteService são absolutos e fixos (as chaves <c>Maps:BaseUrl</c> e <c>Maps:Provider</c>, sem efeito,
+/// foram retiradas na I112, BE-23).
 /// Erros HTTP e respostas sem o formato esperado saem como <see cref="HttpRequestException"/> e o tempo esgotado
 /// como <see cref="TaskCanceledException"/>; <c>ChamadaMapas</c>, na Application, converte-os em 502 e 504.
 /// </remarks>
@@ -41,7 +43,7 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
         using var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
-        return await LerRespostaAsync<Coordenadas?>(response, raiz =>
+        return await LeituraJson.LerAsync<Coordenadas?>(response, raiz =>
         {
             var features = raiz.GetProperty("features");
 
@@ -90,7 +92,7 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
 
         response.EnsureSuccessStatusCode();
 
-        return await LerRespostaAsync<ResultadoRota?>(response, raiz =>
+        return await LeituraJson.LerAsync<ResultadoRota?>(response, raiz =>
         {
             var features = raiz.GetProperty("features");
 
@@ -153,7 +155,7 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
         using var response = await http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        return await LerRespostaAsync<MatrizRotas?>(response, raiz =>
+        return await LeituraJson.LerAsync<MatrizRotas?>(response, raiz =>
         {
             double?[][] Ler(string propriedade) =>
                 raiz.GetProperty(propriedade)
@@ -169,27 +171,6 @@ public sealed class ServicoMapasRotas(HttpClient http, IConfiguration config) : 
                 Ler("durations"),
                 Ler("distances"));
         }, ct);
-    }
-
-    /// <summary>Lê o JSON da resposta; se não tiver o formato esperado, conta como falha do serviço (RF-F008-12).</summary>
-    private static async Task<T> LerRespostaAsync<T>(
-        HttpResponseMessage response,
-        Func<JsonElement, T> ler,
-        CancellationToken ct)
-    {
-        try
-        {
-            using var json = await JsonDocument.ParseAsync(
-                await response.Content.ReadAsStreamAsync(ct),
-                cancellationToken: ct);
-
-            return ler(json.RootElement);
-        }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException
-            or FormatException or IndexOutOfRangeException)
-        {
-            throw new HttpRequestException("Resposta do Serviço de Mapas sem o formato esperado.", ex);
-        }
     }
 
     /// <summary>Indica se o serviço respondeu que não há rota entre os pontos.</summary>

@@ -18,10 +18,11 @@ public sealed class PesquisaController(IPesquisaService pesquisa) : ControllerBa
     [HttpGet("viagens")]
     public async Task<IActionResult> Pesquisar([FromQuery] string? origem, [FromQuery] string? destino,
         [FromQuery] DateOnly? data, [FromQuery] TimeOnly? hora, [FromQuery] int pagina = 1,
-        [FromQuery] int tamanho = 20, CancellationToken ct = default)
+        [FromQuery] int tamanho = Paginacao.TamanhoPorOmissao, CancellationToken ct = default)
     {
-        if (pagina < 1 || tamanho is < 1 or > 100 || (long)(pagina - 1) * tamanho > int.MaxValue)
-            return this.RespostaDeErro(new Erro(TipoErro.DadosInvalidos, "Paginação inválida."));
+        // A paginação valida-se aqui, no controller (BE-41); o serviço recebe valores já válidos.
+        if (Paginacao.Validar(pagina, tamanho) is { } paginacaoInvalida)
+            return this.RespostaDeErro(paginacaoInvalida);
 
         return Ok(await pesquisa.PesquisarAsync(
             new FiltroPesquisaViagens(origem, destino, data, hora, pagina, tamanho), ct));

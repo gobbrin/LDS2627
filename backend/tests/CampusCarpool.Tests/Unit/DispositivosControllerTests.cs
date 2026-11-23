@@ -111,7 +111,7 @@ public sealed class DispositivosControllerTests
             new DispositivosController.TokenDispositivo(token),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resposta);
+        RespostasDeErro.AssertErro(resposta, 400, "Token FCM inválido.");
         Assert.Equal(0, repositorio.Registos);
     }
 
@@ -124,7 +124,7 @@ public sealed class DispositivosControllerTests
         var resposta = await controller.Registar(
             new DispositivosController.TokenDispositivo(new string('a', 4097)), CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resposta);
+        RespostasDeErro.AssertErro(resposta, 400, "Token FCM inválido.");
         Assert.Equal(0, repositorio.Registos);
     }
 
@@ -185,7 +185,7 @@ public sealed class DispositivosControllerTests
             new DispositivosController.TokenDispositivo("   "),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resposta);
+        RespostasDeErro.AssertErro(resposta, 400, "Token FCM em falta.");
         Assert.Equal(0, repositorio.Remocoes);
     }
 

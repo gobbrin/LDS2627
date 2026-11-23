@@ -105,19 +105,25 @@ public sealed class TerminarSessaoHttpTests : IDisposable
 
     [Fact]
     /// <summary>A6 / G19: 10 pedidos por minuto no login, no registo e no reenvio, em conjunto por IP.</summary>
+    /// <remarks>
+    /// Os 11 logins vão em simultâneo, para caberem na mesma janela de um minuto (R1): em série, com SQL Server e a
+    /// máquina carregada, podiam passar de um minuto e o 11.º já contava na janela seguinte.
+    /// </remarks>
     public async Task I110_44_LimiteDeAutenticacao_Devolve429AoDecimoPrimeiroPedido()
     {
-        for (var i = 0; i < 10; i++)
-        {
-            using var permitida = await _cliente.PostAsJsonAsync(
-                "/api/v1/autenticacao/login", new { email = _email, password = "errada" });
-            Assert.Equal(HttpStatusCode.Unauthorized, permitida.StatusCode);
-        }
+        HttpStatusCode[] estados = await Task.WhenAll(Enumerable.Range(0, 11).Select(_ => LoginErradoAsync()));
 
-        using var recusada = await _cliente.PostAsJsonAsync(
-            "/api/v1/autenticacao/login", new { email = _email, password = Password });
+        // Em simultâneo não se sabe qual chega em último; conta-se: 10 passam ao login e 1 é recusado pelo limite.
+        Assert.Equal(10, estados.Count(estado => estado == HttpStatusCode.Unauthorized));
+        Assert.Equal(1, estados.Count(estado => estado == (HttpStatusCode)429));
+    }
 
-        Assert.Equal((HttpStatusCode)429, recusada.StatusCode);
+    /// <summary>Faz um login com a palavra-passe errada e devolve o estado da resposta.</summary>
+    private async Task<HttpStatusCode> LoginErradoAsync()
+    {
+        using var resposta = await _cliente.PostAsJsonAsync(
+            "/api/v1/autenticacao/login", new { email = _email, password = "errada" });
+        return resposta.StatusCode;
     }
 
     [Fact]

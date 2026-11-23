@@ -1,6 +1,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using CampusCarpool.Application.Abstractions.Integrations;
+using CampusCarpool.Application.Identidade;
 using CampusCarpool.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -94,7 +95,7 @@ public sealed class AutenticacaoFluxoIntegrationTests
 
         var resposta = Assert.IsType<OkObjectResult>(login);
 
-        var tokenJwt = Assert.IsType<TokenAcesso>(resposta.Value).AccessToken;
+        var tokenJwt = Assert.IsType<SessaoIniciada>(resposta.Value).AccessToken;
 
         Assert.False(string.IsNullOrWhiteSpace(tokenJwt));
 

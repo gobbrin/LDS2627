@@ -1,0 +1,39 @@
+# SQL Server local para os testes, igual ao da CI (backend-ci.yml, passo «Start SQL Server»).
+# Só arranca a base de dados; a API continua a correr fora do contentor.
+#
+# A password vem do ficheiro .env desta pasta (ignorado pelo git; modelo em .env.example).
+# O script scripts/testes-sqlserver.sh cria o .env com uma password aleatória se ainda não existir.
+#
+# Uso direto (a partir de backend/):
+#   docker compose -f docker-compose.sqlserver.yml up -d --wait
+#   docker compose -f docker-compose.sqlserver.yml down        # pára (mantém os dados)
+#   docker compose -f docker-compose.sqlserver.yml down -v     # pára e apaga os dados
+
+name: campuscarpool-sqlserver
+
+services:
+  sqlserver:
+    # A mesma imagem que a CI usa.
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: campuscarpool-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      # Password local fictícia, definida no .env; nunca um segredo real (o repositório é público).
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SENHA:?Defina SQLSERVER_SENHA no ficheiro backend/.env}
+    ports:
+      # Porta da máquina (omissão 1433) para a porta 1433 do contentor.
+      - "${SQLSERVER_PORTA:-1433}:1433"
+    volumes:
+      # Volume opcional: os dados sobrevivem a um "down" sem "-v".
+      - dados:/var/opt/mssql
+    healthcheck:
+      # Fica "healthy" quando o sqlcmd consegue fazer SELECT 1, como o ciclo de espera da CI.
+      # O $$ evita que o compose substitua a variável; quem a lê é a shell do contentor.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" > /dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+
+volumes:
+  dados:

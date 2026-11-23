@@ -21,6 +21,15 @@ public interface INotificacaoService
     Notificacao Registar(Guid utilizadorId, TipoNotificacao tipo, string mensagem, Guid? viagemId = null);
 
     /// <summary>
+    /// Regista a notificação Nova mensagem para o destinatário, com o id do remetente, para o cliente abrir a conversa
+    /// (RF-F006-06, DEF-BE-053). Não gera push (RF-F006-12).
+    /// </summary>
+    /// <param name="destinatarioId">Quem recebe a mensagem e a notificação.</param>
+    /// <param name="remetenteId">Quem enviou a mensagem.</param>
+    /// <param name="nomeRemetente">Nome do remetente, copiado para o texto.</param>
+    void RegistarNovaMensagem(Guid destinatarioId, Guid remetenteId, string nomeRemetente);
+
+    /// <summary>
     /// Regista a notificação Alteração da viagem para o condutor e os passageiros indicados, exceto quem originou
     /// a alteração (P-23, RF-F006-02 a RF-F006-04, RF-F006-14).
     /// </summary>

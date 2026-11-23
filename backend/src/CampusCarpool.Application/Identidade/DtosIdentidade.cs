@@ -1,5 +1,9 @@
 namespace CampusCarpool.Application.Identidade;
 
+/// <summary>Resposta do início de sessão: o JWT e a validade em segundos (RF-F001-11, P-09).</summary>
+/// <remarks>DTO próprio, para a resposta não depender do tipo da integração de tokens (BE-06).</remarks>
+public sealed record SessaoIniciada(string AccessToken, int ExpiresIn);
+
 /// <summary>Ligação a um perfil externo, tal como aparece nos perfis.</summary>
 public sealed record LigacaoPerfil(Guid Id, string Url, string? Descricao);
 

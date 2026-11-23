@@ -16,6 +16,9 @@ namespace CampusCarpool.Domain.Entities;
 /// </remarks>
 public sealed class Participacao
 {
+    /// <summary>Tamanho máximo do texto de um ponto (coluna da BD).</summary>
+    public const int TamanhoMaximoPonto = 200;
+
     /// <summary>Identificador da participação.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -35,25 +38,25 @@ public sealed class Participacao
     public EstadoParticipacao Estado { get; internal set; } = EstadoParticipacao.Pendente;
 
     /// <summary>Ponto de recolha indicado pelo passageiro (texto); <c>null</c> significa a origem da viagem (P-20).</summary>
-    public string? Recolha { get; set; }
+    public string? Recolha { get; internal set; }
 
     /// <summary>Ponto de destino indicado pelo passageiro (texto); <c>null</c> significa o destino da viagem (P-20).</summary>
-    public string? Destino { get; set; }
+    public string? Destino { get; internal set; }
 
     /// <summary>Latitude da recolha; <c>null</c> se o ponto foi omitido e segue a origem da viagem (P-20).</summary>
-    public decimal? RecolhaLatitude { get; set; }
+    public decimal? RecolhaLatitude { get; internal set; }
 
     /// <summary>Longitude da recolha.</summary>
-    public decimal? RecolhaLongitude { get; set; }
+    public decimal? RecolhaLongitude { get; internal set; }
 
     /// <summary>Latitude do destino; <c>null</c> se o ponto foi omitido e segue o destino da viagem (P-20).</summary>
-    public decimal? DestinoLatitude { get; set; }
+    public decimal? DestinoLatitude { get; internal set; }
 
     /// <summary>Longitude do destino.</summary>
-    public decimal? DestinoLongitude { get; set; }
+    public decimal? DestinoLongitude { get; internal set; }
 
     /// <summary>Data do pedido (UTC).</summary>
-    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+    public DateTime CriadoEm { get; internal set; } = DateTime.UtcNow;
 
     /// <summary>Momento em que o condutor aceitou o pedido; fica preenchido mesmo depois de a participação ser cancelada.</summary>
     /// <remarks>Mantém no histórico do passageiro as viagens indisponibilizadas depois da aceitação (RF-F009-08).</remarks>
@@ -70,6 +73,71 @@ public sealed class Participacao
 
     /// <summary>O pedido foi aceite e ocupa um lugar.</summary>
     public bool EstaAceite => Estado == EstadoParticipacao.Aceite;
+
+    /// <summary>
+    /// Cria um pedido <c>Pendente</c> (F004), sem ocupar lugar. Um ponto omitido fica a <c>null</c> e segue a
+    /// origem ou o destino da viagem (P-20).
+    /// </summary>
+    /// <remarks>
+    /// As regras que dependem da viagem (estado, lugares, mesmo local) ficam no serviço, que as verifica antes com as
+    /// mensagens para o utilizador. Aqui garante-se só o que o pedido tem de cumprir sozinho (BE-16).
+    /// </remarks>
+    /// <param name="viagemId">Viagem pedida.</param>
+    /// <param name="passageiroId">Passageiro que pede.</param>
+    /// <param name="recolha">Texto da recolha, ou <c>null</c> para a origem da viagem.</param>
+    /// <param name="coordenadasRecolha">Coordenadas da recolha; obrigatórias se houver texto.</param>
+    /// <param name="destino">Texto do destino, ou <c>null</c> para o destino da viagem.</param>
+    /// <param name="coordenadasDestino">Coordenadas do destino; obrigatórias se houver texto.</param>
+    /// <param name="agora">Momento do pedido (UTC).</param>
+    /// <returns>O pedido, por gravar.</returns>
+    /// <exception cref="RegraDeNegocioException">Sem pontos, ponto vazio ou longo, ou ponto sem coordenadas.</exception>
+    public static Participacao Pedir(
+        Guid viagemId,
+        Guid passageiroId,
+        string? recolha,
+        Coordenadas? coordenadasRecolha,
+        string? destino,
+        Coordenadas? coordenadasDestino,
+        DateTime agora)
+    {
+        // P-20: pelo menos um dos dois pontos.
+        if (recolha is null && destino is null)
+            throw new RegraDeNegocioException("Indica um ponto de recolha ou de destino.");
+
+        GarantirPontoValido(recolha, coordenadasRecolha);
+        GarantirPontoValido(destino, coordenadasDestino);
+
+        return new Participacao
+        {
+            ViagemId = viagemId,
+            PassageiroId = passageiroId,
+            Recolha = recolha?.Trim(),
+            Destino = destino?.Trim(),
+            RecolhaLatitude = coordenadasRecolha?.Latitude,
+            RecolhaLongitude = coordenadasRecolha?.Longitude,
+            DestinoLatitude = coordenadasDestino?.Latitude,
+            DestinoLongitude = coordenadasDestino?.Longitude,
+            CriadoEm = agora
+        };
+    }
+
+    // Um ponto indicado tem texto (até 200 caracteres) e coordenadas (A8); um ponto omitido não tem nenhum dos dois.
+    private static void GarantirPontoValido(string? texto, Coordenadas? coordenadas)
+    {
+        if (texto is null)
+        {
+            if (coordenadas is not null)
+                throw new RegraDeNegocioException("Um ponto omitido não tem coordenadas.");
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(texto) || texto.Length > TamanhoMaximoPonto)
+            throw new RegraDeNegocioException("O ponto tem de ter entre 1 e 200 caracteres.");
+
+        if (coordenadas is null)
+            throw new RegraDeNegocioException("Um ponto indicado tem de ter coordenadas.");
+    }
 
     /// <summary>Aceita um pedido pendente (RF-F004-10).</summary>
     /// <param name="agora">Momento da aceitação (UTC).</param>

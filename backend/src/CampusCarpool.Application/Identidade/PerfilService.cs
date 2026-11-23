@@ -41,15 +41,16 @@ public sealed class PerfilService(
             utilizador.Instituicao,
             utilizador.CriadoEm,
             await ListarLigacoesAsync(utilizadorId, ct),
-            resumo.Valor.Media,
-            resumo.Valor.Total);
+            resumo.Valor.ClassificacaoMedia,
+            resumo.Valor.TotalAvaliacoes);
     }
 
     /// <inheritdoc />
     public async Task<Resultado<PerfilPublico>> ConsultarPublicoAsync(Guid utilizadorId, CancellationToken ct)
     {
+        // Uma conta por confirmar não tem perfil público: 404, igual às suas avaliações (BE-14).
         var utilizador = await utilizadores.ObterPorIdAsync(utilizadorId, ct);
-        if (utilizador is null) return UtilizadorNaoEncontrado;
+        if (utilizador is null || !utilizador.EmailConfirmado) return UtilizadorNaoEncontrado;
 
         var lista = await ListarLigacoesAsync(utilizadorId, ct);
         var resumo = await avaliacoes.ConsultarAsync(utilizadorId, ct);
@@ -61,8 +62,8 @@ public sealed class PerfilService(
             utilizador.Curso,
             utilizador.Instituicao,
             lista,
-            resumo.Valor.Media,
-            resumo.Valor.Total);
+            resumo.Valor.ClassificacaoMedia,
+            resumo.Valor.TotalAvaliacoes);
     }
 
     /// <inheritdoc />
@@ -73,13 +74,18 @@ public sealed class PerfilService(
         string? instituicao,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(nome)
-            || nome.Trim().Length > 100
-            || curso?.Trim().Length > 150
-            || instituicao?.Trim().Length > 150)
-        {
-            return new Erro(TipoErro.DadosInvalidos, "Dados de perfil inválidos.");
-        }
+        // Uma mensagem por regra (BE-15), para o utilizador saber que campo corrigir.
+        if (string.IsNullOrWhiteSpace(nome))
+            return new Erro(TipoErro.DadosInvalidos, "Indica o nome.");
+
+        if (nome.Trim().Length > 100)
+            return new Erro(TipoErro.DadosInvalidos, "O nome tem no máximo 100 caracteres.");
+
+        if (curso?.Trim().Length > 150)
+            return new Erro(TipoErro.DadosInvalidos, "O curso tem no máximo 150 caracteres.");
+
+        if (instituicao?.Trim().Length > 150)
+            return new Erro(TipoErro.DadosInvalidos, "A instituição tem no máximo 150 caracteres.");
 
         var utilizador = await utilizadores.ObterParaAlterarAsync(utilizadorId, ct);
         if (utilizador is null) return UtilizadorNaoEncontrado;

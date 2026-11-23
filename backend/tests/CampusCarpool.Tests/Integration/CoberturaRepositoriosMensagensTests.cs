@@ -36,10 +36,10 @@ public sealed class CoberturaRepositoriosMensagensTests
         repositorio.Adicionar(irrelevante);
         await db.SaveChangesAsync();
 
-        var conversa = await repositorio.ObterConversaAsync(primeiro.Id, segundo.Id, CancellationToken.None);
+        var conversa = await repositorio.ObterConversaAsync(primeiro.Id, segundo.Id, null, 50, CancellationToken.None);
         Assert.Equal(new[] { antiga.Id, recente.Id }, conversa.Select(m => m.Id));
         Assert.All(conversa, m => Assert.False(db.Entry(m).State == EntityState.Modified));
-        Assert.Empty(await repositorio.ObterConversaAsync(segundo.Id, terceiro.Id, CancellationToken.None));
+        Assert.Empty(await repositorio.ObterConversaAsync(segundo.Id, terceiro.Id, null, 50, CancellationToken.None));
     }
 
     [Fact]
