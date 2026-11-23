@@ -78,6 +78,9 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
             var pedidoA = new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroA.Id,
                 Estado = EstadoParticipacao.Pendente
@@ -85,6 +88,9 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
             var pedidoB = new Participacao
             {
+                Destino = viagem.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
                 ViagemId = viagem.Id,
                 PassageiroId = passageiroB.Id,
                 Estado = EstadoParticipacao.Pendente
@@ -117,13 +123,13 @@ public sealed class ConcorrenciaSqlServerIntegrationTests
 
             // Primeira operação: aceita A.
             viagemA.LugaresDisponiveis--;
-            participacaoA.Estado = EstadoParticipacao.Aceite;
+            participacaoA.Aceitar(DateTime.UtcNow);
 
             await contextoA.SaveChangesAsync();
 
             // Segunda operação: tenta aceitar B com versão antiga.
             viagemB.LugaresDisponiveis--;
-            participacaoB.Estado = EstadoParticipacao.Aceite;
+            participacaoB.Aceitar(DateTime.UtcNow);
 
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
                 () => contextoB.SaveChangesAsync());

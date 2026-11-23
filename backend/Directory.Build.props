@@ -5,7 +5,13 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <!-- AE-03: o acoplamento de classe (CA1506) é só informação; aparece como aviso, mas não falha o build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1506</WarningsNotAsErrors>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Limites das métricas: complexidade CA1502 (BE-19, R-B05), 15 por método; acoplamento CA1506 (AE-03), 60 tipos. -->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)CodeMetricsConfig.txt" />
+  </ItemGroup>
 </Project>

@@ -30,19 +30,6 @@ public interface IParticipacaoService
         string? destino,
         CancellationToken ct);
 
-    /// <summary>Simula o percurso da viagem se o condutor aceitar um pedido pendente (RF-F004-09, RF-F008-06).</summary>
-    /// <remarks>
-    /// Não altera nada. Compara a rota guardada com a rota que resultaria de juntar o pedido, calculada pelo mesmo
-    /// algoritmo (<see cref="Rotas.IRotaService"/>, P-07), por isso a simulação coincide com a rota depois de aceitar.
-    /// Pontos omitidos assumem a origem ou o destino da viagem (P-20). Todo o cálculo tem um limite de 10 segundos.
-    /// </remarks>
-    /// <param name="viagemId">Viagem.</param>
-    /// <param name="pedidoId">Pedido pendente a simular.</param>
-    /// <param name="utilizadorId">Utilizador autenticado; tem de ser o condutor.</param>
-    /// <param name="ct">Cancelamento.</param>
-    /// <returns>A simulação, ou o erro que explica a recusa.</returns>
-    Task<Resultado<SimulacaoPedido>> SimularAsync(Guid viagemId, Guid pedidoId, Guid utilizadorId, CancellationToken ct);
-
     /// <summary>Solicita a aceitação de uma participação.</summary>
     /// <remarks>
     /// Só o condutor, só pedidos pendentes de viagens ativas (RF-F004-10, mesmo depois da hora de partida), e só com

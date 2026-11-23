@@ -1,4 +1,3 @@
-using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 
@@ -28,11 +27,6 @@ public interface IRepositorioParticipacoes
     Task<IReadOnlyList<Participacao>> ListarPorViagemAsync(Guid viagemId, EstadoParticipacao? estado, CancellationToken ct);
 
     ///<summary>
-    /// Lista as participações de um passageiro.
-    /// </summary>
-    Task<IReadOnlyList<Participacao>> ListarPorPassageiroAsync(Guid passageiroId, CancellationToken ct);
-
-    ///<summary>
     /// Verifica se existe uma participação pendente ou aceite
     /// para o passageiro na viagem indicada.
     /// </summary>
@@ -51,11 +45,13 @@ public interface IRepositorioParticipacoes
     /// <summary>Lista os pedidos pendentes e as participações aceites de uma viagem (rastreados, para serem alterados).</summary>
     Task<IReadOnlyList<Participacao>> ListarAtivasParaAlterarAsync(Guid viagemId, CancellationToken ct);
 
-    /// <summary>Lista os passageiros aceites de uma viagem, pela ordem de aceitação.</summary>
-    Task<IReadOnlyList<PassageiroAceite>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct);
+    /// <summary>Lista as participações aceites de uma viagem, pela ordem de aceitação, com o passageiro carregado.</summary>
+    /// <remarks>Sem seguimento. Devolve as entidades; a resposta da API monta-se no serviço (BE-07).</remarks>
+    Task<IReadOnlyList<Participacao>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct);
 
-    /// <summary>Lista os pedidos pendentes de uma viagem, do mais antigo para o mais recente.</summary>
-    Task<IReadOnlyList<PedidoPendente>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct);
+    /// <summary>Lista os pedidos pendentes de uma viagem, do mais antigo para o mais recente, com o passageiro carregado.</summary>
+    /// <remarks>Sem seguimento. Devolve as entidades; a resposta da API monta-se no serviço (BE-07).</remarks>
+    Task<IReadOnlyList<Participacao>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct);
 
     /// <summary>Grava um pedido novo.</summary>
     /// <returns><c>false</c> se a BD o recusar, por o passageiro já ter um pedido ou uma participação ativa na viagem.</returns>

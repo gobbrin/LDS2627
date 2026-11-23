@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -162,8 +163,12 @@ public sealed class AvaliacoesHttpIntegrationTests
 
         db.Participacoes.Add(new Participacao
         {
+            Destino = viagem.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude,
             ViagemId = viagem.Id,
             PassageiroId = passageiro.Id,
+            AceiteEm = participacaoAceite ? DateTime.UtcNow : null,
             Estado = participacaoAceite
                 ? EstadoParticipacao.Aceite
                 : EstadoParticipacao.Pendente
@@ -229,7 +234,7 @@ public sealed class AvaliacoesHttpIntegrationTests
             "/api/v1/avaliacoes", pedido);
 
         Assert.Equal(HttpStatusCode.Created, primeira.StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, segunda.StatusCode);
+        await RespostasDeErro.AssertErroAsync(segunda, HttpStatusCode.Conflict, "Já existe uma avaliação deste utilizador. Pode alterar a avaliação existente.");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider
@@ -258,7 +263,7 @@ public sealed class AvaliacoesHttpIntegrationTests
                 Classificacao = 5
             });
 
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        await RespostasDeErro.AssertErroAsync(response, HttpStatusCode.Conflict, "Ambos os utilizadores devem ter participado na viagem concluída com participação aceite.");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider
@@ -285,7 +290,7 @@ public sealed class AvaliacoesHttpIntegrationTests
                 Classificacao = 6
             });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        await RespostasDeErro.AssertErroAsync(response, HttpStatusCode.BadRequest, "A classificação deve ser um número inteiro entre 1 e 5.");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider
@@ -310,5 +315,68 @@ public sealed class AvaliacoesHttpIntegrationTests
             });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+    /// <summary>
+    /// BE-14, DEF-BE-041: o autor lê a avaliação que deu (para o ecrã de alteração); sem avaliação dá 404 com <c>erro</c>.
+    /// </summary>
+    [Fact]
+    public async Task BE14_ObterMinha_DevolveValorDadoOu404()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        var dados = await PrepararViagemAsync(factory);
+        Autenticar(client, dados.avaliadorId);
+
+        // Antes de avaliar: ainda não há avaliação deste autor.
+        var antes = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{dados.avaliadoId}/minha");
+        await RespostasDeErro.AssertErroAsync(antes, HttpStatusCode.NotFound, "Não existe uma avaliação sua para este utilizador.");
+
+        var criada = await client.PostAsJsonAsync(
+            "/api/v1/avaliacoes",
+            new { ViagemId = dados.viagemId, AvaliadoId = dados.avaliadoId, Classificacao = 4 });
+        Assert.Equal(HttpStatusCode.Created, criada.StatusCode);
+
+        var depois = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{dados.avaliadoId}/minha");
+        Assert.Equal(HttpStatusCode.OK, depois.StatusCode);
+
+        using var corpo = JsonDocument.Parse(await depois.Content.ReadAsStringAsync());
+        Assert.Equal(4, corpo.RootElement.GetProperty("classificacao").GetInt32());
+        Assert.True(corpo.RootElement.TryGetProperty("data", out _));
+
+        // O avaliado não lê a avaliação que recebeu por esta rota: para ele não há avaliação «sua» ao autor.
+        Autenticar(client, dados.avaliadoId);
+        var doOutro = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{dados.avaliadorId}/minha");
+        await RespostasDeErro.AssertErroAsync(doOutro, HttpStatusCode.NotFound, "Não existe uma avaliação sua para este utilizador.");
+    }
+
+    /// <summary>BE-14: as avaliações de uma conta por confirmar não são públicas (404 com <c>erro</c>, como o perfil).</summary>
+    [Fact]
+    public async Task BE14_ConsultarContaPorConfirmar_Devolve404()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        var dados = await PrepararViagemAsync(factory);
+        var porConfirmar = new Utilizador { Nome = "Por confirmar", Email = "por.confirmar.avaliacoes@estg.ipp.pt" };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CampusCarpoolDbContext>();
+            db.Utilizadores.Add(porConfirmar);
+            await db.SaveChangesAsync();
+        }
+
+        Autenticar(client, dados.avaliadorId);
+
+        var resposta = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{porConfirmar.Id}");
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.NotFound, "Utilizador não encontrado.");
+
+        // Uma conta confirmada sem avaliações continua a dar 200 com total 0 e média nula.
+        var confirmada = await client.GetAsync($"/api/v1/avaliacoes/utilizadores/{dados.avaliadoId}");
+        Assert.Equal(HttpStatusCode.OK, confirmada.StatusCode);
+        using var corpo = JsonDocument.Parse(await confirmada.Content.ReadAsStringAsync());
+        Assert.Equal(0, corpo.RootElement.GetProperty("totalAvaliacoes").GetInt32());
+        Assert.Equal(JsonValueKind.Null, corpo.RootElement.GetProperty("classificacaoMedia").ValueKind);
     }
 }

@@ -3,11 +3,20 @@ using CampusCarpool.Domain.Entities;
 namespace CampusCarpool.Application.Abstractions.Integrations;
 
 /// <summary>Rota entre dois pontos: distância em km (2 casas) e duração em minutos (arredondada para cima).</summary>
+/// <param name="DistanciaKm">Distância, em km.</param>
+/// <param name="DuracaoMinutos">Duração, em minutos.</param>
+/// <param name="Origem">Coordenadas da origem.</param>
+/// <param name="Destino">Coordenadas do destino.</param>
+/// <param name="Geometria">
+/// Linha da rota para o mapa, quando o fornecedor a devolve no mesmo pedido (HERE Routing v8, D-5); <c>null</c> na
+/// reserva (OpenRouteService), e aí quem chama pede a linha à parte ou usa uma reta.
+/// </param>
 public sealed record ResultadoRota(
     decimal DistanciaKm,
     int DuracaoMinutos,
     Coordenadas Origem,
-    Coordenadas Destino);
+    Coordenadas Destino,
+    IReadOnlyList<Coordenadas>? Geometria = null);
 
 /// <summary>Matriz de rotas: [i][j] é a duração (s) ou distância (m) do ponto i ao j; <c>null</c> se não houver rota.</summary>
 public sealed record MatrizRotas(
@@ -16,9 +25,11 @@ public sealed record MatrizRotas(
 
 /// <summary>Contrato do Serviço de Mapas e Rotas (F008), sem acoplar as outras camadas a um fornecedor.</summary>
 /// <remarks>
-/// A implementação (OpenRouteService) está em <c>Infrastructure/Integrations/ServicoMapasRotas.cs</c>. Quem chama
-/// decide o que fazer quando o serviço falha (P-19, RF-F008-12): por regra, um erro 502 se o serviço responder com
-/// erro e um 504 se o tempo esgotar.
+/// Implementações em <c>Infrastructure/Integrations</c> (D-5): <c>ServicoMapasHere</c> (principal),
+/// <c>ServicoMapasRotas</c> (OpenRouteService, reserva) e <c>ServicoMapasComReserva</c>, que é a registada: tenta a
+/// HERE e, se falhar, o OpenRouteService, e guarda as geocodificações em memória (D-3). Quem chama decide o que fazer
+/// quando o serviço falha (P-19, RF-F008-12): por regra, um erro 502 se o serviço responder com erro e um 504 se o
+/// tempo esgotar.
 /// </remarks>
 public interface IServicoMapasRotas
 {

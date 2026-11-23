@@ -53,23 +53,34 @@ public static class InfrastructureServiceRegistration
         services.AddSingleton<IHashPalavraPasse, HashPalavraPasse>();
         services.AddSingleton<IGeradorTokens, GeradorTokensJwt>();
 
-        // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, OpenRouteService).
+        // Integrações externas com HttpClient gerido pela fábrica (Brevo, FCM, HERE, OpenRouteService).
         // O registo e o reenvio esperam pelo envio; os 100 s por omissão prenderiam o pedido e revelariam a conta pendente.
         services.AddHttpClient<IServicoEmail, ServicoEmail>(client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<CacheTokenFcm>();
         // A fila tem um só leitor: sem limite curto, um FCM lento atrasaria todos os push seguintes (IN-05).
         services.AddHttpClient<IServicoPush, ServicoPush>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
-        // O BaseAddress não tem efeito: o ServicoMapasRotas usa URLs absolutos (IN-04). O timeout (10 s) aplica-se a cada pedido.
-        services.AddHttpClient<IServicoMapasRotas, ServicoMapasRotas>((sp, client) =>
+        // Memória da aplicação (IMemoryCache), com tamanho limitado: cada entrada conta 1. Guarda as geocodificações
+        // (ServicoMapasComReserva, D-3) e as rotas simuladas (RotaService, D-2), ambas por 10 minutos.
+        services.AddMemoryCache(opcoes => opcoes.SizeLimit = 2000);
+
+        // Serviço de Mapas (D-5): HERE como principal e OpenRouteService como reserva. Cada um tem o seu HttpClient;
+        // o timeout aplica-se a cada pedido e o limite de 10 s da operação inteira (P-19) está na ChamadaMapas (BE-11).
+        // A HERE tem 5 s por omissão, para sobrar tempo para a reserva dentro dos 10 s.
+        services.AddHttpClient<ServicoMapasHere>((sp, client) =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            client.BaseAddress = new Uri(
-                config["Maps:BaseUrl"] ?? "https://api.heigit.org/"
-                .TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromSeconds(
-                config.GetValue("Maps:TimeoutSeconds", 10));
+            client.Timeout = TimeSpan.FromSeconds(config.GetValue("Here:TimeoutSeconds", 5));
         });
+        services.AddHttpClient<ServicoMapasRotas>((sp, client) =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            client.Timeout = TimeSpan.FromSeconds(config.GetValue("Maps:TimeoutSeconds", 10));
+        });
+        services.AddTransient<IServicoMapasRotas, ServicoMapasComReserva>();
+
+        // Linha da rota para o mapa (HERE Routing v8, DEF-BE-054). Sem Here:ApiKey, a rota fica com linhas retas.
+        services.AddHttpClient<IServicoGeometriaRotas, ServicoGeometriaHere>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
         // Repositório de notificações e dispositivos.
         services.AddScoped<IRepositorioNotificacoes, RepositorioNotificacoes>();
@@ -102,6 +113,10 @@ public static class InfrastructureServiceRegistration
 
         // Trabalhador que processa a fila em segundo plano (I047).
         services.AddHostedService<TrabalhadorNotificacoesPush>();
+
+        // Emails de confirmação em segundo plano (I112, BE-12): o registo e o reenvio não esperam pelo Brevo.
+        services.AddSingleton<IFilaEmails, FilaEmails>();
+        services.AddHostedService<TrabalhadorEmails>();
 
         // Conclusão automática das viagens (I110, DEF-BE-009; UC-F002-05).
         services.AddHostedService<TrabalhadorConclusaoViagens>();

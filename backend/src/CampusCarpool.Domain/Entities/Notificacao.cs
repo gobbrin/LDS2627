@@ -21,6 +21,12 @@ public sealed class Notificacao
     /// <summary>Viagem relacionada, quando existe.</summary>
     public Guid? ViagemId { get; set; }
 
+    /// <summary>
+    /// Quem enviou a mensagem, só nas notificações <see cref="TipoNotificacao.NovaMensagem"/>; <c>null</c> nos outros
+    /// tipos. Permite ao cliente abrir a conversa com o remetente a partir da notificação (RF-F006-06, DEF-BE-053).
+    /// </summary>
+    public Guid? RemetenteId { get; set; }
+
     /// <summary>Tipo da notificação (ver <see cref="TipoNotificacao"/>).</summary>
     public TipoNotificacao Tipo { get; set; }
 

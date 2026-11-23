@@ -115,6 +115,9 @@ val verificarHttpsRelease by tasks.registering {
 }
 tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verificarHttpsRelease) }
 dependencies {
+    implementation("com.microsoft.signalr:signalr:8.0.7")
+    implementation("com.google.firebase:firebase-messaging:24.1.2")
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     implementation(project(":core"))
     implementation(platform("androidx.compose:compose-bom:2025.10.01"))

@@ -10,7 +10,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CampusCarpool.Tests.Integration;
@@ -169,7 +168,8 @@ public sealed class RegistoResilienteTests : IDisposable
 
     [Theory]
     [MemberData(nameof(FalhasDoEmail))]
-    public async Task I110_126_FalhaNoEnvioDoEmail_Devolve503EAContaFica(string caso)
+    /// <summary>I112 (BE-12): o email segue em segundo plano, por isso uma falha do envio já não muda a resposta (era 503).</summary>
+    public async Task I110_126_FalhaNoEnvioDoEmail_ORegistoResponde202EAContaFica(string caso)
     {
         Exception falha = caso switch
         {
@@ -183,12 +183,16 @@ public sealed class RegistoResilienteTests : IDisposable
         var resposta = await Controller(db, new EmailComFalha(falha)).Registar(
             new("Aluno", Endereco, "abcdefg1"), CancellationToken.None);
 
-        Assert.Equal(503, Assert.IsType<ObjectResult>(resposta).StatusCode);
+        Assert.IsType<AcceptedResult>(resposta);
         Assert.True(await db.Utilizadores.AnyAsync(u => u.Email == Endereco));
     }
 
+    /// <summary>
+    /// I112 (BE-12): com o envio em segundo plano, o reenvio invalida logo as ligações anteriores. Se o envio falhar,
+    /// o utilizador pede outra ligação um minuto depois e essa serve (era: a anterior continuava a servir).
+    /// </summary>
     [Fact]
-    public async Task I110_144_ReenvioComEmailEmBaixo_MantemALigacaoAnterior()
+    public async Task I110_144_ReenvioComEmailEmBaixo_UmNovoReenvioDaUmaLigacaoQueServe()
     {
         await using var db = Contexto();
         var email = new EmailComInterruptor();
@@ -204,7 +208,20 @@ public sealed class RegistoResilienteTests : IDisposable
         email.EmBaixo = true;
         Assert.IsType<AcceptedResult>(await controller.ReenviarConfirmacaoEmail(new(Endereco), CancellationToken.None));
 
-        Assert.IsType<NoContentResult>(await controller.ConfirmarConta(new(ligacao), CancellationToken.None));
+        // A ligação anterior deixou de servir: o reenvio invalida-a e a API trata-a como expirada.
+        RespostasDeErro.AssertErro(
+            await controller.ConfirmarConta(new(ligacao), CancellationToken.None),
+            400,
+            "Esta ligação expirou. Pede uma nova ligação de confirmação.");
+
+        foreach (var confirmacao in await db.ConfirmacoesConta.ToListAsync())
+            confirmacao.ExpiraEm -= TimeSpan.FromMinutes(2);
+        await db.SaveChangesAsync();
+
+        email.EmBaixo = false;
+        Assert.IsType<AcceptedResult>(await controller.ReenviarConfirmacaoEmail(new(Endereco), CancellationToken.None));
+
+        Assert.IsType<NoContentResult>(await controller.ConfirmarConta(new(email.UltimoToken!), CancellationToken.None));
     }
 
     [Fact]
@@ -218,11 +235,10 @@ public sealed class RegistoResilienteTests : IDisposable
             new RepositorioTokensRevogados(db),
             new RepositorioDispositivo(db),
             new UnidadeDeTrabalhoEfCore(db),
-            new EmailSemFalha(),
+            new FilaEmailsDireta(new EmailSemFalha()),
             hash,
             new GeradorTokensJwt(new ConfigurationBuilder().Build()),
-            ServicosDeTeste.CriarValidadorEmail(),
-            NullLogger<AutenticacaoService>.Instance);
+            ServicosDeTeste.CriarValidadorEmail());
 
         var resultado = await servico.IniciarSessaoAsync("ninguem@estg.ipp.pt", "abcdefg1", CancellationToken.None);
 

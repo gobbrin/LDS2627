@@ -18,6 +18,12 @@ namespace CampusCarpool.Domain.Entities;
 /// </remarks>
 public sealed class Viagem
 {
+    /// <summary>Mínimo de lugares oferecidos (P-11).</summary>
+    public const int LugaresMinimos = 1;
+
+    /// <summary>Máximo de lugares oferecidos (P-11).</summary>
+    public const int LugaresMaximos = 8;
+
     /// <summary>Identificador da viagem.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -98,6 +104,12 @@ public sealed class Viagem
     /// <summary>Lugares ocupados pelas participações aceites (RF-F002-13).</summary>
     public int LugaresOcupados => LugaresOferecidos - LugaresDisponiveis;
 
+    /// <summary>
+    /// Há pelo menos um lugar livre. É a única regra de capacidade: usada no pedido, na simulação, na aceitação e na
+    /// pesquisa (BE-16).
+    /// </summary>
+    public bool TemLugarLivre => LugaresDisponiveis > 0;
+
     /// <summary>Cria uma viagem <c>Ativa</c>, com todos os lugares livres (RF-F002-01, RF-F002-05).</summary>
     /// <param name="condutorId">Condutor.</param>
     /// <param name="locais">Origem e destino, com as coordenadas.</param>
@@ -105,8 +117,11 @@ public sealed class Viagem
     /// <param name="lugares">Lugares oferecidos, de 1 a 8 (P-11).</param>
     /// <param name="duracaoMinutos">Duração estimada (P-04).</param>
     /// <returns>A viagem, por gravar e ainda sem rota.</returns>
+    /// <exception cref="RegraDeNegocioException">Os lugares estão fora de 1 a 8.</exception>
     public static Viagem Criar(Guid condutorId, LocaisViagem locais, DateTime partidaEm, int lugares, int? duracaoMinutos)
     {
+        GarantirLugaresValidos(lugares);
+
         var viagem = new Viagem
         {
             CondutorId = condutorId,
@@ -132,10 +147,13 @@ public sealed class Viagem
     /// <param name="lugares">Lugares oferecidos.</param>
     /// <param name="duracaoMinutos">Nova duração estimada (P-04).</param>
     /// <param name="agora">Momento de referência (UTC).</param>
-    /// <exception cref="RegraDeNegocioException">A viagem já não pode ser alterada ou os lugares não chegam.</exception>
+    /// <exception cref="RegraDeNegocioException">
+    /// A viagem já não pode ser alterada, os lugares estão fora de 1 a 8 ou não chegam para os aceites.
+    /// </exception>
     public void Alterar(LocaisViagem locais, DateTime partidaEm, int lugares, int? duracaoMinutos, DateTime agora)
     {
         ArgumentNullException.ThrowIfNull(locais);
+        GarantirLugaresValidos(lugares);
 
         if (!PorPartir(agora))
             throw new RegraDeNegocioException("A viagem já não pode ser alterada.");
@@ -173,24 +191,42 @@ public sealed class Viagem
     /// Sem duração estimada, conclui-se à hora de partida.
     /// </summary>
     /// <param name="agora">Momento de referência (UTC).</param>
-    public bool DeveConcluir(DateTime agora) => EstaAtiva && PartidaEm.AddMinutes(DuracaoMinutos ?? 0) <= agora;
+    public bool DeveConcluir(DateTime agora) => EstaAtiva && HoraDeConclusao(PartidaEm, DuracaoMinutos) <= agora;
 
-    /// <summary>Conclui a viagem (RF-F002-12).</summary>
+    /// <summary>
+    /// Hora a que a conclusão automática se aplica: partida mais a duração estimada (P-04, RF-F002-12). Sem duração,
+    /// é a própria hora de partida. Estático para o trabalhador de conclusão o usar sem carregar a viagem (BE-31).
+    /// </summary>
+    /// <param name="partidaEm">Hora de partida (UTC).</param>
+    /// <param name="duracaoMinutos">Duração estimada, ou <c>null</c>.</param>
+    public static DateTime HoraDeConclusao(DateTime partidaEm, int? duracaoMinutos) =>
+        partidaEm.AddMinutes(duracaoMinutos ?? 0);
+
+    /// <summary>
+    /// Conclui a viagem e cancela os pedidos ainda pendentes (RF-F002-12, RF-F004-19). As participações aceites
+    /// mantêm-se, para o histórico e a avaliação (P-16). Usado pelo condutor e pela conclusão automática (BE-31).
+    /// </summary>
     /// <param name="agora">Momento de referência (UTC).</param>
+    /// <param name="pendentes">Pedidos pendentes desta viagem, carregados para alterar.</param>
     /// <exception cref="RegraDeNegocioException">A viagem não está ativa ou ainda não partiu.</exception>
-    public void Concluir(DateTime agora)
+    public void Concluir(DateTime agora, IEnumerable<Participacao> pendentes)
     {
+        ArgumentNullException.ThrowIfNull(pendentes);
+
         if (!PodeConcluir(agora))
             throw new RegraDeNegocioException("Só uma viagem ativa e já partida pode ser concluída.");
 
         Estado = EstadoViagem.Concluida;
+
+        foreach (Participacao pendente in pendentes)
+            pendente.CancelarPorConclusao();
     }
 
     /// <summary>Ocupa um lugar, ao aceitar uma participação.</summary>
     /// <exception cref="RegraDeNegocioException">Não há lugares disponíveis.</exception>
     public void OcuparLugar()
     {
-        if (LugaresDisponiveis <= 0)
+        if (!TemLugarLivre)
             throw new RegraDeNegocioException("Sem lugares disponíveis.");
 
         LugaresDisponiveis--;
@@ -225,7 +261,14 @@ public sealed class Viagem
 
     /// <summary>Glossário: <c>Ativa</c>, com data e hora futuras e pelo menos um lugar disponível (RF-F003-02).</summary>
     /// <param name="agora">Momento de referência (UTC).</param>
-    public bool EstaDisponivelParaPesquisa(DateTime agora) => PorPartir(agora) && LugaresDisponiveis > 0;
+    public bool EstaDisponivelParaPesquisa(DateTime agora) => PorPartir(agora) && TemLugarLivre;
+
+    // P-11: lugares oferecidos de 1 a 8. O serviço verifica antes, para devolver a mensagem ao utilizador.
+    private static void GarantirLugaresValidos(int lugares)
+    {
+        if (lugares < LugaresMinimos || lugares > LugaresMaximos)
+            throw new RegraDeNegocioException("O número de lugares tem de estar entre 1 e 8.");
+    }
 
     private void DefinirLocais(LocaisViagem locais)
     {

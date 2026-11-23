@@ -67,7 +67,8 @@ public sealed class RegistadorDeLogs(ConcurrentQueue<string> destino) : ILoggerP
 /// Só se troca o que sai do processo: a base de dados (ver <see cref="BaseDeDadosDeTeste"/>), o Serviço de Mapas (<see cref="MapasFalsos"/>), o email (<see cref="EmailRegistador"/>) e a fila de push
 /// (<see cref="FilaNotificacoesPushFalsa"/>). Cada pedido usa a sua ligação à mesma BD, porque o hub e os pedidos correm
 /// em paralelo. Corre como <c>Production</c>, sem User Secrets nem OpenAPI. Os limites de pedidos estão ativos: um teste
-/// que faça muitos pedidos por minuto recebe 429, por isso cada teste tem a sua instância.
+/// que faça muitos pedidos por minuto recebe 429, por isso cada teste tem a sua instância. Os testes do limite enviam os
+/// pedidos em simultâneo: em série, com a máquina carregada, podiam passar de um minuto e cair em duas janelas (R1).
 /// </remarks>
 public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = null) : WebApplicationFactory<Program>
 {
@@ -75,6 +76,13 @@ public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = nu
     public const string Emissor = "CampusCarpool";
     public const string Audiencia = "CampusCarpool.Clients";
     public const string PalavraPasse = "Palavra-passe-de-teste-1";
+
+    /// <summary>
+    /// Tempo máximo à espera de algo que acontece em segundo plano (evento do hub, push, email). É generoso de propósito:
+    /// num teste que passa, a espera acaba logo que a condição se cumpre; o limite só se atinge quando o teste falha.
+    /// Com 5 s, a suite completa em SQL Server, com a máquina carregada, falhava sem haver erro (R1).
+    /// </summary>
+    public static readonly TimeSpan EsperaMaxima = TimeSpan.FromSeconds(60);
 
     private readonly string _cadeiaDeLigacao = $"Data Source=aplicacao-real-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
     private SqliteConnection? _ligacaoPermanente;
@@ -106,6 +114,9 @@ public sealed class AplicacaoReal(Action<IServiceCollection>? substituicoes = nu
             services.AddSingleton<IServicoMapasRotas>(Mapas.CriarServico());
             services.RemoveAll<IServicoEmail>();
             services.AddSingleton<IServicoEmail>(Email);
+            // Envio logo, para os testes lerem o token a seguir ao registo; a fila real tem teste próprio (EmailEmSegundoPlanoTests).
+            services.RemoveAll<IFilaEmails>();
+            services.AddSingleton<IFilaEmails>(new FilaEmailsDireta(Email));
             services.RemoveAll<IFilaNotificacoesPush>();
             services.AddSingleton<IFilaNotificacoesPush>(FilaPush);
 

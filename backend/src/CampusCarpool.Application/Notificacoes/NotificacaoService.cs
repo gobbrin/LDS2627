@@ -43,6 +43,18 @@ public sealed class NotificacaoService(
     }
 
     /// <inheritdoc />
+    public void RegistarNovaMensagem(Guid destinatarioId, Guid remetenteId, string nomeRemetente)
+    {
+        Notificacao notificacao = Registar(
+            destinatarioId,
+            TipoNotificacao.NovaMensagem,
+            $"Recebeste uma nova mensagem de {nomeRemetente}.");
+
+        // Só este tipo leva o remetente: é o que o cliente usa para abrir a conversa (DEF-BE-053).
+        notificacao.RemetenteId = remetenteId;
+    }
+
+    /// <inheritdoc />
     public void RegistarAlteracaoViagem(Guid viagemId, Guid condutorId, IEnumerable<Guid> passageiros, Guid origemId, string mensagem)
     {
         var destinatarios = passageiros
@@ -78,21 +90,22 @@ public sealed class NotificacaoService(
         if (!notificacao.OriginaPush())
             return;
 
-        await filaNotificacoesPush.EnfileirarAsync(
+        // BE-17: o push leva o id da notificação e da viagem, para a aplicação abrir o ecrã certo.
+        var pendente = new NotificacaoPushPendente(
+            notificacao.Id,
             notificacao.UtilizadorId,
+            notificacao.ViagemId,
             notificacao.Titulo,
             notificacao.Conteudo,
-            notificacao.Tipo.ToString(),
-            ct);
+            notificacao.Tipo.ToString());
+
+        await filaNotificacoesPush.EnfileirarAsync(pendente, ct);
     }
 
     /// <inheritdoc />
     public async Task<PaginaNotificacoes> ListarAsync(Guid utilizadorId, int pagina, int tamanhoPagina, CancellationToken ct)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(pagina, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(tamanhoPagina, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(tamanhoPagina, 100);
-
+        // A página e o tamanho chegam já validados pelo controller (Paginacao.Validar, BE-41).
         var itens = await repositorioNotificacoes.ListarAsync(utilizadorId, pagina, tamanhoPagina, ct);
         var total = await repositorioNotificacoes.ContarAsync(utilizadorId, ct);
         var naoLidas = await repositorioNotificacoes.ContarNaoLidasAsync(utilizadorId, ct);
@@ -100,7 +113,7 @@ public sealed class NotificacaoService(
 
         var dtos = itens
             .Select(n => new NotificacaoPessoal(
-                n.Id, n.UtilizadorId, n.ViagemId, n.Tipo.ToString(), n.Titulo, n.Conteudo, n.LidaEm, n.CriadaEm))
+                n.Id, n.UtilizadorId, n.ViagemId, n.RemetenteId, n.Tipo.ToString(), n.Titulo, n.Conteudo, n.LidaEm, n.CriadaEm))
             .ToList();
 
         return new PaginaNotificacoes(dtos, pagina, tamanhoPagina, total, totalPaginas, naoLidas);

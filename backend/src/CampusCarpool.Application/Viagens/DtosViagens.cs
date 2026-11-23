@@ -68,6 +68,13 @@ public sealed record ViagemDoCondutor(
     int LugaresOferecidos,
     int LugaresDisponiveis);
 
+/// <summary>Página das viagens ativas do condutor (<c>GET /viagens/minhas?pagina=&amp;tamanho=</c>, D-4).</summary>
+/// <param name="Total">Número de viagens ativas do condutor.</param>
+/// <param name="Pagina">Página devolvida, a contar de 1.</param>
+/// <param name="Tamanho">Viagens por página.</param>
+/// <param name="Viagens">Viagens da página, por ordem de partida.</param>
+public sealed record PaginaViagensDoCondutor(int Total, int Pagina, int Tamanho, IReadOnlyList<ViagemDoCondutor> Viagens);
+
 /// <summary>Filtros da pesquisa de viagens. Os nulos não filtram.</summary>
 /// <param name="Origem">Texto contido na origem, sem distinguir maiúsculas nem acentos.</param>
 /// <param name="Destino">Texto contido no destino, nas mesmas condições.</param>

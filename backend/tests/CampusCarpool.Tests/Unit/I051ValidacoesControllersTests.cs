@@ -27,19 +27,24 @@ public sealed class I051ValidacoesControllersTests
     // O mesmo formato da API: nomes em camelCase.
     private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
 
+    // P-08: mensagem da palavra-passe fraca.
+    private const string PalavraPasseFraca = "A palavra-passe tem de ter pelo menos 8 caracteres, com letras e dígitos.";
+
     [Theory]
-    [InlineData("", "aluno@estg.ipp.pt", "password123456")]
-    [InlineData("Aluno", "aluno@gmail.com", "password123456")]
-    [InlineData("Aluno", "aluno@estg.ipp.pt", "curta")]
-    [InlineData("Aluno", "aluno@estg.ipp.pt", "abc1234")]       // P-08: 7 caracteres.
-    [InlineData("Aluno", "aluno@estg.ipp.pt", "abcdefghij")]    // P-08: sem dígito.
-    [InlineData("Aluno", "aluno@estg.ipp.pt", "1234567890")]    // P-08: sem letra.
-    [InlineData("Aluno", "", "password123456")]
-    public async Task F001_RegistoInvalido_Devolve400(string nome, string email, string password)
+    [InlineData("", "aluno@estg.ipp.pt", "password123456", "Indica o nome.")]
+    [InlineData("Aluno", "aluno@gmail.com", "password123456", "É necessário um email académico permitido.")]
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "curta", PalavraPasseFraca)]
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abc1234", PalavraPasseFraca)]       // P-08: 7 caracteres.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "abcdefghij", PalavraPasseFraca)]    // P-08: sem dígito.
+    [InlineData("Aluno", "aluno@estg.ipp.pt", "1234567890", PalavraPasseFraca)]    // P-08: sem letra.
+    [InlineData("Aluno", "", "password123456", "Indica o email.")]
+    [InlineData("Aluno com um nome muito comprido que passa dos cem caracteres permitidos pela regra do registo de conta", "aluno@estg.ipp.pt", "password123456", "O nome tem no máximo 100 caracteres.")]
+    /// <remarks>BE-09 e BE-15: cada regra tem a sua mensagem.</remarks>
+    public async Task F001_RegistoInvalido_Devolve400(string nome, string email, string password, string mensagem)
     {
         var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.Registar(new AutenticacaoController.Registo(nome, email, password), default);
-        Assert.IsType<BadRequestObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 400, mensagem);
     }
 
     [Theory]
@@ -49,7 +54,7 @@ public sealed class I051ValidacoesControllersTests
     {
         var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
         var result = await controller.IniciarSessao(new AutenticacaoController.Login(email, password), default);
-        Assert.IsType<UnauthorizedObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 401, "Credenciais inválidas.");
     }
 
     [Fact]
@@ -127,13 +132,13 @@ public sealed class I051ValidacoesControllersTests
     public async Task F001_ConfirmacaoSemToken_Devolve400()
     {
         var controller = ServicosDeTeste.CriarAutenticacaoController(null!, null!, null!);
-        Assert.IsType<BadRequestObjectResult>(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default));
+        RespostasDeErro.AssertErro(await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), default), 400, "Ligação de confirmação inválida. Pede uma nova ligação.");
     }
 
     [Fact]
     public async Task F002_CriarViagemSemIdentidade_Devolve401()
     {
-        var controller = new ViagensController(null!)
+        var controller = new ViagensController(null!, null!, null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
@@ -142,15 +147,16 @@ public sealed class I051ValidacoesControllersTests
     }
 
     [Theory]
-    [InlineData(0, 20)]
-    [InlineData(1, 0)]
-    [InlineData(1, 101)]
-    [InlineData(-1, 20)]
-    public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho)
+    [InlineData(0, 20, "A página começa em 1.")]
+    [InlineData(1, 0, "O tamanho da página tem de estar entre 1 e 100.")]
+    [InlineData(1, 101, "O tamanho da página tem de estar entre 1 e 100.")]
+    [InlineData(-1, 20, "A página começa em 1.")]
+    public async Task F003_PesquisaComPaginacaoInvalida_Devolve400(int pagina, int tamanho, string mensagem)
     {
+        // BE-41: uma mensagem por regra, a mesma em todas as listas paginadas (Paginacao.Validar).
         var controller = new PesquisaController(null!);
         var result = await controller.Pesquisar(null, null, null, null, pagina, tamanho);
-        Assert.IsType<BadRequestObjectResult>(result);
+        RespostasDeErro.AssertErro(result, 400, mensagem);
     }
 
     [Fact]
@@ -397,7 +403,7 @@ public sealed class I051ValidacoesControllersTests
             new AutenticacaoController.Confirmar(token!),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(segundaConfirmacao);
+        RespostasDeErro.AssertErro(segundaConfirmacao, 400, "Esta ligação já foi usada. Se a conta está confirmada, inicia sessão.");
 
         // A conta continua confirmada e o token continua consumido.
         await db.Entry(utilizador).ReloadAsync();
@@ -438,7 +444,7 @@ public sealed class I051ValidacoesControllersTests
 
         var resultado = await controller.ConfirmarConta(new AutenticacaoController.Confirmar(" "), CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "Ligação de confirmação inválida. Pede uma nova ligação.");
         Assert.False(utilizador.EmailConfirmado);
         Assert.Null(confirmacao.ConsumidoEm);
     }
@@ -476,7 +482,7 @@ public sealed class I051ValidacoesControllersTests
             new AutenticacaoController.Confirmar("TOKEN_DESCONHECIDO"),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "Ligação de confirmação inválida. Pede uma nova ligação.");
         Assert.False(utilizador.EmailConfirmado);
         Assert.Null(confirmacao.ConsumidoEm);
     }
@@ -517,7 +523,7 @@ public sealed class I051ValidacoesControllersTests
             new AutenticacaoController.Confirmar(emailFake.TokenRecebido!),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "Esta ligação expirou. Pede uma nova ligação de confirmação.");
         Assert.False(utilizador.EmailConfirmado);
         Assert.Null(confirmacao.ConsumidoEm);
     }
@@ -572,7 +578,10 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico(configurado: false);
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -643,7 +652,10 @@ public sealed class I051ValidacoesControllersTests
                 "TestAuthentication"));
 
         var mapas = new MapasFalsos().CriarServico();
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {
@@ -747,7 +759,10 @@ public sealed class I051ValidacoesControllersTests
                 },
                 "TestAuthentication"));
 
-        var controller = new ViagensController(ServicosDeTeste.CriarViagens(db, mapas))
+        var controller = new ViagensController(
+            ServicosDeTeste.CriarViagens(db, mapas),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(db, mapas),
+            ServicosDeTeste.CriarCicloDeVida(db))
         {
             ControllerContext = new ControllerContext
             {

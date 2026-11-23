@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using CampusCarpool.Domain.Entities;
-using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
@@ -30,11 +30,11 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         return resposta.StatusCode;
     }
 
-    private async Task<HttpStatusCode> NegociarComHubAsync(string? token)
+    // DEF-BE-055: o hub já não aceita o JWT no endereço; pede-se um bilhete com o token e negoceia-se com ele.
+    private async Task<HttpStatusCode> NegociarComHubAsync(string token)
     {
-        using var cliente = _app.CreateClient();
-        var query = token is null ? "" : $"&access_token={token}";
-        using var resposta = await cliente.PostAsync($"/hubs/pedidos/negotiate?negotiateVersion=1{query}", null);
+        string bilhete = await ClienteDoHub.PedirBilheteAsync(_app, token);
+        using var resposta = await ClienteDoHub.NegociarAsync(_app, $"&bilhete={bilhete}");
         return resposta.StatusCode;
     }
 
@@ -108,14 +108,19 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, await ConsultarPerfilAsync(TokenInvalido(caso)));
     }
 
-    /// <summary>O hub aceita o token na query string, porque o WebSocket do browser não envia cabeçalhos.</summary>
+    /// <summary>
+    /// O hub aceita o bilhete pedido com o token na query string, porque o WebSocket do browser não envia cabeçalhos
+    /// (DEF-BE-055: antes era o próprio token).
+    /// </summary>
     [Fact]
     public async Task I110_78_Hub_AceitaTokenNaQueryString()
     {
         Assert.Equal(HttpStatusCode.OK, await NegociarComHubAsync(_app.TokenDe(_utilizador)));
     }
 
-    /// <summary>RNF-SEG-09: o hub recusa ligações sem token e com token inválido.</summary>
+    /// <summary>
+    /// RNF-SEG-09: o hub recusa ligações sem credencial, e um token inválido nem chega a obter bilhete (DEF-BE-055).
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("assinatura")]
@@ -123,22 +128,36 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
     [InlineData("lixo")]
     public async Task I110_79_Hub_SemTokenValido_Devolve401(string? caso)
     {
-        var token = caso is null ? null : TokenInvalido(caso);
+        if (caso is null)
+        {
+            using var semCredencial = await ClienteDoHub.NegociarAsync(_app, "");
+            Assert.Equal(HttpStatusCode.Unauthorized, semCredencial.StatusCode);
+            return;
+        }
 
-        Assert.Equal(HttpStatusCode.Unauthorized, await NegociarComHubAsync(token));
+        using var cliente = _app.CreateClient();
+        cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TokenInvalido(caso));
+        using var bilhete = await cliente.PostAsync("/api/v1/autenticacao/bilhete-hub", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, bilhete.StatusCode);
     }
 
-    /// <summary>DEF-BE-004: um token revogado também deixa de servir no hub.</summary>
+    /// <summary>
+    /// DEF-BE-004: um token revogado também deixa de servir no hub, mesmo com um bilhete pedido antes do fim de sessão
+    /// (DEF-BE-055).
+    /// </summary>
     [Fact]
     public async Task I110_80_Hub_RecusaTokenRevogado()
     {
         var token = _app.TokenDe(_utilizador);
+        string bilhete = await ClienteDoHub.PedirBilheteAsync(_app, token);
         using var cliente = _app.CreateClient();
         cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var logout = await cliente.PostAsync("/api/v1/autenticacao/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, await NegociarComHubAsync(token));
+        using var resposta = await ClienteDoHub.NegociarAsync(_app, $"&bilhete={bilhete}");
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
     }
 
     /// <summary>DC-46: o token na query string só vale no caminho do hub, porque fica nos logs de acesso.</summary>
@@ -163,20 +182,79 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
 
         var recebido = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var servidor = _app.Server;
-        await using var ligacao = new HubConnectionBuilder()
-            .WithUrl(new Uri(servidor.BaseAddress, $"hubs/pedidos?access_token={_app.TokenDe(condutor)}"), opcoes =>
-            {
-                opcoes.HttpMessageHandlerFactory = _ => servidor.CreateHandler();
-                opcoes.Transports = HttpTransportType.LongPolling;
-            })
-            .Build();
+        await using HubConnection ligacao = await CriarLigacaoAoHubAsync(_app.TokenDe(condutor));
         ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
-        await ligacao.StartAsync();
+        await LigarEEsperarPeloServidorAsync(ligacao);
 
         var participacaoId = await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
 
-        Assert.Equal(participacaoId, await recebido.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(participacaoId, await recebido.Task.WaitAsync(AplicacaoReal.EsperaMaxima));
+    }
+
+    /// <summary>
+    /// Cria uma ligação ao hub, ainda fechada, como os frontends: pede um bilhete com o token e liga por WebSocket com
+    /// <c>?bilhete=</c> (DEF-BE-055; antes era o token na query string, por long polling).
+    /// </summary>
+    /// <param name="token">Token com que a ligação entra.</param>
+    private async Task<HubConnection> CriarLigacaoAoHubAsync(string token)
+    {
+        string bilhete = await ClienteDoHub.PedirBilheteAsync(_app, token);
+        return ClienteDoHub.CriarLigacao(_app, bilhete);
+    }
+
+    /// <summary>
+    /// Abre a ligação e só volta quando o servidor acabou de a registar (R1).
+    /// </summary>
+    /// <remarks>
+    /// O <c>StartAsync</c> volta logo que o servidor responde ao handshake, mas o servidor só depois associa a ligação
+    /// ao utilizador e corre o <c>OnConnectedAsync</c> do hub (que a guarda em <c>LigacoesPorSessao</c>). Com a máquina
+    /// carregada, um evento ou um fim de sessão podia chegar antes disso e perder-se. O servidor só lê as mensagens do
+    /// cliente depois do <c>OnConnectedAsync</c>; por isso a resposta a uma invocação, aqui de um método que o hub não
+    /// tem, prova que o registo já está feito.
+    /// </remarks>
+    /// <param name="ligacao">Ligação criada por <see cref="CriarLigacaoAoHubAsync"/>.</param>
+    private static async Task LigarEEsperarPeloServidorAsync(HubConnection ligacao)
+    {
+        await ligacao.StartAsync().WaitAsync(AplicacaoReal.EsperaMaxima);
+        await Assert.ThrowsAsync<HubException>(() => ligacao.InvokeAsync("MetodoQueNaoExiste").WaitAsync(AplicacaoReal.EsperaMaxima));
+    }
+
+    /// <summary>
+    /// BE-18, DEF-BE-056, RNF-SEG-03: o fim de sessão fecha logo a ligação ao hub aberta com o mesmo token, e um
+    /// pedido seguinte já não chega a essa ligação.
+    /// </summary>
+    [Fact]
+    public async Task I112_54_FimDeSessao_FechaLigacaoAoHub()
+    {
+        var condutor = _app.CriarUtilizador("Condutor");
+        var passageiro = _app.CriarUtilizador("Passageiro");
+        string tokenCondutor = _app.TokenDe(condutor);
+        using var clienteCondutor = _app.CreateClient();
+        clienteCondutor.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenCondutor);
+        using var clientePassageiro = _app.ClienteDe(passageiro);
+        var viagemId = await AplicacaoReal.CriarViagemAsync(clienteCondutor);
+
+        var fechada = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var recebido = new TaskCompletionSource<Guid>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using HubConnection ligacao = await CriarLigacaoAoHubAsync(tokenCondutor);
+        ligacao.Closed += _ =>
+        {
+            fechada.TrySetResult();
+            return Task.CompletedTask;
+        };
+        ligacao.On<JsonElement>("PedidoRecebido", evento => recebido.TrySetResult(evento.GetProperty("pedidoId").GetGuid()));
+        await LigarEEsperarPeloServidorAsync(ligacao);
+
+        using var logout = await clienteCondutor.PostAsync("/api/v1/autenticacao/logout", null);
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        // A ligação fecha do lado do servidor, sem esperar pela expiração do token (60 min).
+        await fechada.Task.WaitAsync(AplicacaoReal.EsperaMaxima);
+        Assert.Equal(HubConnectionState.Disconnected, ligacao.State);
+
+        // Um pedido feito depois já não chega a esta ligação.
+        await AplicacaoReal.PedirParticipacaoAsync(clientePassageiro, viagemId);
+        Assert.False(recebido.Task.IsCompleted);
     }
 
     /// <summary>RF-F001-11: email inexistente e palavra-passe errada devolvem exatamente a mesma resposta.</summary>
@@ -192,7 +270,8 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
             "/api/v1/autenticacao/login",
             new { email = _utilizador.Email, password = "Outra-palavra-passe-9" });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, emailInexistente.StatusCode);
+        // O 401 do login traz { erro } (só o 401 do JwtBearer vem sem corpo) e é igual nos dois casos.
+        await RespostasDeErro.AssertErroAsync(emailInexistente, HttpStatusCode.Unauthorized, "Credenciais inválidas.");
         Assert.Equal(emailInexistente.StatusCode, palavraPasseErrada.StatusCode);
         Assert.Equal(
             await emailInexistente.Content.ReadAsStringAsync(),
@@ -213,7 +292,7 @@ public sealed class AutenticacaoRealHttpTests : IDisposable
         Assert.Equal(HttpStatusCode.Accepted, registo.StatusCode);
 
         using var porConfirmar = await cliente.PostAsJsonAsync("/api/v1/autenticacao/login", credenciais);
-        Assert.Equal(HttpStatusCode.Forbidden, porConfirmar.StatusCode);
+        await RespostasDeErro.AssertErroAsync(porConfirmar, HttpStatusCode.Forbidden, "Conta por confirmar.");
 
         using var confirmacao = await cliente.PostAsJsonAsync(
             "/api/v1/autenticacao/confirmar",

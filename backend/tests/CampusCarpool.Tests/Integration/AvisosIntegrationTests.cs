@@ -69,8 +69,14 @@ public sealed class AvisosIntegrationTests
             Guid passageiroId,
             EstadoParticipacao estado)
         {
+            // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+            var viagem = await Db.Viagens.FindAsync(viagemId);
             var participacao = new Participacao
             {
+                Destino = viagem!.Destino,
+                DestinoLatitude = viagem.DestinoLatitude,
+                DestinoLongitude = viagem.DestinoLongitude,
+                AceiteEm = estado == EstadoParticipacao.Aceite ? DateTime.UtcNow : null,
                 ViagemId = viagemId,
                 PassageiroId = passageiroId,
                 Estado = estado
@@ -144,7 +150,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id)
             .Criar(viagem.Id, new AvisosController.CriarAviso("Atraso de 5 minutos."), default);
 
-        Assert.IsType<ConflictObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 409, "A viagem não está ativa.");
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -168,7 +174,6 @@ public sealed class AvisosIntegrationTests
         var aviso = Assert.Single(await f.Db.Avisos.ToListAsync());
         var notificacao = Assert.Single(await f.Db.Notificacoes.ToListAsync());
         Assert.Equal(viagem.Id, aviso.ViagemId);
-        Assert.Equal(condutor.Id, aviso.CondutorId);
         Assert.Equal(passageiroAceite.Id, notificacao.UtilizadorId);
         Assert.Equal(TipoNotificacao.Aviso, notificacao.Tipo);
         Assert.Equal(aviso.Conteudo, notificacao.Conteudo);
@@ -185,7 +190,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Criar(
             viagem.Id, new("Mensagem não autorizada"), default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para criar avisos nesta viagem.");
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -199,7 +204,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id).Criar(
             Guid.NewGuid(), new("Mensagem"), default);
 
-        Assert.IsType<NotFoundObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 404, "Viagem não encontrada.");
         Assert.Empty(f.Db.Avisos);
     }
 
@@ -226,7 +231,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id).Criar(
             viagem.Id, new(new string('A', 101)), default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "O aviso tem no máximo 100 caracteres.");
         Assert.Empty(f.Db.Avisos);
     }
 
@@ -243,7 +248,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarAvisosController(f.Db, condutor.Id).Criar(
             viagem.Id, new(conteudo), default);
 
-        Assert.IsType<BadRequestObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 400, "Escreve o texto do aviso.");
         Assert.Empty(f.Db.Avisos);
         Assert.Empty(f.Db.Notificacoes);
     }
@@ -278,7 +283,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, passageiro.Id).Listar(viagem.Id, default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
     }
 
     [Fact]
@@ -291,7 +296,7 @@ public sealed class AvisosIntegrationTests
 
         var resultado = await CriarAvisosController(f.Db, outroUtilizador.Id).Listar(viagem.Id, default);
 
-        RespostaEsperada.Proibido(resultado);
+        RespostasDeErro.AssertErro(resultado, 403, "Não tens permissão para aceder aos avisos desta viagem.");
     }
 
     [Fact]
@@ -400,7 +405,7 @@ public sealed class AvisosIntegrationTests
         var resultado = await CriarNotificacoesController(f.Db, utilizador.Id)
             .MarcarComoLida(notificacao.Id, default);
 
-        Assert.IsType<NotFoundObjectResult>(resultado);
+        RespostasDeErro.AssertErro(resultado, 404, "Notificação não encontrada.");
         Assert.Null((await f.Db.Notificacoes.FindAsync(notificacao.Id))!.LidaEm);
     }
 

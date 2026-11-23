@@ -54,3 +54,6 @@ CLAUDE.md
 docs/qualidade/revisoes/
 docs/qualidade/divida-tecnica/
 docs/qualidade/auditorias/
+
+# Firebase da app Android: configuração local, fora do git (repositório público)
+frontend-mobile/app/google-services.json

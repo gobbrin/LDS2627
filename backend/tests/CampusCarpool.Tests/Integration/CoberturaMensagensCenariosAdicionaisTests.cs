@@ -20,7 +20,7 @@ public sealed class CoberturaMensagensCenariosAdicionaisTests
         await db.Database.EnsureCreatedAsync();
 
         var resultado = await new RepositorioMensagens(db)
-            .ObterConversaAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+            .ObterConversaAsync(Guid.NewGuid(), Guid.NewGuid(), null, 50, CancellationToken.None);
 
         Assert.Empty(resultado);
     }
@@ -49,7 +49,7 @@ public sealed class CoberturaMensagensCenariosAdicionaisTests
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var resultado = await repo.ObterConversaAsync(a.Id, b.Id, CancellationToken.None);
+        var resultado = await repo.ObterConversaAsync(a.Id, b.Id, null, 50, CancellationToken.None);
 
         Assert.Equal(new[] { primeiroId, segundoId }, resultado.Select(m => m.Id));
         Assert.All(resultado, m => Assert.Equal(EntityState.Detached, db.Entry(m).State));

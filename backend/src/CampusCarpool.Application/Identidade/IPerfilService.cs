@@ -10,7 +10,7 @@ public interface IPerfilService
     Task<Resultado<PerfilProprio>> ConsultarAsync(Guid utilizadorId, CancellationToken ct);
 
     /// <summary>Perfil público de um utilizador (RF-F001-17, RF-F001-19, RF-F007-10; DEF-BE-006).</summary>
-    /// <returns>O perfil, ou erro 404 se o utilizador não existir.</returns>
+    /// <returns>O perfil, ou erro 404 se o utilizador não existir ou tiver a conta por confirmar.</returns>
     Task<Resultado<PerfilPublico>> ConsultarPublicoAsync(Guid utilizadorId, CancellationToken ct);
 
     /// <summary>Altera nome, curso e instituição do próprio utilizador (RF-F001-14).</summary>

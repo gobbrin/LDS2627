@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Comum;
 using CampusCarpool.Application.Comunicacao;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,23 +26,51 @@ public sealed class MensagensController(IMensagemService mensagemService) : Cont
             mensagem => CreatedAtAction(nameof(ObterConversa), new { outroUtilizadorId = pedido.DestinatarioId }, mensagem));
     }
 
-    /// <summary>Conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08, DEF-BE-018). 200; 401.</summary>
+    /// <summary>
+    /// Uma página das conversas do utilizador autenticado, da mais recente para a mais antiga (RF-F005-08, DEF-BE-018,
+    /// D-4): <c>GET conversas?pagina=1&amp;tamanho=20</c>.
+    /// </summary>
+    /// <returns>200 <see cref="PaginaConversas"/> (<c>{ total, pagina, tamanho, conversas }</c>); 400 paginação inválida; 401.</returns>
     [HttpGet("conversas")]
-    public async Task<IActionResult> ListarConversas(CancellationToken ct)
+    public async Task<IActionResult> ListarConversas(
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanho = Paginacao.TamanhoPorOmissao,
+        CancellationToken ct = default)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
 
-        return Ok(await mensagemService.ListarConversasAsync(utilizadorId, ct));
+        if (Paginacao.Validar(pagina, tamanho) is { } paginacaoInvalida)
+            return this.RespostaDeErro(paginacaoInvalida);
+
+        return Ok(await mensagemService.ListarConversasAsync(utilizadorId, pagina, tamanho, ct));
     }
 
-    /// <summary>Conversa com outro utilizador, por ordem cronológica (RF-F005-03, RF-F005-09). 200; 400; 401.</summary>
+    /// <summary>
+    /// Uma página da conversa com outro utilizador, por ordem cronológica (RF-F005-03, RF-F005-09, BE-13).
+    /// </summary>
+    /// <remarks>
+    /// <c>GET conversa/{id}?antesDe={mensagemId}&amp;tamanho=50</c>. Sem <c>antesDe</c>, as mais recentes; para
+    /// carregar as anteriores, <c>antesDe</c> é o id da mensagem mais antiga já mostrada. Menos de <c>tamanho</c>
+    /// mensagens significa que não há mais antigas.
+    /// </remarks>
+    /// <returns>200 com a lista; 400 (tamanho fora de 1 a 100, <c>antesDe</c> de outra conversa, outro utilizador inválido); 401.</returns>
     [HttpGet("conversa/{outroUtilizadorId:guid}")]
-    public async Task<IActionResult> ObterConversa(Guid outroUtilizadorId, CancellationToken ct)
+    public async Task<IActionResult> ObterConversa(
+        Guid outroUtilizadorId,
+        [FromQuery] Guid? antesDe,
+        [FromQuery] int? tamanho,
+        CancellationToken ct)
     {
         if (User.IdUtilizador() is not Guid utilizadorId) return Unauthorized();
 
+        // Sem tamanho, 50 mensagens por página. O tamanho valida-se aqui, no controller (BE-41).
+        int tamanhoDaPagina = tamanho ?? MensagemService.TamanhoPorOmissao;
+
+        if (Paginacao.ValidarTamanho(tamanhoDaPagina) is { } tamanhoInvalido)
+            return this.RespostaDeErro(tamanhoInvalido);
+
         return this.Responder(
-            await mensagemService.ObterConversaAsync(utilizadorId, outroUtilizadorId, ct),
+            await mensagemService.ObterConversaAsync(utilizadorId, outroUtilizadorId, antesDe, tamanhoDaPagina, ct),
             mensagens => Ok(mensagens));
     }
 }

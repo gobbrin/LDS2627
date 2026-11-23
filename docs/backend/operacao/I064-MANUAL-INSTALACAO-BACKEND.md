@@ -4,7 +4,7 @@
 **Issue:** I064
 **Executor:** Vítor Samuel Vieira Lopes · **Revisor:** Cristiana Gabriela Oliveira Macedo · **Auditor:** Joana Francisca Pacheco Rodrigues
 **Última verificação dos procedimentos:** 06/11/2026 (ver secção 11)
-**Versão do backend descrita:** a entregue em m3, `04-artefactos-tecnicos/04.12-backend/m3-v01` (commit `0205ac1` da branch `develop`).
+**Versão do backend descrita:** a entregue em m3, `04-artefactos-tecnicos/04.12-backend/m3-v01` (commit `0205ac1` da branch `develop`), com as alterações de configuração e de comportamento da I112 (16/11/2026: `Here:ApiKey`, `ProxyReverso:*`, registo sempre 202).
 
 ## 1. Objetivo e âmbito
 
@@ -39,7 +39,7 @@ dotnet run --project src/CampusCarpool.Api
 
 Noutra janela, `curl http://localhost:5100/health` deve responder `Healthy`.
 
-**Criar uma conta de teste sem serviço de email.** Sem chave Brevo, `POST /api/v1/autenticacao/registo` responde `503`, mas a conta fica criada por confirmar. Basta confirmá-la diretamente na base de dados local:
+**Criar uma conta de teste sem serviço de email.** Sem chave Brevo, `POST /api/v1/autenticacao/registo` responde `202` e a conta fica criada por confirmar; o email não sai (a falha fica no log). Basta confirmá-la diretamente na base de dados local:
 
 ```powershell
 docker exec campuscarpool-sql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "CampusCarpool-Local1!" -d CampusCarpoolDb -Q "UPDATE Utilizadores SET EmailConfirmado = 1 WHERE Email = 'teste1@estg.ipp.pt'"
@@ -60,7 +60,7 @@ Mapas, email e push ficam desligados nesta configuração. Os testes não precis
 | --- | --- | --- | --- |
 | `Jwt:Key` | Segredo com que a API assina os tokens de sessão. Quem o conhecer pode fabricar um token válido de qualquer utilizador | O repositório é público. Uma chave conhecida anula a autenticação | Gera-se em segundos (passo 2) e cada ambiente tem a sua |
 | `ConnectionStrings:DefaultConnection` | Endereço do SQL Server e credenciais de acesso | A do Azure daria acesso à base de dados real. O regulamento da UC (§18.4) só admite contas temporárias e limitadas | A local é a do passo 2, sem qualquer segredo real |
-| `Brevo:ApiKey`, `Maps:ApiKey`, `Firebase:*` | Chaves de contas em serviços externos | São contas pessoais, com quota, e não podem ser reutilizadas | Conta gratuita em cada serviço, só se for preciso testar a integração real |
+| `Brevo:ApiKey`, `Maps:ApiKey`, `Here:ApiKey`, `Firebase:*` | Chaves de contas em serviços externos | São contas pessoais, com quota, e não podem ser reutilizadas | Conta gratuita em cada serviço, só se for preciso testar a integração real |
 
 Nada disto reduz a testabilidade: a API corre localmente com os dois primeiros valores, e os testes automáticos não precisam de nenhuma chave real.
 
@@ -210,21 +210,23 @@ O ASP.NET Core junta, por esta ordem (a última ganha): `appsettings.json` → `
 | `Frontend:ConfirmUrl` | Para registo | URL do frontend a que o email de confirmação aponta; o token é acrescentado como `?token=` | `http://localhost:4200/confirmar-conta` |
 | `EmailAcademico:Dominios` | **Sim** | Domínios de email aceites no registo. Lista vazia recusa todos os registos | `["estg.ipp.pt"]` |
 | `Cors:Origens` | Para o frontend | Origens autorizadas a chamar a API | `["http://localhost:4200"]` |
+| `ProxyReverso:Proxies` | Só atrás de um proxy reverso | Endereços IP dos proxies em que a API confia para ler `X-Forwarded-For` e `X-Forwarded-Proto` (secção 9.1). Vazio: os cabeçalhos são ignorados | `["10.0.0.4"]` |
+| `ProxyReverso:Redes` | Só atrás de um proxy reverso | Redes (CIDR) dos proxies em que a API confia, em alternativa à lista de IP | `["10.0.0.0/24"]` |
 | `Brevo:ApiKey` | Para registo | Chave da API Brevo (envio do email de confirmação) | `<BREVO_API_KEY>` |
 | `Brevo:FromEmail` | Para registo | Remetente (validado na Brevo) | `<EMAIL_REMETENTE>` |
 | `Brevo:FromName` | Não | Nome do remetente | `Campus Carpool` |
-| `Maps:BaseUrl` | Não | Base do OpenRouteService | `https://api.heigit.org/openrouteservice` |
-| `Maps:ApiKey` | Para rotas/estimativas | Chave OpenRouteService; sem ela os endpoints de mapas falham | `<ORS_API_KEY>` |
-| `Maps:TimeoutSeconds` | Não | Timeout dos pedidos de mapas (defeito 10) | `10` |
+| `Maps:ApiKey` | Para rotas/estimativas | Chave OpenRouteService (geocodificação, distâncias, duração e ordem dos pontos); sem ela os endpoints de mapas respondem 503 | `<ORS_API_KEY>` |
+| `Here:ApiKey` | Não | Chave HERE Routing v8, só para a linha da rota no mapa (`geometria`). Sem ela, ou se a HERE falhar, a operação continua e o mapa recebe retas entre os pontos (`geometriaAproximada: true`) | `<HERE_API_KEY>` |
+| `Maps:TimeoutSeconds` | Não | Timeout de cada pedido ao OpenRouteService (defeito 10). A operação inteira tem sempre o limite de 10 s (P-19), fixo no código | `10` |
 | `Custos:PrecoPorKm` | Para estimativa de custo | Preço por km | `0.10` |
 | `ConclusaoViagens:IntervaloSegundos` | Não | Intervalo, em segundos, com que o serviço em segundo plano conclui as viagens cuja hora de chegada prevista já passou (RF-F002-12); 60 por omissão | `60` |
 | `Firebase:ProjectId`, `Firebase:ClientEmail`, `Firebase:PrivateKey` | Não | Notificações push (FCM). Se faltar algum, o push é ignorado com um aviso no log. A chave privada é uma PEM com `\n` literais | `<FIREBASE_…>` |
 
 Notas:
-- O registo (`POST /api/v1/autenticacao/registo`) grava o utilizador e **depois** envia o email. Sem `Brevo:*` e `Frontend:ConfirmUrl` devolve `503` (a conta fica criada mas por confirmar). Para testar fluxos autenticados sem Brevo, confirmar a conta na base de dados (secção 1.1).
+- O registo (`POST /api/v1/autenticacao/registo`) grava o utilizador, põe o email de confirmação numa fila em memória e responde `202` sem esperar pelo envio (I112). Sem `Brevo:*` e `Frontend:ConfirmUrl` o email não sai e a falha fica no log; a conta fica por confirmar. Para testar fluxos autenticados sem Brevo, confirmar a conta na base de dados (secção 1.1).
 - Só são aceites emails dos domínios em `EmailAcademico:Dominios` e palavras-passe com pelo menos 8 caracteres, uma letra e um dígito.
 - O envio de email usa só `Brevo:*` (a antiga secção `Email:*`, que o código não lia, foi retirada do `appsettings.json` na I110).
-- `Maps:BaseUrl` e `Maps:Provider` não têm efeito: o serviço de mapas usa os URL absolutos do OpenRouteService (`api.heigit.org`).
+- O serviço de mapas usa os URL absolutos do OpenRouteService (`api.heigit.org`). As chaves `Maps:BaseUrl` e `Maps:Provider`, que não tinham efeito, foram retiradas na I112; se ainda estiverem na configuração do servidor, são ignoradas.
 
 ### 6.3 Opção recomendada — User Secrets (local)
 
@@ -237,6 +239,7 @@ dotnet user-secrets set "Jwt:Key" "<CHAVE_ALEATORIA_32+_BYTES>" --project $api
 dotnet user-secrets set "Brevo:ApiKey" "<BREVO_API_KEY>" --project $api
 dotnet user-secrets set "Brevo:FromEmail" "<EMAIL_REMETENTE>" --project $api
 dotnet user-secrets set "Maps:ApiKey" "<ORS_API_KEY>" --project $api
+dotnet user-secrets set "Here:ApiKey" "<HERE_API_KEY>" --project $api
 dotnet user-secrets set "Frontend:ConfirmUrl" "http://localhost:4200/confirmar-conta" --project $api
 dotnet user-secrets list --project $api
 ```
@@ -283,7 +286,7 @@ curl http://localhost:5100/health     # Healthy (503 se a base de dados não res
 curl http://localhost:5100/           # {"service":"Campus Carpool API","status":"running"}
 ```
 
-Endpoints úteis: API REST em `/api/v1/...`, hub SignalR em `/hubs/pedidos` (o token JWT segue em `?access_token=` apenas neste caminho), OpenAPI apenas em `Development`. Limites de pedidos (resposta `429`): 100 por minuto por utilizador ou IP e 10 por minuto por IP no login, no registo e no reenvio da confirmação.
+Endpoints úteis: API REST em `/api/v1/...`, hub SignalR em `/hubs/pedidos` (a ligação leva um bilhete de uso único em `?bilhete=`, pedido em `POST /api/v1/autenticacao/bilhete-hub`; ver §9.2), OpenAPI apenas em `Development`. Limites de pedidos (resposta `429`): 100 por minuto por utilizador ou IP e 10 por minuto por IP no login, no registo e no reenvio da confirmação.
 
 > O `/health` executa uma consulta real à base de dados: responde `503` se ela não estiver acessível.
 
@@ -344,11 +347,33 @@ https://campuscarpool-api-g15-ase2b6g6cbabf7d7.germanywestcentral-01.azurewebsit
 6. Em `Production` não há OpenAPI; verificar com `GET /health`.
 7. O serviço fica atrás de HTTPS (a API usa `UseHttpsRedirection`).
 
+### 9.1 Proxy reverso e limites por cliente (BE-20, I112)
+
+Os limites de pedidos (secção 7) contam por utilizador com sessão e, sem sessão, por IP. Atrás de um proxy reverso (Nginx, um balanceador, o *front end* do Azure), o IP que a API vê é o do proxy: sem configuração, todos os clientes partilham o mesmo limite, e 11 alunos a iniciar sessão no mesmo minuto fazem o 11.º receber `429`.
+
+A API lê o IP real do cliente no cabeçalho `X-Forwarded-For`, e o esquema (`https`) no `X-Forwarded-Proto`, **só quando o pedido vem de um proxy configurado** em `ProxyReverso:Proxies` (endereços IP) ou `ProxyReverso:Redes` (CIDR). Aceita um só salto: o valor escrito pelo proxy mais próximo. Sem nenhum proxy configurado, os cabeçalhos são ignorados, porque qualquer cliente os pode escrever para fugir ao limite. Um valor com formato inválido impede o arranque.
+
+```bash
+# Exemplo: Nginx na mesma rede privada, com o IP 10.0.0.4
+export ProxyReverso__Proxies__0=10.0.0.4
+# ou toda a sub-rede dos balanceadores
+export ProxyReverso__Redes__0=10.0.0.0/24
+```
+
+- **Nunca** usar `0.0.0.0/0` nem `::/0`: seria confiar em qualquer cliente.
+- O proxy tem de **substituir** (não acrescentar ao valor do cliente) o `X-Forwarded-For`, ou pelo menos acrescentar o IP de quem lhe ligou no fim, que é o valor lido.
+- **Azure App Service em Linux** define `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`: o próprio ASP.NET Core passa a ler os cabeçalhos do *front end* do Azure, que não é acessível de fora. Não é preciso `ProxyReverso`. Em **Windows** essa variável não existe: definir `ProxyReverso:Redes` com a rede do *front end*, ou a variável `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` só se a aplicação não for acessível sem passar por ele.
+- Sem proxy (acesso direto à API), deixar `ProxyReverso` vazio.
+
+### 9.2 Credencial do hub na query string (DEF-BE-055)
+
+O WebSocket do browser não envia cabeçalhos, por isso a credencial do hub `/hubs/pedidos` tem de ir no endereço, que pode ficar nos registos de acesso do servidor ou do proxy. Desde a I112 (18/11) não é o JWT: o cliente pede `POST /api/v1/autenticacao/bilhete-hub` e liga com `?bilhete=`, um valor aleatório de uso único, válido 30 segundos e só aceite nesse caminho. Um bilhete que fique num registo já foi gasto ou expirou. `?access_token=` deixou de ser aceite. Os bilhetes ficam só na memória do processo da API (até 10 000 por usar): com mais do que uma instância atrás de um balanceador, o pedido do bilhete e a ligação têm de chegar à mesma instância (afinidade de sessão), como as próprias ligações SignalR. Continua a ser boa prática não registar a query string dos pedidos a `/hubs/` (por exemplo, no Nginx, um `log_format` sem `$args` para essa `location`).
+
 ## 10. Pontos de atenção conhecidos
 
 1. **Chaves que estiveram no repositório.** As antigas `Jwt:Key` e `Maps:ApiKey` e as credenciais do Azure SQL ficaram no histórico público do git. Têm de ser regeneradas e nunca reutilizadas.
 2. **Partilha de credenciais.** Chaves e palavras-passe não devem circular em chat; se já foram partilhadas, regenerá-las.
-3. **READMEs internos.** `backend/README.md` e `database/scripts/README.md` referem `ConnectionStrings__CampusCarpool` e `Persistence/Migrations`. Vale este manual: `DefaultConnection` e `Infrastructure/Migrations`.
+3. **Documentos antigos.** Documentos anteriores à I112 podem referir `ConnectionStrings__CampusCarpool` e `Persistence/Migrations`. Vale este manual: `DefaultConnection` e `Infrastructure/Migrations` (os READMEs do backend foram corrigidos na I112).
 
 ## 11. Verificação dos procedimentos
 
@@ -360,7 +385,7 @@ Verificação inicial a 02/11/2026 (I064). **Última verificação a 06/11/2026*
 | Pipeline 42202915885, com SQL Server real | Todos os passos verdes: 674 aprovados, 0 saltados; repetição em SQL Server: 673 aprovados, 1 saltado de propósito; cobertura de 95,73 % |
 | Arranque da API com `Jwt__Key` e ligação a um servidor inexistente, em `Production` | `GET /` responde 200 e `GET /health` responde 503 (comportamento esperado) |
 | Contentor SQL Server e migrations | Executados pela pipeline em cada push |
-| Passos da secção 1.1 com Docker | **Não executados nesta máquina**, sem motor Docker funcional. O contentor e as migrations são os da pipeline. Falta validar a confirmação de conta por SQL e o registo a responder 503 sem Brevo |
+| Passos da secção 1.1 com Docker | **Não executados nesta máquina**, sem motor Docker funcional. O contentor e as migrations são os da pipeline. Falta validar a confirmação de conta por SQL e o registo sem Brevo (desde a I112 responde 202) |
 | Azure SQL, envio de email Brevo, FCM, publicação Azure | **Não executados** (exigem credenciais da equipa) |
 
 ## 12. Resolução de problemas
@@ -374,8 +399,9 @@ Verificação inicial a 02/11/2026 (I064). **Última verificação a 06/11/2026*
 | `Login failed for user` | Utilizador/palavra-passe errados ou caracteres especiais mal escapados | Confirmar credenciais; numa connection string, envolver a palavra-passe em aspas duplas se tiver `;` ou `=` (não é solução universal) |
 | Erros `Invalid object name '…'` nos endpoints | Migrations não aplicadas | `dotnet ef database update` (secção 5.3) |
 | `dotnet ef` não encontrado | Ferramenta global não instalada | `dotnet tool install --global dotnet-ef --version 10.0.*` |
-| Registo devolve `503` | Brevo ou `Frontend:ConfirmUrl` não configurados | Definir `Brevo:*` e `Frontend:ConfirmUrl` |
+| Registo devolve `202` mas o email não chega | Brevo ou `Frontend:ConfirmUrl` não configurados (a falha está no log do `TrabalhadorEmails`) | Definir `Brevo:*` e `Frontend:ConfirmUrl` e pedir o reenvio |
 | Endpoints de rotas/estimativa falham | `Maps:ApiKey` em falta ou inválida | Confirmar a chave OpenRouteService |
+| Rotas com `geometriaAproximada: true` (retas no mapa) | `Here:ApiKey` em falta ou inválida, ou HERE sem resposta (aviso no log) | Confirmar a chave HERE; não é um erro, a rota continua válida |
 | `401` com token válido | `Jwt:Key`, `Issuer` ou `Audience` diferentes dos usados ao emitir o token | Usar os mesmos valores em todo o ambiente |
 | `429 Too Many Requests` | Limite de pedidos (secção 7) | Aguardar um minuto |
 | Aparecem 6 testes saltados | `CAMPUSCARPOOL_TESTES_SQLSERVER` não definida (secção 8.1) | Definir a variável (secção 1.1) ou aceitar: não é uma falha |
@@ -391,3 +417,4 @@ Verificação inicial a 02/11/2026 (I064). **Última verificação a 06/11/2026*
 - [Azure SQL Database — regras de firewall](https://learn.microsoft.com/azure/azure-sql/database/firewall-configure)
 - [Brevo — API de email transacional](https://developers.brevo.com/)
 - [OpenRouteService](https://openrouteservice.org/dev/)
+- [HERE para programadores (Routing API v8)](https://developer.here.com/)

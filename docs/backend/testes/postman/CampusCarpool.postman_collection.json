@@ -1,1599 +1,4558 @@
 {
-	"info": {
-		"_postman_id": "1c3d389a-51cb-4beb-9696-69c29124ce50",
-		"name": "Campus Carpool — API completa (controladores fornecidos)",
-		"description": "17 endpoints reais identificados nos controladores fornecidos. Testes automáticos HTTP e variáveis. Usar apenas em ambiente de desenvolvimento/teste; alguns pedidos modificam dados. Os 6 controladores vazios não têm endpoints a testar.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "50129827",
-		"_collection_link": "https://crism12-8542751.postman.co/workspace/CrisM12's-Workspace~743441ab-95d0-4bb9-8169-ef2cc75931d8/collection/50129827-1c3d389a-51cb-4beb-9696-69c29124ce50?action=share&source=collection_link&creator=50129827"
-	},
-	"item": [
-		{
-			"name": "01 Autenticação",
-			"item": [
-				{
-					"name": "Registar — email académico",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Teste Campus\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"registo"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Registar — email não académico (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"nao-academico@example.com\",\n  \"password\": \"{{password}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"registo"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Registar — password curta (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"{{email}}\",\n  \"password\": \"curta\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/registo",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"registo"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Reenviar confirmação",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"{{email}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/reenviar-confirmacao",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"reenviar-confirmacao"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Confirmar conta — token recebido por email",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"{{confirmToken}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"confirmar"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Confirmar conta — token inválido (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"invalido\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"confirmar"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Login — guardar JWT",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-									"const j=pm.response.json();",
-									"pm.test(\"JWT recebido\",()=>pm.expect(j.accessToken).to.be.a(\"string\").and.not.empty);",
-									"if(j.accessToken) pm.collectionVariables.set(\"accessToken\",j.accessToken);"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"login"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Login — password errada (401)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"errada\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"login"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Me — autenticação",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/autenticacao/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"autenticacao",
-								"me"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "02 Utilizadores",
-			"item": [
-				{
-					"name": "Consultar perfil",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-									"const j=pm.response.json();",
-									"pm.test(\"Não expõe passwordHash\",()=>pm.expect(JSON.stringify(j).toLowerCase()).not.to.include(\"passwordhash\"));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"utilizadores",
-								"me"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Atualizar perfil",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Teste Atualizado\",\n  \"curso\": \"Engenharia Informática\",\n  \"instituicao\": \"ESTG\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"utilizadores",
-								"me"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Atualizar — nome vazio (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \" \",\n  \"curso\": null,\n  \"instituicao\": null\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"utilizadores",
-								"me"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "03 Mapas",
-			"item": [
-				{
-					"name": "Geocodificar Porto",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-									"const j=pm.response.json();",
-									"pm.test(\"Latitude e longitude\",()=>{pm.expect(j).to.have.property(\"latitude\");pm.expect(j).to.have.property(\"longitude\");});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=Porto",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"rotas",
-								"geocodificar"
-							],
-							"query": [
-								{
-									"key": "texto",
-									"value": "Porto"
-								}
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Geocodificar — texto vazio (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"rotas",
-								"geocodificar"
-							],
-							"query": [
-								{
-									"key": "texto",
-									"value": ""
-								}
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Calcular rota Porto → Braga",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-									"const j=pm.response.json();",
-									"pm.test(\"Distância positiva\",()=>pm.expect(j.distanciaKm).to.be.above(0));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/rotas/calcular",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"rotas",
-								"calcular"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Calcular — origem vazia (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origem\": \" \",\n  \"destino\": \"Braga\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/rotas/calcular",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"rotas",
-								"calcular"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "04 Viagens",
-			"item": [
-				{
-					"name": "Criar viagem — guardar ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
-									"const j=pm.response.json();",
-									"pm.test(\"ID da viagem\",()=>pm.expect(j.id).to.be.a(\"string\"));",
-									"if(j.id)pm.collectionVariables.set(\"viagemId\",j.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 3\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Criar — mesma origem e destino (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Porto\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 3\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Criar — lugares inválidos (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 9\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Consultar viagem",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Consultar viagem inexistente (404)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{idInexistente}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{idInexistente}}"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Editar viagem",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 4\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Editar — lugares inválidos (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 0\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Indisponibilizar viagem — altera estado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/indisponibilizar",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}",
-								"indisponibilizar"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Indisponibilizar novamente (409)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/indisponibilizar",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}",
-								"indisponibilizar"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Concluir viagem futura (409)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/concluir",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}",
-								"concluir"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido. Executar manualmente após preparar os dados necessários."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "05 Pesquisa",
-			"item": [
-				{
-					"name": "Pesquisar viagens",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-									"const j=pm.response.json();",
-									"pm.test(\"Metadados de paginação\",()=>{pm.expect(j).to.have.property(\"total\");pm.expect(j).to.have.property(\"viagens\");});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Pesquisar com filtros",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?origem=Porto&destino=Braga&pagina=1&tamanho=10",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							],
-							"query": [
-								{
-									"key": "origem",
-									"value": "Porto"
-								},
-								{
-									"key": "destino",
-									"value": "Braga"
-								},
-								{
-									"key": "pagina",
-									"value": "1"
-								},
-								{
-									"key": "tamanho",
-									"value": "10"
-								}
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Pesquisar por data e hora",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?data={{dataPesquisa}}&hora={{horaPesquisa}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							],
-							"query": [
-								{
-									"key": "data",
-									"value": "{{dataPesquisa}}"
-								},
-								{
-									"key": "hora",
-									"value": "{{horaPesquisa}}"
-								}
-							]
-						},
-						"description": "Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Paginação inválida (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?pagina=0&tamanho=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							],
-							"query": [
-								{
-									"key": "pagina",
-									"value": "0"
-								},
-								{
-									"key": "tamanho",
-									"value": "20"
-								}
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Tamanho inválido (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens?pagina=1&tamanho=101",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							],
-							"query": [
-								{
-									"key": "pagina",
-									"value": "1"
-								},
-								{
-									"key": "tamanho",
-									"value": "101"
-								}
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "06 Segurança",
-			"item": [
-				{
-					"name": "Sem JWT — perfil (401)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/utilizadores/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"utilizadores",
-								"me"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Sem JWT — pesquisa (401)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/pesquisa/viagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"pesquisa",
-								"viagens"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				},
-				{
-					"name": "Sem JWT — viagens (401)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
-								]
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"viagens",
-								"{{viagemId}}"
-							]
-						},
-						"description": "Cenário negativo. Endpoint real do controlador fornecido."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "07 Mensagens",
-			"item": [
-				{
-					"name": "Enviar Mensagem",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"destinatarioId\": \"COLOCA-AQUI-O-ID-REAL-DO-DESTINATARIO\",\r\n  \"conteudo\": \"Olá! Esta é uma mensagem de teste do Campus Carpool.\"\r\n}\r\n",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/mensagens",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"mensagens"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Consultar Conversa",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/mensagens/conversa/{{outroUtilizadorId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"mensagens",
-								"conversa",
-								"{{outroUtilizadorId}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{accessToken}}",
-				"type": "string"
-			}
-		]
-	},
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					"const future = new Date(Date.now()+7*86400000);",
-					"pm.collectionVariables.set(\"partidaFutura\", future.toISOString());",
-					"pm.collectionVariables.set(\"partidaPassada\", new Date(Date.now()-86400000).toISOString());",
-					"pm.collectionVariables.set(\"dataPesquisa\", future.toISOString().slice(0,10));"
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "https://localhost:7001"
-		},
-		{
-			"key": "accessToken",
-			"value": ""
-		},
-		{
-			"key": "email",
-			"value": ""
-		},
-		{
-			"key": "password",
-			"value": ""
-		},
-		{
-			"key": "confirmToken",
-			"value": ""
-		},
-		{
-			"key": "viagemId",
-			"value": "00000000-0000-0000-0000-000000000000"
-		},
-		{
-			"key": "idInexistente",
-			"value": "00000000-0000-0000-0000-000000000001"
-		},
-		{
-			"key": "partidaFutura",
-			"value": ""
-		},
-		{
-			"key": "partidaPassada",
-			"value": ""
-		},
-		{
-			"key": "dataPesquisa",
-			"value": ""
-		},
-		{
-			"key": "horaPesquisa",
-			"value": "08:00"
-		}
-	]
+  "info": {
+    "_postman_id": "6f1d0c52-3a1e-4f8e-9a51-1c2a7d0e1112",
+    "name": "Campus Carpool — API v1 (I112)",
+    "description": "Todos os endpoints da API (46 em /api/v1, mais / e /health), 92 pedidos, na ordem de um fluxo que funciona: registo e login, perfil, mapas, viagens, pesquisa, pedido, simulações, aceitar, comunicação, notificações, concluir, avaliar, histórico e fim de sessão. Cada pedido tem a resposta esperada como testes (código HTTP, campos principais e `erro` nos erros). Erros sempre `{ erro }`, exceto o 401 do JwtBearer, sem corpo. Sem chave de mapas, os pedidos que precisam deles aceitam 503 `{ erro }`. Como correr: docs/backend/testes/LEIA-ME.md. Usar só em desenvolvimento: cria dados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 Arranque",
+      "item": [
+        {
+          "name": "Estado do processo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Serviço a correr', () => pm.expect(pm.response.json().status).to.eql('running'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "200 `{ service, status: \"running\" }`, anónimo."
+          }
+        },
+        {
+          "name": "Health check (base de dados)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Healthy', () => pm.expect(pm.response.text()).to.eql('Healthy'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "200 `Healthy` (texto). 503 com a base de dados em baixo (corpo de texto, não `{ erro }`: BE-09-e)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 Autenticação",
+      "item": [
+        {
+          "name": "Registo do condutor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Emails novos em cada corrida: o domínio tem de estar em EmailAcademico:Dominios.",
+                  "if (!pm.environment.get('sufixo')) {",
+                  "    pm.environment.set('sufixo', Date.now().toString(36));",
+                  "}",
+                  "const s = pm.environment.get('sufixo');",
+                  "const d = pm.environment.get('dominioEmail');",
+                  "pm.environment.set('emailCondutor', `condutor.${s}@${d}`);",
+                  "pm.environment.set('emailPassageiro', `passageiro.${s}@${d}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
+                  "pm.test('Mensagem de verificação', () => pm.expect(pm.response.json().mensagem).to.eql('Verifica o email académico para confirmar a conta.'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "registo"
+              ]
+            },
+            "description": "202 `{ mensagem }`: conta criada por confirmar; o email segue em segundo plano (BE-12). Já não responde 503 se o email falhar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Condutor Postman\",\n  \"email\": \"{{emailCondutor}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registo do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 202', () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "registo"
+              ]
+            },
+            "description": "202 `{ mensagem }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Passageiro Postman\",\n  \"email\": \"{{emailPassageiro}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registo com email repetido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Email já registado.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "registo"
+              ]
+            },
+            "description": "409 `{ erro }` (RF-F001-04).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro\",\n  \"email\": \"{{emailCondutor}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registo com email não académico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"É necessário um email académico permitido.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/registo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "registo"
+              ]
+            },
+            "description": "400 `{ erro }` (RF-F001-03).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro\",\n  \"email\": \"alguem@gmail.com\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login com a conta por confirmar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Conta por confirmar.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "login"
+              ]
+            },
+            "description": "403 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCondutor}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reenviar a confirmação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
+                  "pm.test('Resposta neutra', () => pm.expect(pm.response.json()).to.have.property('mensagem'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/reenviar-confirmacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "reenviar-confirmacao"
+              ]
+            },
+            "description": "202 `{ mensagem }`, exista ou não a conta (resposta neutra, RF-F001-21).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCondutor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar com token inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Ligação de confirmação inválida. Pede uma nova ligação.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "confirmar"
+              ]
+            },
+            "description": "400 `{ erro }` (token em falta, inválido, expirado ou já usado).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"token-que-nao-existe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar a conta do condutor (token do email)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// O token vem na ligação do email (Brevo). Sem ele, este pedido é saltado: confirmar a conta",
+                  "// por outro meio (ver LEIA-ME) antes do login.",
+                  "if (!pm.environment.get('tokenConfirmacaoCondutor')) { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "confirmar"
+              ]
+            },
+            "description": "204. Saltado sem `tokenConfirmacaoCondutor`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{tokenConfirmacaoCondutor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirmar a conta do passageiro (token do email)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// O token vem na ligação do email (Brevo). Sem ele, este pedido é saltado: confirmar a conta",
+                  "// por outro meio (ver LEIA-ME) antes do login.",
+                  "if (!pm.environment.get('tokenConfirmacaoPassageiro')) { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "confirmar"
+              ]
+            },
+            "description": "204. Saltado sem `tokenConfirmacaoPassageiro`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{tokenConfirmacaoPassageiro}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login do condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Token JWT e validade', () => {",
+                  "    pm.expect(corpo.accessToken).to.be.a('string');",
+                  "    pm.expect(corpo.expiresIn).to.be.above(0);",
+                  "});",
+                  "pm.environment.set('tokenCondutor', corpo.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "login"
+              ]
+            },
+            "description": "200 `{ accessToken, expiresIn }` (JWT de 60 min).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCondutor}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Token JWT e validade', () => {",
+                  "    pm.expect(corpo.accessToken).to.be.a('string');",
+                  "    pm.expect(corpo.expiresIn).to.be.above(0);",
+                  "});",
+                  "pm.environment.set('tokenPassageiro', corpo.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "login"
+              ]
+            },
+            "description": "200 `{ accessToken, expiresIn }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailPassageiro}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login com a password errada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Credenciais inválidas.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "login"
+              ]
+            },
+            "description": "401 `{ erro }` (o login tem corpo; o 401 do JwtBearer não).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCondutor}}\",\n  \"password\": \"Errada123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sessão do condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const id = pm.response.json().id;",
+                  "pm.test('Id do utilizador', () => pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/));",
+                  "pm.environment.set('condutorId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "me"
+              ]
+            },
+            "description": "200 `{ id }`."
+          }
+        },
+        {
+          "name": "Sessão do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const id = pm.response.json().id;",
+                  "pm.test('Id do utilizador', () => pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/));",
+                  "pm.environment.set('passageiroId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "me"
+              ]
+            },
+            "description": "200 `{ id }`."
+          }
+        },
+        {
+          "name": "Sessão sem token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "me"
+              ]
+            },
+            "description": "401 sem corpo (JwtBearer)."
+          }
+        },
+        {
+          "name": "Bilhete do hub (condutor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Bilhete e validade em UTC', () => {",
+                  "    pm.expect(corpo.bilhete).to.be.a('string').and.not.empty;",
+                  "    pm.expect(corpo.expiraEm).to.be.a('string').and.match(/Z$/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/bilhete-hub",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "bilhete-hub"
+              ]
+            },
+            "description": "200 `{ bilhete, expiraEm }` (DEF-BE-055): bilhete de uso único, válido 30 s, para ligar a `/hubs/pedidos?bilhete=…` por WebSocket. `expiraEm` em UTC, terminado em `Z`. Pedir um novo antes de cada ligação e de cada religação."
+          }
+        },
+        {
+          "name": "Bilhete do hub sem sessão",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/bilhete-hub",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "bilhete-hub"
+              ]
+            },
+            "description": "401 sem corpo (JwtBearer)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Perfil",
+      "item": [
+        {
+          "name": "Perfil próprio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Campos do perfil próprio', () => {",
+                  "    pm.expect(p.id).to.eql(pm.environment.get('condutorId'));",
+                  "    pm.expect(p.email).to.eql(pm.environment.get('emailCondutor'));",
+                  "    pm.expect(p.emailConfirmado).to.eql(true);",
+                  "    pm.expect(p.ligacoesExternas).to.be.an('array');",
+                  "    pm.expect(p).to.have.property('classificacaoMedia');",
+                  "    pm.expect(p.totalAvaliacoes).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me"
+              ]
+            },
+            "description": "200 com `id, nome, email, emailConfirmado, curso, instituicao, criadoEm, ligacoesExternas, classificacaoMedia, totalAvaliacoes`."
+          }
+        },
+        {
+          "name": "Atualizar o perfil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Curso gravado', () => pm.expect(pm.response.json().curso).to.eql('Engenharia Informática'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me"
+              ]
+            },
+            "description": "200 com o perfil atualizado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Condutor Postman\",\n  \"curso\": \"Engenharia Informática\",\n  \"instituicao\": \"ESTG\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Atualizar o perfil sem nome",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Indica o nome.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me"
+              ]
+            },
+            "description": "400 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \" \",\n  \"curso\": null,\n  \"instituicao\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Acrescentar uma ligação externa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const l = pm.response.json();",
+                  "pm.test('Ligação criada', () => pm.expect(l.url).to.eql('https://github.com/exemplo'));",
+                  "pm.environment.set('ligacaoId', l.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me/ligacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me",
+                "ligacoes"
+              ]
+            },
+            "description": "201 `{ id, url, descricao }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://github.com/exemplo\",\n  \"descricao\": \"GitHub\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ligação com URL inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Ligação inválida: indica um URL http ou https.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me/ligacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me",
+                "ligacoes"
+              ]
+            },
+            "description": "400 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"ftp://exemplo\",\n  \"descricao\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Perfil público do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Sem email no perfil público', () => {",
+                  "    pm.expect(p.id).to.eql(pm.environment.get('passageiroId'));",
+                  "    pm.expect(p).to.not.have.property('email');",
+                  "    pm.expect(p.totalAvaliacoes).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/{{passageiroId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "{{passageiroId}}"
+              ]
+            },
+            "description": "200 `{ id, nome, curso, instituicao, ligacoesExternas, classificacaoMedia, totalAvaliacoes }`, sem email."
+          }
+        },
+        {
+          "name": "Perfil de um utilizador inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Utilizador não encontrado.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "{{idInexistente}}"
+              ]
+            },
+            "description": "404 `{ erro }`."
+          }
+        },
+        {
+          "name": "Remover a ligação externa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/utilizadores/me/ligacoes/{{ligacaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "utilizadores",
+                "me",
+                "ligacoes",
+                "{{ligacaoId}}"
+              ]
+            },
+            "description": "204."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Mapas",
+      "item": [
+        {
+          "name": "Geocodificar um local",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    pm.test('Coordenadas', () => {",
+                  "        const c = pm.response.json();",
+                  "        pm.expect(c.latitude).to.be.a('number');",
+                  "        pm.expect(c.longitude).to.be.a('number');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=Porto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rotas",
+                "geocodificar"
+              ],
+              "query": [
+                {
+                  "key": "texto",
+                  "value": "Porto"
+                }
+              ]
+            },
+            "description": "200 `{ latitude, longitude }`; 404 não encontrado; sem chave de mapas 503 `{ erro }`."
+          }
+        },
+        {
+          "name": "Geocodificar sem texto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Indica o local a procurar.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rotas/geocodificar?texto=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rotas",
+                "geocodificar"
+              ],
+              "query": [
+                {
+                  "key": "texto",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "400 `{ erro }` «Indica o local a procurar.» (validado no controller, antes dos mapas; E5-a)."
+          }
+        },
+        {
+          "name": "Pré-visualizar uma rota",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    pm.test('Distância, duração, coordenadas e linha', () => {",
+                  "        const r = pm.response.json();",
+                  "        pm.expect(r.distanciaKm).to.be.above(0);",
+                  "        pm.expect(r.duracaoMinutos).to.be.above(0);",
+                  "        pm.expect(r.origem).to.have.property('latitude');",
+                  "        pm.expect(r.destino).to.have.property('longitude');",
+                  "        pm.expect(r.geometria).to.be.an('array');",
+                  "        pm.expect(r.geometriaAproximada).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rotas/calcular",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rotas",
+                "calcular"
+              ]
+            },
+            "description": "200 `{ distanciaKm, duracaoMinutos, origem, destino, geometria, geometriaAproximada }` (linha da HERE; retas com `geometriaAproximada: true` só sem HERE); sem chave 503.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pré-visualizar com a origem em branco",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Indica a origem e o destino.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rotas/calcular",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rotas",
+                "calcular"
+              ]
+            },
+            "description": "400 `{ erro }` (antes dos mapas).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \" \",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Viagens",
+      "item": [
+        {
+          "name": "Criar a viagem A (parte em breve)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Partida daqui a segundosAtePartida: a pasta 10 espera por ela para concluir a viagem.",
+                  "const s = parseInt(pm.environment.get('segundosAtePartida') || '180', 10);",
+                  "const partida = new Date(Date.now() + s * 1000);",
+                  "partida.setUTCMilliseconds(0);",
+                  "pm.environment.set('partidaFutura', partida.toISOString().replace('.000Z', 'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "    const v = pm.response.json();",
+                  "    pm.test('Viagem criada com rota calculada', () => {",
+                  "        pm.expect(v.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);",
+                  "        pm.expect(v.lugaresDisponiveis).to.eql(3);",
+                  "        pm.expect(v.distanciaKm).to.be.above(0);",
+                  "    });",
+                  "    // Só guarda o id com a viagem criada: noutra resposta mantém o valor que já existia.",
+                  "    if (pm.response.code === 201) pm.environment.set('viagemId', v.id);",
+                  "}",
+                  "if (pm.response.code === 503) {",
+                  "    // Sem mapas a viagem não é criada: o fluxo continua só se o id foi preenchido à mão (LEIA-ME).",
+                  "    pm.test('viagemId preenchido à mão', () => pm.expect(pm.environment.get('viagemId')).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens"
+              ]
+            },
+            "description": "201 `{ id, origem, destino, partidaEm, lugaresDisponiveis, distanciaKm, duracaoMinutos }` e `Location`; sem chave de mapas 503 e a viagem não é criada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Criar a viagem B (amanhã)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const amanha = new Date(Date.now() + 24 * 3600 * 1000);",
+                  "amanha.setUTCMilliseconds(0);",
+                  "pm.environment.set('partidaAmanha', amanha.toISOString().replace('.000Z', 'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "    const v = pm.response.json();",
+                  "    pm.test('Viagem criada com rota calculada', () => {",
+                  "        pm.expect(v.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);",
+                  "        pm.expect(v.lugaresDisponiveis).to.eql(3);",
+                  "        pm.expect(v.distanciaKm).to.be.above(0);",
+                  "    });",
+                  "    // Só guarda o id com a viagem criada: noutra resposta mantém o valor que já existia.",
+                  "    if (pm.response.code === 201) pm.environment.set('viagemBId', v.id);",
+                  "}",
+                  "if (pm.response.code === 503) {",
+                  "    // Sem mapas a viagem não é criada: o fluxo continua só se o id foi preenchido à mão (LEIA-ME).",
+                  "    pm.test('viagemBId preenchido à mão', () => pm.expect(pm.environment.get('viagemBId')).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens"
+              ]
+            },
+            "description": "201; usada para rejeitar, cancelar e indisponibilizar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"{{partidaAmanha}}\",\n  \"lugares\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Criar com a partida no passado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"A hora de partida tem de ser no futuro.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens"
+              ]
+            },
+            "description": "400 `{ erro }` (antes dos mapas).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"2020-01-01T08:00:00Z\",\n  \"lugares\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Criar com a hora sem Z",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"A hora de partida tem de vir em UTC (terminada em Z).\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens"
+              ]
+            },
+            "description": "400 `{ erro }`: datas só em UTC com `Z`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"2030-01-01T08:00:00\",\n  \"lugares\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Criar com 9 lugares",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O número de lugares tem de estar entre 1 e 8.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens"
+              ]
+            },
+            "description": "400 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Porto\",\n  \"destino\": \"Braga\",\n  \"partidaEm\": \"2030-01-01T08:00:00Z\",\n  \"lugares\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Detalhes da viagem A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const v = pm.response.json();",
+                  "pm.test('Detalhes sem pontos nem linha', () => {",
+                  "    pm.expect(v.id).to.eql(pm.environment.get('viagemId'));",
+                  "    pm.expect(v.estado).to.eql('Ativa');",
+                  "    pm.expect(v.condutor.id).to.eql(pm.environment.get('condutorId'));",
+                  "    pm.expect(v).to.have.property('estimativaCusto');",
+                  "    pm.expect(v).to.not.have.property('geometria');",
+                  "});",
+                  "// Sem mapas e sem rota guardada, estimativaCusto vem a null com o motivo.",
+                  "if (v.estimativaCusto === null) {",
+                  "    pm.test('Motivo da estimativa', () => pm.expect(v.estimativaIndisponivelMotivo).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}"
+              ]
+            },
+            "description": "200 com `id, origem, destino, partidaEm, lugaresDisponiveis, estado, distanciaKm, duracaoMinutos, condutorId, condutor, pontosAdicionais, estimativaCusto, estimativaIndisponivelMotivo`; sem pontos nem linha (BE-44: o mapa vem de `GET /rotas/viagens/{id}`)."
+          }
+        },
+        {
+          "name": "Detalhes de uma viagem inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Viagem não encontrada.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{idInexistente}}"
+              ]
+            },
+            "description": "404 `{ erro }`."
+          }
+        },
+        {
+          "name": "As minhas viagens (paginadas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Página com total, pagina, tamanho e viagens', () => {",
+                  "    pm.expect(p.pagina).to.eql(1);",
+                  "    pm.expect(p.tamanho).to.eql(10);",
+                  "    pm.expect(p.total).to.be.at.least(1);",
+                  "    pm.expect(p.viagens.map(v => v.id)).to.include(pm.environment.get('viagemId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/minhas?pagina=1&tamanho=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "minhas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "200 `{ total, pagina, tamanho, viagens }` (D-4)."
+          }
+        },
+        {
+          "name": "As minhas viagens, página 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"A página começa em 1.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/minhas?pagina=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "minhas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "400 `{ erro }`."
+          }
+        },
+        {
+          "name": "Rota da viagem A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    const r = pm.response.json();",
+                  "    pm.test('Rota da viagem A', () => pm.expect(r.viagemId).to.eql(pm.environment.get('viagemId')));",
+                  "    pm.test('Rota com pontos, troços, custo e linha', () => {",
+                  "        pm.expect(r.pontosOrdenados).to.be.an('array');",
+                  "        pm.expect(r.pontosOrdenados.length).to.be.at.least(2);",
+                  "        pm.expect(r.pontosOrdenados[0]).to.have.property('latitude');",
+                  "        pm.expect(r.segmentos).to.be.an('array');",
+                  "        pm.expect(r.distanciaTotalKm).to.be.above(0);",
+                  "        pm.expect(r.duracaoTotalMinutos).to.be.a('number');",
+                  "        pm.expect(r).to.have.property('estimativaCusto');",
+                  "        pm.expect(r.geometria).to.be.an('array');",
+                  "        pm.expect(r.geometriaAproximada).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rotas/viagens/{{viagemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rotas",
+                "viagens",
+                "{{viagemId}}"
+              ]
+            },
+            "description": "200 `RotaDaViagem { viagemId, participacoesAceites, pontosOrdenados, segmentos, distanciaTotalKm, duracaoTotalMinutos, estimativaCusto, geometria, geometriaAproximada }`. A rota guardada não chama os mapas; uma rota por recalcular sem chave dá 503."
+          }
+        },
+        {
+          "name": "Simular a alteração do destino",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    const r = pm.response.json();",
+                  "    pm.test('Rota com pontos, troços, custo e linha', () => {",
+                  "        pm.expect(r.pontosOrdenados).to.be.an('array');",
+                  "        pm.expect(r.pontosOrdenados.length).to.be.at.least(2);",
+                  "        pm.expect(r.pontosOrdenados[0]).to.have.property('latitude');",
+                  "        pm.expect(r.segmentos).to.be.an('array');",
+                  "        pm.expect(r.distanciaTotalKm).to.be.above(0);",
+                  "        pm.expect(r.duracaoTotalMinutos).to.be.a('number');",
+                  "        pm.expect(r).to.have.property('estimativaCusto');",
+                  "        pm.expect(r.geometria).to.be.an('array');",
+                  "        pm.expect(r.geometriaAproximada).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/simular-alteracao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "simular-alteracao"
+              ]
+            },
+            "description": "200 `RotaDaViagem` com a linha da HERE; não grava nada (rota simulada 10 min em memória, D-2). `null` mantém o local. Sem chave 503.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": null,\n  \"destino\": \"Guimarães\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Simular a alteração como passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Não tens permissão para gerir esta viagem.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/simular-alteracao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "simular-alteracao"
+              ]
+            },
+            "description": "403 `{ erro }`: só o condutor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destino\": \"Guimarães\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Alterar só os lugares",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}"
+              ]
+            },
+            "description": "204. Sem mudar os locais não chama os mapas (funciona sem chave).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partidaEm\": \"{{partidaFutura}}\",\n  \"lugares\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Pesquisa",
+      "item": [
+        {
+          "name": "Pesquisar Porto → Braga",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Página com a viagem A', () => {",
+                  "    pm.expect(p.pagina).to.eql(1);",
+                  "    pm.expect(p.tamanho).to.eql(20);",
+                  "    pm.expect(p.viagens.map(v => v.id)).to.include(pm.environment.get('viagemId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pesquisa/viagens?origem=Porto&destino=Braga&pagina=1&tamanho=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pesquisa",
+                "viagens"
+              ],
+              "query": [
+                {
+                  "key": "origem",
+                  "value": "Porto"
+                },
+                {
+                  "key": "destino",
+                  "value": "Braga"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "200 `{ total, pagina, tamanho, viagens }`; filtros de data e hora em hora de Portugal."
+          }
+        },
+        {
+          "name": "Pesquisar com tamanho 101",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O tamanho da página tem de estar entre 1 e 100.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pesquisa/viagens?pagina=1&tamanho=101",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pesquisa",
+                "viagens"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "101"
+                }
+              ]
+            },
+            "description": "400 `{ erro }`."
+          }
+        },
+        {
+          "name": "Pesquisar sem sessão",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pesquisa/viagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pesquisa",
+                "viagens"
+              ]
+            },
+            "description": "401 sem corpo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Pedidos (passageiro)",
+      "item": [
+        {
+          "name": "Simular o pedido antes de o enviar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    const s = pm.response.json();",
+                  "    pm.test('Comparativo antes e depois do pedido', () => {",
+                  "        pm.expect(s.viagemId).to.eql(pm.environment.get('viagemId'));",
+                  "        pm.expect(s.distanciaOriginalKm).to.be.a('number');",
+                  "        pm.expect(s.distanciaSimuladaKm).to.be.a('number');",
+                  "        pm.expect(s.desvioDistanciaKm).to.be.a('number');",
+                  "    });",
+                  "    const r = s.rotaSimulada;",
+                  "    pm.test('Rota com pontos, troços, custo e linha', () => {",
+                  "        pm.expect(r.pontosOrdenados).to.be.an('array');",
+                  "        pm.expect(r.pontosOrdenados.length).to.be.at.least(2);",
+                  "        pm.expect(r.pontosOrdenados[0]).to.have.property('latitude');",
+                  "        pm.expect(r.segmentos).to.be.an('array');",
+                  "        pm.expect(r.distanciaTotalKm).to.be.above(0);",
+                  "        pm.expect(r.duracaoTotalMinutos).to.be.a('number');",
+                  "        pm.expect(r).to.have.property('estimativaCusto');",
+                  "        pm.expect(r.geometria).to.be.an('array');",
+                  "        pm.expect(r.geometriaAproximada).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/simular-pedido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "simular-pedido"
+              ]
+            },
+            "description": "200 `{ viagemId, recolhaPassageiro, destinoPassageiro, distanciaOriginalKm, duracaoOriginalMinutos, distanciaSimuladaKm, duracaoSimuladaMinutos, desvioDistanciaKm, desvioDuracaoMinutos, rotaSimulada }`; não cria o pedido. Sem paragens novas usa a rota guardada; sem rota guardada nem chave 503.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Simular o pedido como condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O condutor simula os pedidos recebidos, não um pedido próprio.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/simular-pedido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "simular-pedido"
+              ]
+            },
+            "description": "403 `{ erro }`: o condutor usa `/simulacao`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pedir participação na viagem A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const p = pm.response.json();",
+                  "pm.test('Pedido pendente', () => {",
+                  "    pm.expect(p.estado).to.eql('Pendente');",
+                  "    pm.expect(p.passageiroId).to.eql(pm.environment.get('passageiroId'));",
+                  "});",
+                  "pm.environment.set('pedidoId', p.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "201 `{ id, viagemId, passageiroId, estado: \"Pendente\", recolha, destino, criadoEm }`. Pontos iguais à origem e ao destino da viagem não chamam os mapas.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pedir outra vez na mesma viagem",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Já existe um pedido ou participação ativa nesta viagem.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "409 `{ erro }` (RF-F004-06).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pedir participação na viagem B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const p = pm.response.json();",
+                  "pm.test('Pedido pendente', () => {",
+                  "    pm.expect(p.estado).to.eql('Pendente');",
+                  "    pm.expect(p.passageiroId).to.eql(pm.environment.get('passageiroId'));",
+                  "});",
+                  "pm.environment.set('pedidoBId', p.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemBId}}\",\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Gestão de participação (condutor)",
+      "item": [
+        {
+          "name": "Pedidos pendentes da viagem A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Inclui o pedido do passageiro', () => pm.expect(pm.response.json().map(p => p.id)).to.include(pm.environment.get('pedidoId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "pedidos"
+              ]
+            },
+            "description": "200 `[{ id, passageiroId, nome, recolha, destino, criadoEm }]`."
+          }
+        },
+        {
+          "name": "Simular o pedido (condutor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    // Sem Here:ApiKey nem Maps:ApiKey a API responde 503; é a resposta esperada nesse ambiente.",
+                  "    pm.test('Sem chave de mapas: 503 { erro }', () => pm.expect(pm.response.json().erro).to.eql(\"Serviço de mapas não configurado.\"));",
+                  "} else {",
+                  "    pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "    const s = pm.response.json();",
+                  "    pm.test('Simulação do pedido', () => {",
+                  "        pm.expect(s.pedidoId).to.eql(pm.environment.get('pedidoId'));",
+                  "        pm.expect(s.ordemSimulada).to.be.an('array');",
+                  "    });",
+                  "    const r = s.rotaSimulada;",
+                  "    pm.test('Rota com pontos, troços, custo e linha', () => {",
+                  "        pm.expect(r.pontosOrdenados).to.be.an('array');",
+                  "        pm.expect(r.pontosOrdenados.length).to.be.at.least(2);",
+                  "        pm.expect(r.pontosOrdenados[0]).to.have.property('latitude');",
+                  "        pm.expect(r.segmentos).to.be.an('array');",
+                  "        pm.expect(r.distanciaTotalKm).to.be.above(0);",
+                  "        pm.expect(r.duracaoTotalMinutos).to.be.a('number');",
+                  "        pm.expect(r).to.have.property('estimativaCusto');",
+                  "        pm.expect(r.geometria).to.be.an('array');",
+                  "        pm.expect(r.geometriaAproximada).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/simulacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "simulacao"
+              ]
+            },
+            "description": "200 `{ pedidoId, origemViagem, destinoViagem, recolhaPassageiro, destinoPassageiro, distancia…, desvio…, ordemOriginal, ordemSimulada, rotaSimulada }`. Sem rota guardada nem chave 503.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pedidoId\": \"{{pedidoId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aceitar o pedido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/participacoes/{{pedidoId}}/aceitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "participacoes",
+                "{{pedidoId}}",
+                "aceitar"
+              ]
+            },
+            "description": "204. Sem paragens novas mantém a rota guardada, sem mapas."
+          }
+        },
+        {
+          "name": "Aceitar outra vez",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O estado atual do pedido não permite esta operação.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/participacoes/{{pedidoId}}/aceitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "participacoes",
+                "{{pedidoId}}",
+                "aceitar"
+              ]
+            },
+            "description": "409 `{ erro }`."
+          }
+        },
+        {
+          "name": "Passageiros (condutor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('O condutor recebe o id da participação', () => pm.expect(pm.response.json()[0].id).to.eql(pm.environment.get('pedidoId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/passageiros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "passageiros"
+              ]
+            },
+            "description": "200 `[{ id, passageiroId, nome, recolha, destino }]`."
+          }
+        },
+        {
+          "name": "Passageiros (passageiro aceite)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('O passageiro não recebe o id da participação (BE-37)', () => pm.expect(pm.response.json()[0].id).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/passageiros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "passageiros"
+              ]
+            },
+            "description": "200 com `id: null`."
+          }
+        },
+        {
+          "name": "Rejeitar o pedido da viagem B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/participacoes/{{pedidoBId}}/rejeitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "participacoes",
+                "{{pedidoBId}}",
+                "rejeitar"
+              ]
+            },
+            "description": "204."
+          }
+        },
+        {
+          "name": "Pedir outra vez na viagem B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const p = pm.response.json();",
+                  "pm.test('Pedido pendente', () => {",
+                  "    pm.expect(p.estado).to.eql('Pendente');",
+                  "    pm.expect(p.passageiroId).to.eql(pm.environment.get('passageiroId'));",
+                  "});",
+                  "pm.environment.set('pedidoB2Id', p.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "201: depois de recusado pode pedir de novo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemBId}}\",\n  \"recolha\": \"Porto\",\n  \"destino\": \"Braga\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancelar o pedido (passageiro)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/participacoes/{{pedidoB2Id}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "participacoes",
+                "{{pedidoB2Id}}",
+                "cancelar"
+              ]
+            },
+            "description": "204."
+          }
+        },
+        {
+          "name": "Indisponibilizar a viagem B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemBId}}/indisponibilizar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemBId}}",
+                "indisponibilizar"
+              ]
+            },
+            "description": "204. Nunca chama os mapas."
+          }
+        },
+        {
+          "name": "Indisponibilizar outra vez",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"A viagem já não está ativa.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemBId}}/indisponibilizar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemBId}}",
+                "indisponibilizar"
+              ]
+            },
+            "description": "409 `{ erro }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Comunicação",
+      "item": [
+        {
+          "name": "Aviso do condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Aviso criado', () => pm.expect(pm.response.json().conteudo).to.eql('Saio à hora marcada.'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/avisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "avisos"
+              ]
+            },
+            "description": "201 `{ id, conteudo, criadoEm }`; notifica os passageiros.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conteudo\": \"Saio à hora marcada.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aviso de quem não é condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Não tens permissão para criar avisos nesta viagem.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/avisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "avisos"
+              ]
+            },
+            "description": "403 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conteudo\": \"Olá\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Avisos da viagem (passageiro aceite)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Um aviso', () => pm.expect(pm.response.json().length).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/avisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "avisos"
+              ]
+            },
+            "description": "200 `[{ id, viagemId, condutorId, conteudo, criadoEm }]`."
+          }
+        },
+        {
+          "name": "Mensagem do passageiro ao condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const m = pm.response.json();",
+                  "pm.test('Mensagem enviada', () => {",
+                  "    pm.expect(m.remetenteId).to.eql(pm.environment.get('passageiroId'));",
+                  "    pm.expect(m).to.not.have.property('viagemId');",
+                  "});",
+                  "pm.environment.set('mensagemId', m.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens"
+              ]
+            },
+            "description": "201 `{ id, remetenteId, destinatarioId, conteudo, enviadoEm }` (sem `viagemId`, BE-22).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatarioId\": \"{{condutorId}}\",\n  \"conteudo\": \"Olá, até já.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mensagem do condutor ao passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens"
+              ]
+            },
+            "description": "201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatarioId\": \"{{passageiroId}}\",\n  \"conteudo\": \"Combinado.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mensagem para si próprio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Não podes enviar mensagens para ti próprio.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens"
+              ]
+            },
+            "description": "400 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatarioId\": \"{{condutorId}}\",\n  \"conteudo\": \"Eu\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Conversas (paginadas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Conversa com o passageiro', () => {",
+                  "    pm.expect(p.total).to.eql(1);",
+                  "    pm.expect(p.conversas[0].outroUtilizadorId).to.eql(pm.environment.get('passageiroId'));",
+                  "    pm.expect(p.conversas[0].ultimaMensagem).to.eql('Combinado.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens/conversas?pagina=1&tamanho=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens",
+                "conversas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "200 `{ total, pagina, tamanho, conversas: [{ outroUtilizadorId, outroUtilizadorNome, ultimaMensagemId, ultimaMensagem, ultimaMensagemEm }] }`."
+          }
+        },
+        {
+          "name": "Conversa: a página mais recente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const m = pm.response.json();",
+                  "pm.test('Só a mensagem mais recente', () => {",
+                  "    pm.expect(m.length).to.eql(1);",
+                  "    pm.expect(m[0].conteudo).to.eql('Combinado.');",
+                  "});",
+                  "pm.environment.set('cursorMensagem', m[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens/conversa/{{passageiroId}}?tamanho=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens",
+                "conversa",
+                "{{passageiroId}}"
+              ],
+              "query": [
+                {
+                  "key": "tamanho",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "200 lista por ordem cronológica, só as `tamanho` mais recentes (50 por omissão)."
+          }
+        },
+        {
+          "name": "Conversa: a página anterior (antesDe)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('A mensagem anterior ao cursor', () => {",
+                  "    const m = pm.response.json();",
+                  "    pm.expect(m.length).to.eql(1);",
+                  "    pm.expect(m[0].id).to.eql(pm.environment.get('mensagemId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens/conversa/{{passageiroId}}?antesDe={{cursorMensagem}}&tamanho=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens",
+                "conversa",
+                "{{passageiroId}}"
+              ],
+              "query": [
+                {
+                  "key": "antesDe",
+                  "value": "{{cursorMensagem}}"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "200 com as mensagens anteriores a `antesDe` (BE-13)."
+          }
+        },
+        {
+          "name": "Conversa com tamanho 101",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O tamanho da página tem de estar entre 1 e 100.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mensagens/conversa/{{passageiroId}}?tamanho=101",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mensagens",
+                "conversa",
+                "{{passageiroId}}"
+              ],
+              "query": [
+                {
+                  "key": "tamanho",
+                  "value": "101"
+                }
+              ]
+            },
+            "description": "400 `{ erro }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Notificações e dispositivos",
+      "item": [
+        {
+          "name": "Notificações do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "pm.test('Página de notificações', () => {",
+                  "    pm.expect(p.itens.length).to.be.at.least(1);",
+                  "    pm.expect(p.naoLidas).to.be.at.least(1);",
+                  "    pm.expect(p.tamanhoPagina).to.eql(20);",
+                  "});",
+                  "pm.environment.set('notificacaoId', p.itens[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificacoes?pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificacoes"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "200 `{ itens, pagina, tamanhoPagina, total, totalPaginas, naoLidas }` (mantém `tamanhoPagina`)."
+          }
+        },
+        {
+          "name": "Marcar uma como lida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificacoes/{{notificacaoId}}/ler",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificacoes",
+                "{{notificacaoId}}",
+                "ler"
+              ]
+            },
+            "description": "204."
+          }
+        },
+        {
+          "name": "Marcar todas como lidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Número marcado', () => pm.expect(pm.response.json().marcadas).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificacoes/ler-todas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificacoes",
+                "ler-todas"
+              ]
+            },
+            "description": "200 `{ marcadas }`."
+          }
+        },
+        {
+          "name": "Registar o dispositivo (FCM)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dispositivos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dispositivos"
+              ]
+            },
+            "description": "204.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"token-fcm-de-exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remover o dispositivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dispositivos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dispositivos"
+              ]
+            },
+            "description": "204.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"token-fcm-de-exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Conclusão e avaliações",
+      "item": [
+        {
+          "name": "Avaliar antes de concluir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Só é possível avaliar viagens concluídas.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes"
+              ]
+            },
+            "description": "409 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"avaliadoId\": \"{{condutorId}}\",\n  \"classificacao\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Concluir a viagem A",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Só se conclui depois da partida: espera até partidaFutura (mais 2 s).",
+                  "const falta = new Date(pm.environment.get('partidaFutura')).getTime() + 2000 - Date.now();",
+                  "if (falta > 0) {",
+                  "    console.log(`A esperar ${Math.ceil(falta / 1000)} s pela partida da viagem A`);",
+                  "    setTimeout(() => {}, falta);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viagens/{{viagemId}}/concluir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viagens",
+                "{{viagemId}}",
+                "concluir"
+              ]
+            },
+            "description": "204 depois da partida; antes dela 409 `{ erro }`. O pré-pedido espera pela partida."
+          }
+        },
+        {
+          "name": "Avaliar o condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Avaliação registada', () => pm.expect(pm.response.json().classificacao).to.eql(4));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes"
+              ]
+            },
+            "description": "201 `{ classificacao, data }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"avaliadoId\": \"{{condutorId}}\",\n  \"classificacao\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Avaliar o condutor outra vez",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Já existe uma avaliação deste utilizador. Pode alterar a avaliação existente.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes"
+              ]
+            },
+            "description": "409 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"avaliadoId\": \"{{condutorId}}\",\n  \"classificacao\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Avaliar com classificação 6",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"A classificação deve ser um número inteiro entre 1 e 5.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes"
+              ]
+            },
+            "description": "400 `{ erro }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"avaliadoId\": \"{{passageiroId}}\",\n  \"classificacao\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "A minha avaliação do condutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Classificação dada', () => pm.expect(pm.response.json().classificacao).to.eql(4));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes/utilizadores/{{condutorId}}/minha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes",
+                "utilizadores",
+                "{{condutorId}}",
+                "minha"
+              ]
+            },
+            "description": "200 `{ classificacao, data }`; 404 sem avaliação."
+          }
+        },
+        {
+          "name": "Alterar a avaliação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Classificação alterada', () => pm.expect(pm.response.json().classificacao).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes/utilizadores/{{condutorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes",
+                "utilizadores",
+                "{{condutorId}}"
+              ]
+            },
+            "description": "200 `{ classificacao, data }`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classificacao\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Avaliar o passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCondutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes"
+              ]
+            },
+            "description": "201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viagemId\": \"{{viagemId}}\",\n  \"avaliadoId\": \"{{passageiroId}}\",\n  \"classificacao\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Classificação do condutor (média e contagem)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "pm.test('Só média e contagem (BE-43)', () => {",
+                  "    pm.expect(Object.keys(c).sort()).to.eql(['classificacaoMedia', 'totalAvaliacoes']);",
+                  "    pm.expect(c.classificacaoMedia).to.eql(5);",
+                  "    pm.expect(c.totalAvaliacoes).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes/utilizadores/{{condutorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes",
+                "utilizadores",
+                "{{condutorId}}"
+              ]
+            },
+            "description": "200 só `{ classificacaoMedia, totalAvaliacoes }`, sem lista nem paginação."
+          }
+        },
+        {
+          "name": "Classificação de um utilizador inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"Utilizador não encontrado.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/avaliacoes/utilizadores/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "avaliacoes",
+                "utilizadores",
+                "{{idInexistente}}"
+              ]
+            },
+            "description": "404 `{ erro }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Histórico",
+      "item": [
+        {
+          "name": "Histórico do passageiro (paginado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const h = pm.response.json();",
+                  "pm.test('Seis listas e os totais', () => {",
+                  "    pm.expect(h.pagina).to.eql(1);",
+                  "    pm.expect(h.tamanho).to.eql(5);",
+                  "    pm.expect(h.totais.viagensComoPassageiro).to.eql(1);",
+                  "    pm.expect(h.totais.pedidosEfetuados).to.eql(3);",
+                  "    pm.expect(h.viagensComoPassageiro[0].estado).to.eql('Concluida');",
+                  "    ['viagensComoCondutor', 'pedidosEfetuados', 'pedidosRecebidos', 'notificacoes', 'avisos']",
+                  "        .forEach(l => pm.expect(h[l]).to.be.an('array'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/historico?pagina=1&tamanho=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "historico"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "200 `{ pagina, tamanho, totais, viagensComoCondutor, viagensComoPassageiro, pedidosEfetuados, pedidosRecebidos, notificacoes, avisos }`."
+          }
+        },
+        {
+          "name": "Histórico com tamanho 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo { erro } com a mensagem', () => {",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Object.keys(corpo)).to.eql(['erro']);",
+                  "    pm.expect(corpo.erro).to.eql(\"O tamanho da página tem de estar entre 1 e 100.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/historico?tamanho=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "historico"
+              ],
+              "query": [
+                {
+                  "key": "tamanho",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "400 `{ erro }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Fim de sessão",
+      "item": [
+        {
+          "name": "Terminar a sessão do passageiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "logout"
+              ]
+            },
+            "description": "204; o token fica revogado pelo `jti`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenDispositivo\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Usar o token revogado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Sem corpo', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPassageiro}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/autenticacao/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "autenticacao",
+                "me"
+              ]
+            },
+            "description": "401 sem corpo."
+          }
+        }
+      ]
+    }
+  ]
 }

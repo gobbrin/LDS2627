@@ -6,6 +6,7 @@ namespace CampusCarpool.Application.Notificacoes;
 /// <param name="Id">Identificador.</param>
 /// <param name="UtilizadorId">Destinatário.</param>
 /// <param name="ViagemId">Viagem relacionada, se existir.</param>
+/// <param name="RemetenteId">Quem enviou a mensagem, só em <c>NovaMensagem</c>; <c>null</c> nos outros tipos (DEF-BE-053).</param>
 /// <param name="Tipo">Nome do <see cref="TipoNotificacao"/>.</param>
 /// <param name="Titulo">Título.</param>
 /// <param name="Conteudo">Texto.</param>
@@ -15,6 +16,7 @@ public sealed record NotificacaoPessoal(
     Guid Id,
     Guid UtilizadorId,
     Guid? ViagemId,
+    Guid? RemetenteId,
     string Tipo,
     string Titulo,
     string Conteudo,

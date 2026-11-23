@@ -41,7 +41,7 @@ public sealed class ViagensEstimativaIntegrationTests
             _connection.Dispose();
         }
 
-        public async Task<Viagem> CriarViagemAsync(decimal distanciaKm, bool rotaGuardada = true)
+        public async Task<Viagem> CriarViagemAsync(decimal? distanciaKm, bool rotaGuardada = true)
         {
             var condutor = new Utilizador
             {
@@ -69,11 +69,11 @@ public sealed class ViagensEstimativaIntegrationTests
 
             if (rotaGuardada && distanciaKm > 0)
             {
-                RotaGuardada.GuardarDireta(viagem, new ResultadoRota(
-                    distanciaKm,
+                RotaGuardada.Guardar(viagem, RotaGuardada.Direta(viagem, new ResultadoRota(
+                    distanciaKm.Value,
                     30,
                     new Coordenadas(viagem.OrigemLatitude, viagem.OrigemLongitude),
-                    new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude)));
+                    new Coordenadas(viagem.DestinoLatitude, viagem.DestinoLongitude))));
             }
 
             Db.Viagens.Add(viagem);
@@ -159,6 +159,7 @@ public sealed class ViagensEstimativaIntegrationTests
             f.Db.Utilizadores.Add(utilizador);
             passageiros.Add(new Participacao
             {
+                AceiteEm = DateTime.UtcNow,
                 ViagemId = viagem.Id,
                 PassageiroId = utilizador.Id,
                 Estado = EstadoParticipacao.Aceite,
@@ -168,7 +169,8 @@ public sealed class ViagensEstimativaIntegrationTests
         }
 
         f.Db.Participacoes.AddRange(passageiros);
-        await f.Db.SaveChangesAsync();
+        // Pedidos sem pontos só existem como dados antigos (anteriores ao CHECK de BE-33).
+        await f.Db.GravarDadosAntigosAsync();
         var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = CriarController(f.Db, handler);
 
@@ -190,7 +192,8 @@ public sealed class ViagensEstimativaIntegrationTests
     public async Task DistanciaEmFalta_NaoInventaEstimativa()
     {
         using var f = new Fixture();
-        var viagem = await f.CriarViagemAsync(0m);
+        // Distância por calcular: NULL (o CHECK CK_Viagens_Medidas recusa 0 km, BE-33).
+        var viagem = await f.CriarViagemAsync(null);
         var handler = new MapasFalsos { MetrosPorSegmento = 30000, SegundosPorSegmento = 1800 };
         var controller = ComUtilizador(ServicosDeTeste.CriarViagensController(
             f.Db,

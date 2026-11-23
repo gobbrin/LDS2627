@@ -24,14 +24,10 @@ public sealed class RegrasViagemHttpTests : IDisposable
         "/api/v1/viagens",
         new { origem = "Porto", destino = "Braga", partidaEm, lugares = 3 });
 
-    private async Task<HttpStatusCode> EditarLugaresAsync(Guid viagemId, int lugares)
-    {
-        using var resposta = await _condutor.PutAsJsonAsync(
-            $"/api/v1/viagens/{viagemId}",
-            new { partidaEm = DateTime.UtcNow.AddDays(2), lugares });
-
-        return resposta.StatusCode;
-    }
+    // Muda os lugares da viagem; devolve a resposta inteira para o teste de erro ler o corpo { erro } (BE-09).
+    private Task<HttpResponseMessage> EditarLugaresAsync(Guid viagemId, int lugares) => _condutor.PutAsJsonAsync(
+        $"/api/v1/viagens/{viagemId}",
+        new { partidaEm = DateTime.UtcNow.AddDays(2), lugares });
 
     /// <summary>RF-F002-02: uma data passada devolve erro de validação e não cria viagem.</summary>
     [Fact]
@@ -39,7 +35,7 @@ public sealed class RegrasViagemHttpTests : IDisposable
     {
         using var resposta = await CriarAsync(DateTime.UtcNow.AddMinutes(-1).ToString("O"));
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A hora de partida tem de ser no futuro.");
         Assert.Equal(0, _app.NaBaseDeDados(db => db.Viagens.Count()));
     }
 
@@ -54,8 +50,11 @@ public sealed class RegrasViagemHttpTests : IDisposable
             await AplicacaoReal.AceitarAsync(_condutor, await AplicacaoReal.PedirParticipacaoAsync(passageiro, viagemId));
         }
 
-        Assert.Equal(HttpStatusCode.Conflict, await EditarLugaresAsync(viagemId, 1));
-        Assert.Equal(HttpStatusCode.NoContent, await EditarLugaresAsync(viagemId, 2));
+        using (var abaixo = await EditarLugaresAsync(viagemId, 1))
+            await RespostasDeErro.AssertErroAsync(abaixo, HttpStatusCode.Conflict, "Os lugares não podem ser inferiores às participações aceites.");
+
+        using (var igual = await EditarLugaresAsync(viagemId, 2))
+            Assert.Equal(HttpStatusCode.NoContent, igual.StatusCode);
 
         var viagem = _app.NaBaseDeDados(db => db.Viagens.AsNoTracking().Single());
         Assert.Equal(2, viagem.LugaresOferecidos);
@@ -70,7 +69,7 @@ public sealed class RegrasViagemHttpTests : IDisposable
     {
         using var resposta = await CriarAsync($"{DateTime.UtcNow.Year + 1}{resto}");
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A hora de partida tem de vir em UTC (terminada em Z).");
         Assert.Equal(0, _app.NaBaseDeDados(db => db.Viagens.Count()));
     }
 

@@ -8,12 +8,28 @@ namespace CampusCarpool.Api.Hubs;
 /// </summary>
 /// <remarks>
 /// Não tem métodos: o cliente só recebe eventos, enviados pelo <c>NotificadorPedidosSignalR</c>. Exige
-/// autenticação; como o WebSocket não envia cabeçalhos, o JWT vai na query string <c>?access_token=</c>, aceite
-/// só neste caminho (<c>OnMessageReceived</c> no <c>Program.cs</c>). Esse token pode ficar nos logs de acesso
-/// (DC-46). Um token revogado é recusado ao ligar e a ligação fecha quando o token expira, mas uma ligação já aberta
-/// não fecha logo no fim de sessão.
+/// autenticação; como o WebSocket do browser não envia cabeçalhos, a ligação leva na query string um bilhete de uso
+/// único (<c>?bilhete=</c>, <see cref="BilhetesHub"/>), que o <c>OnMessageReceived</c> do <c>Program.cs</c> troca pelo
+/// JWT da sessão; o JWT não vai no endereço, que fica nos logs de acesso (DC-46, DEF-BE-055). Um token revogado é
+/// recusado ao ligar, a ligação fecha quando o token expira e fecha logo no fim de sessão (BE-18), pela
+/// <see cref="LigacoesPorSessao"/>.
 /// </remarks>
+/// <param name="ligacoes">Lista das ligações abertas por sessão (Singleton).</param>
 [Authorize]
-public sealed class PedidosHub : Hub
+public sealed class PedidosHub(LigacoesPorSessao ligacoes) : Hub
 {
+    /// <summary>Guarda a ligação nova com o <c>jti</c> do token, para o fim de sessão a poder fechar.</summary>
+    public override Task OnConnectedAsync()
+    {
+        ligacoes.Registar(Context);
+        return base.OnConnectedAsync();
+    }
+
+    /// <summary>Esquece a ligação que fechou.</summary>
+    /// <param name="exception">Erro que fechou a ligação, se houve.</param>
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        ligacoes.Remover(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
+    }
 }
