@@ -42,12 +42,7 @@ public sealed class TrabalhadorNotificacoesPush(
 
                 var servicoPush = scope.ServiceProvider.GetRequiredService<IServicoPush>();
 
-                await servicoPush.EnviarAsync(
-                    notificacao.UtilizadorId,
-                    notificacao.Titulo,
-                    notificacao.Mensagem,
-                    notificacao.Tipo,
-                    stoppingToken);
+                await servicoPush.EnviarAsync(notificacao, stoppingToken);
             }
             catch (OperationCanceledException)
                 when (stoppingToken.IsCancellationRequested)

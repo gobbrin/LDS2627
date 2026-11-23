@@ -6,17 +6,15 @@ namespace CampusCarpool.Application.Abstractions.Integrations;
 /// <remarks>
 /// O <c>NotificacaoService</c> enfileira; o <c>TrabalhadorNotificacoesPush</c> (BackgroundService) lê e envia.
 /// A implementação (<c>FilaNotificacoesPush</c>) é só em memória: os push pendentes perdem-se quando o
-/// processo reinicia e, com a fila cheia, quem enfileira fica à espera (AP-07).
+/// processo reinicia (AP-07, G17). Com a fila cheia, a notificação nova não vai por push, mas continua gravada na
+/// caixa de notificações; quem enfileira nunca fica à espera (BE-28).
 /// </remarks>
 public interface IFilaNotificacoesPush
 {
-    /// <summary>Coloca uma notificação push na fila.</summary>
-    /// <param name="utilizadorId">Destinatário (são usados todos os seus dispositivos ativos).</param>
-    /// <param name="titulo">Título do push.</param>
-    /// <param name="mensagem">Texto do push.</param>
-    /// <param name="tipo">Nome do <c>TipoNotificacao</c>, enviado nos dados do push.</param>
+    /// <summary>Coloca uma notificação push na fila, sem esperar: com a fila cheia, descarta-a e regista no log.</summary>
+    /// <param name="notificacao">Notificação a enviar (são usados todos os dispositivos ativos do destinatário).</param>
     /// <param name="ct">Cancelamento.</param>
-    ValueTask EnfileirarAsync(Guid utilizadorId, string titulo, string mensagem, string tipo, CancellationToken ct);
+    ValueTask EnfileirarAsync(NotificacaoPushPendente notificacao, CancellationToken ct);
 
     /// <summary>Lê as notificações pendentes à medida que chegam, até <paramref name="ct"/> ser cancelado.</summary>
     IAsyncEnumerable<NotificacaoPushPendente> LerPendentesAsync(CancellationToken ct);

@@ -193,13 +193,12 @@ public sealed class AvaliacaoServiceTests
     }
 
     [Fact]
-    public async Task Consultar_SemAvaliacoes_DevolveMediaNulaEListaVazia()
+    public async Task Consultar_SemAvaliacoes_DevolveMediaNulaEZero()
     {
         var servico = CriarServico();
         var resumo = (await servico.ConsultarAsync(_condutor, CancellationToken.None)).Valor;
-        Assert.Null(resumo.Media);
-        Assert.Equal(0, resumo.Total);
-        Assert.Empty(resumo.Avaliacoes);
+        Assert.Null(resumo.ClassificacaoMedia);
+        Assert.Equal(0, resumo.TotalAvaliacoes);
     }
 
     [Fact]
@@ -211,8 +210,8 @@ public sealed class AvaliacaoServiceTests
         await servico.CriarAsync(_viagemId, _passageiroA, _condutor, 4, CancellationToken.None);
         // A recebe 5 do condutor e 4 do passageiro B: média 4,5.
         var resumo = (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor;
-        Assert.Equal(4.5m, resumo.Media);
-        Assert.Equal(2, resumo.Total);
+        Assert.Equal(4.5m, resumo.ClassificacaoMedia);
+        Assert.Equal(2, resumo.TotalAvaliacoes);
     }
 
     [Fact]
@@ -223,8 +222,8 @@ public sealed class AvaliacaoServiceTests
         await servico.CriarAsync(_viagemId, _passageiroB, _passageiroA, 4, CancellationToken.None);
         _repo.Avaliacoes.Add(new Avaliacao { ViagemId = _viagemId, AvaliadorId = _externo, AvaliadoId = _passageiroA, Classificacao = 4 });
         var resumo = (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor;
-        Assert.Equal(4.3m, resumo.Media);
-        Assert.Equal(3, resumo.Total);
+        Assert.Equal(4.3m, resumo.ClassificacaoMedia);
+        Assert.Equal(3, resumo.TotalAvaliacoes);
     }
 
     [Fact]
@@ -232,9 +231,9 @@ public sealed class AvaliacaoServiceTests
     {
         var servico = CriarServico();
         await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 3, CancellationToken.None);
-        Assert.Equal(3m, (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor.Media);
+        Assert.Equal(3m, (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor.ClassificacaoMedia);
         await servico.AlterarAsync(_condutor, _passageiroA, 5, CancellationToken.None);
-        Assert.Equal(5m, (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor.Media);
+        Assert.Equal(5m, (await servico.ConsultarAsync(_passageiroA, CancellationToken.None)).Valor.ClassificacaoMedia);
     }
 
     [Fact]
@@ -247,8 +246,9 @@ public sealed class AvaliacaoServiceTests
         var jsonConsulta = System.Text.Json.JsonSerializer.Serialize(resumo);
         Assert.DoesNotContain(_condutor.ToString(), jsonCriacao, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(_condutor.ToString(), jsonConsulta, StringComparison.OrdinalIgnoreCase);
-        Assert.Single(resumo.Avaliacoes);
-        Assert.Equal(5, resumo.Avaliacoes[0].Classificacao);
+        // BE-43: só a média e o contador.
+        Assert.Equal(5m, resumo.ClassificacaoMedia);
+        Assert.Equal(1, resumo.TotalAvaliacoes);
     }
 
     [Fact]
@@ -256,6 +256,29 @@ public sealed class AvaliacaoServiceTests
     {
         var servico = CriarServico();
         Assert.Equal(TipoErro.NaoEncontrado, (await servico.ConsultarAsync(Guid.NewGuid(), CancellationToken.None)).Erro?.Tipo);
+    }
+
+    [Fact]
+    public async Task ObterMinha_DevolveAvaliacaoDoAutor()
+    {
+        var servico = CriarServico();
+        await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 2, CancellationToken.None);
+
+        var resultado = await servico.ObterMinhaAsync(_condutor, _passageiroA, CancellationToken.None);
+
+        Assert.Equal(2, resultado.Valor.Classificacao);
+    }
+
+    [Fact]
+    public async Task ObterMinha_OutroAutor_NaoEncontrado()
+    {
+        var servico = CriarServico();
+        await servico.CriarAsync(_viagemId, _condutor, _passageiroA, 2, CancellationToken.None);
+
+        var resultado = await servico.ObterMinhaAsync(_passageiroB, _passageiroA, CancellationToken.None);
+
+        Assert.Equal(TipoErro.NaoEncontrado, resultado.Erro?.Tipo);
+        Assert.Equal("Não existe uma avaliação sua para este utilizador.", resultado.Erro?.Mensagem);
     }
 
     [Fact]
@@ -293,7 +316,7 @@ public sealed class AvaliacaoServiceTests
 
         public Task<Viagem?> ObterViagemAsync(Guid viagemId, CancellationToken ct) =>
             Task.FromResult(Viagens.GetValueOrDefault(viagemId));
-        public Task<bool> UtilizadorExisteAsync(Guid id, CancellationToken ct) =>
+        public Task<bool> UtilizadorConfirmadoAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(Utilizadores.Contains(id));
         public Task<bool> ParticipacaoAceiteAsync(Guid viagemId, Guid passageiroId, CancellationToken ct) =>
             Task.FromResult(Aceites.Contains((viagemId, passageiroId)));
@@ -305,8 +328,6 @@ public sealed class AvaliacaoServiceTests
             if (!Avaliacoes.Contains(avaliacao)) Avaliacoes.Add(avaliacao);
             return Task.FromResult(true);
         }
-        public Task<IReadOnlyList<Avaliacao>> ListarRecebidasAsync(Guid utilizadorId, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<Avaliacao>>(Avaliacoes.Where(a => a.AvaliadoId == utilizadorId).ToList());
         public Task<IReadOnlyList<ClassificacaoRecebida>> ListarClassificacoesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ClassificacaoRecebida>>(Avaliacoes
                 .Where(a => ids.Contains(a.AvaliadoId))

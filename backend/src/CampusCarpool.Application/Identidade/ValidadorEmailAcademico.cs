@@ -26,8 +26,11 @@ public sealed class ValidadorEmailAcademico(IOptions<OpcoesEmailAcademico> opcoe
     }
 
     /// <summary>Um só <c>@</c>, com parte local, sem espaços e aceite por <see cref="MailAddress"/>.</summary>
-    private static bool FormatoValido(string email)
+    /// <remarks>Pública para o reenvio da confirmação recusar com 400 um texto que não é email (DEF-BE-045).</remarks>
+    public static bool FormatoValido(string email)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         var arroba = email.IndexOf('@', StringComparison.Ordinal);
 
         return arroba > 0

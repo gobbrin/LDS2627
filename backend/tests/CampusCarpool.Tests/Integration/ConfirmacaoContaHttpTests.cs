@@ -27,13 +27,6 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
     private static Task<HttpResponseMessage> ConfirmarAsync(HttpClient cliente, string token) =>
         cliente.PostAsJsonAsync("/api/v1/autenticacao/confirmar", new { token });
 
-    private static async Task<string> ErroDe(HttpResponseMessage resposta)
-    {
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        var corpo = await resposta.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-        return corpo!["erro"];
-    }
-
     // Recua a data de todas as ligações: a validade é contada a partir da expiração.
     private void RecuarLigacoes(TimeSpan quanto) => _app.NaBaseDeDados(db =>
     {
@@ -52,7 +45,7 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
 
         using var resposta = await ConfirmarAsync(cliente, token);
 
-        Assert.Contains("expirou", await ErroDe(resposta), StringComparison.Ordinal);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Esta ligação expirou. Pede uma nova ligação de confirmação.");
     }
 
     [Fact]
@@ -66,7 +59,7 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
 
         using var segunda = await ConfirmarAsync(cliente, token);
 
-        Assert.Contains("já foi usada", await ErroDe(segunda), StringComparison.Ordinal);
+        await RespostasDeErro.AssertErroAsync(segunda, HttpStatusCode.BadRequest, "Esta ligação já foi usada. Se a conta está confirmada, inicia sessão.");
     }
 
     [Fact]
@@ -76,7 +69,7 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
 
         using var resposta = await ConfirmarAsync(cliente, "token-que-nunca-existiu");
 
-        Assert.Contains("inválida", await ErroDe(resposta), StringComparison.Ordinal);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Ligação de confirmação inválida. Pede uma nova ligação.");
     }
 
     [Fact]
@@ -93,7 +86,7 @@ public sealed class ConfirmacaoContaHttpTests : IDisposable
         Assert.NotEqual(antigo, novo);
 
         using (var comAntigo = await ConfirmarAsync(cliente, antigo))
-            Assert.Contains("expirou", await ErroDe(comAntigo), StringComparison.Ordinal);
+            await RespostasDeErro.AssertErroAsync(comAntigo, HttpStatusCode.BadRequest, "Esta ligação expirou. Pede uma nova ligação de confirmação.");
 
         using var comNovo = await ConfirmarAsync(cliente, novo);
 

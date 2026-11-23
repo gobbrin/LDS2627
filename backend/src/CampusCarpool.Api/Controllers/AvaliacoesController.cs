@@ -37,7 +37,22 @@ public sealed class AvaliacoesController(IAvaliacaoService avaliacoes) : Control
             avaliacao => Ok(avaliacao));
     }
 
-    /// <summary>Avaliações recebidas por um utilizador, sem o autor, e a média (RF-F007-07, RF-F007-11). 200; 401; 404.</summary>
+    /// <summary>
+    /// Avaliação que o utilizador autenticado deu a <paramref name="avaliadoId"/>, para mostrar o valor atual antes de o
+    /// alterar (RF-F007-05, DEF-BE-041). 200 <c>{ classificacao, data }</c>; 401; 404.
+    /// </summary>
+    [HttpGet("utilizadores/{avaliadoId:guid}/minha")]
+    public async Task<IActionResult> ObterMinha(Guid avaliadoId, CancellationToken ct)
+    {
+        if (User.IdUtilizador() is not Guid id) return Unauthorized();
+
+        return this.Responder(await avaliacoes.ObterMinhaAsync(id, avaliadoId, ct), avaliacao => Ok(avaliacao));
+    }
+
+    /// <summary>
+    /// Classificação de um utilizador: <c>{ classificacaoMedia, totalAvaliacoes }</c>, sem lista nem autor (RF-F007-08,
+    /// RF-F007-10, BE-43). 200; 401; 404 (também para uma conta por confirmar).
+    /// </summary>
     [HttpGet("utilizadores/{utilizadorId:guid}")]
     public async Task<IActionResult> Consultar(Guid utilizadorId, CancellationToken ct)
     {

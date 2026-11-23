@@ -61,7 +61,7 @@ public sealed class RegrasSqlServerTests
     };
 
     private static Participacao NovoPedido(Guid viagemId, Guid passageiroId) =>
-        new() { ViagemId = viagemId, PassageiroId = passageiroId, Recolha = "Maia" };
+        new() { ViagemId = viagemId, PassageiroId = passageiroId, Recolha = "Maia", RecolhaLatitude = 41.23m, RecolhaLongitude = -8.62m };
 
     /// <summary>DC-41: um conflito de <c>Versao</c> no serviço real vira <see cref="RegraDeNegocioException"/> (409) e não grava nada.</summary>
     [SqlServerFact]
@@ -85,8 +85,7 @@ public sealed class RegrasSqlServerTests
                     .UseSqlServer(ligacao)
                     .AddInterceptors(new AlteracaoConcorrente(ligacao, "Viagens", "LugaresDisponiveis", viagem.Id))
                     .Options);
-            var mapas = new MapasFalsos();
-            var servico = ServicosDeTeste.CriarViagens(db, mapas.CriarServico());
+            var servico = ServicosDeTeste.CriarCicloDeVida(db);
 
             await Assert.ThrowsAsync<RegraDeNegocioException>(() =>
                 servico.IndisponibilizarAsync(viagem.Id, condutor.Id, CancellationToken.None));

@@ -32,6 +32,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IMensagemService, MensagemService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IParticipacaoService, ParticipacaoService>();
+        services.AddScoped<ISimulacaoDePedidoService, SimulacaoDePedidoService>();
         services.AddScoped<IRotaService, RotaService>();
         services.AddScoped<IConsultaRotasService, ConsultaRotasService>();
         services.AddScoped<EstimativaCustoService>();
@@ -39,6 +40,8 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IConsultaViagensService, ConsultaViagensService>();
         services.AddScoped<IPesquisaService, PesquisaService>();
         services.AddScoped<IViagemService, ViagemService>();
+        services.AddScoped<ISimulacaoDeAlteracaoService, SimulacaoDeAlteracaoService>();
+        services.AddScoped<ICicloDeVidaDaViagemService, CicloDeVidaDaViagemService>();
 
         // I048 - Avaliações
         services.AddScoped<IAvaliacaoService, AvaliacaoService>();

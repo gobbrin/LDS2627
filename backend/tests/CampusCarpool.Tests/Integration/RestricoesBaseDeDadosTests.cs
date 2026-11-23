@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using CampusCarpool.Domain.Entities;
@@ -36,7 +37,7 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
         _app.NaBaseDeDados(db =>
         {
             db.Viagens.Add(_viagem);
-            db.Participacoes.Add(new Participacao { ViagemId = _viagem.Id, PassageiroId = _passageiro.Id, Recolha = "Maia" });
+            db.Participacoes.Add(new Participacao { ViagemId = _viagem.Id, PassageiroId = _passageiro.Id, Recolha = "Maia", RecolhaLatitude = 41.23m, RecolhaLongitude = -8.62m });
             return db.SaveChanges();
         });
     }
@@ -54,6 +55,50 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
     public void I110_129_ValorForaDoModelo_ABaseDeDadosRecusa(string sql)
     {
         Assert.ThrowsAny<Exception>(() => _app.NaBaseDeDados(db => db.Database.ExecuteSqlRaw(sql)));
+    }
+
+    /// <summary>
+    /// BE-33 (modelo de dados v07): cada restrição nova recusa a linha que a viola, pelo nome. O pedido preparado no
+    /// construtor tem só a recolha (Maia, com coordenadas) e está pendente; cada SQL estraga uma única regra.
+    /// As restrições numéricas da viagem só existem em SQL Server (ver <c>MigracoesSqlServerTests</c>).
+    /// </summary>
+    [Theory]
+    [InlineData("UPDATE Utilizadores SET Nome = '   '", "CK_Utilizadores_Nome")]
+    [InlineData("UPDATE Participacoes SET Recolha = NULL, RecolhaLatitude = NULL, RecolhaLongitude = NULL", "CK_Participacoes_UmPonto")]
+    [InlineData("UPDATE Participacoes SET RecolhaLatitude = NULL", "CK_Participacoes_CoordRecolha")]
+    [InlineData("UPDATE Participacoes SET Destino = 'Trofa'", "CK_Participacoes_CoordDestino")]
+    [InlineData("UPDATE Participacoes SET Estado = 'Aceite'", "CK_Participacoes_AceiteEm")]
+    public void I112_96_RestricaoDaV07_RecusaALinhaQueAViola(string sql, string restricao)
+    {
+        var erro = Assert.ThrowsAny<Exception>(() => _app.NaBaseDeDados(db => db.Database.ExecuteSqlRaw(sql)));
+
+        Assert.Contains(restricao, erro.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>BE-33: uma ligação externa só pode ser http ou https, e um aviso não pode ser só espaços.</summary>
+    [Theory]
+    [InlineData("INSERT INTO LigacoesExternas (Id, UtilizadorId, Url, Ordem) VALUES ('{0}', '{1}', 'ftp://exemplo.pt', 0)", "CK_LigacoesExternas_Url")]
+    [InlineData("INSERT INTO Avisos (Id, ViagemId, Conteudo, CriadoEm) VALUES ('{0}', '{2}', '   ', '2030-01-01')", "CK_Avisos_Conteudo")]
+    public void I112_97_LigacaoOuAvisoInvalido_ABaseDeDadosRecusa(string modelo, string restricao)
+    {
+        var sql = string.Format(CultureInfo.InvariantCulture, modelo, Maiusculas(Guid.NewGuid()), Maiusculas(_condutor.Id), Maiusculas(_viagem.Id));
+
+        var erro = Assert.ThrowsAny<Exception>(() => _app.NaBaseDeDados(db => db.Database.ExecuteSqlRaw(sql)));
+
+        Assert.Contains(restricao, erro.Message, StringComparison.Ordinal);
+    }
+
+    // O EF guarda os Guid em maiúsculas no SQLite; o SQL Server aceita os dois.
+    private static string Maiusculas(Guid id) => id.ToString().ToUpperInvariant();
+
+    /// <summary>BE-33: os dados válidos continuam a gravar (a mesma linha com o ponto e a aceitação completos).</summary>
+    [Fact]
+    public void I112_98_PedidoAceiteComDataEPontoCompleto_Grava()
+    {
+        var alteradas = _app.NaBaseDeDados(db => db.Database.ExecuteSqlRaw(
+            "UPDATE Participacoes SET Estado = 'Aceite', AceiteEm = '2030-01-01', Destino = 'Trofa', DestinoLatitude = 41.34, DestinoLongitude = -8.56"));
+
+        Assert.Equal(1, alteradas);
     }
 
     [Fact]
@@ -80,7 +125,7 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
             lugares = 3
         });
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "A origem tem no máximo 200 caracteres.");
     }
 
     [Fact]
@@ -89,8 +134,8 @@ public sealed class RestricoesBaseDeDadosTests : IDisposable
         using var passageiro = _app.ClienteDe(_passageiro);
 
         using var resposta = await passageiro.PostAsJsonAsync(
-            "/api/v1/dispositivos", new { token = new string('a', 501) });
+            "/api/v1/dispositivos", new { token = new string('a', 451) });
 
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        await RespostasDeErro.AssertErroAsync(resposta, HttpStatusCode.BadRequest, "Token FCM inválido.");
     }
 }

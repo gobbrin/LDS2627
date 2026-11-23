@@ -60,12 +60,12 @@ public sealed class ProtecaoDeDadosHttpTests : IDisposable
         using var loginEmail = await anonimo.PostAsJsonAsync(
             "/api/v1/autenticacao/login",
             new { email = payload, password = AplicacaoReal.PalavraPasse });
-        Assert.Equal(HttpStatusCode.Unauthorized, loginEmail.StatusCode);
+        await RespostasDeErro.AssertErroAsync(loginEmail, HttpStatusCode.Unauthorized, "Credenciais inválidas.");
 
         using var loginPalavraPasse = await anonimo.PostAsJsonAsync(
             "/api/v1/autenticacao/login",
             new { email = _condutor.Email, password = payload });
-        Assert.Equal(HttpStatusCode.Unauthorized, loginPalavraPasse.StatusCode);
+        await RespostasDeErro.AssertErroAsync(loginPalavraPasse, HttpStatusCode.Unauthorized, "Credenciais inválidas.");
 
         using var mensagem = await _clienteCondutor.PostAsJsonAsync(
             "/api/v1/mensagens",
@@ -116,7 +116,7 @@ public sealed class ProtecaoDeDadosHttpTests : IDisposable
         using var falhado = await anonimo.PostAsJsonAsync(
             "/api/v1/autenticacao/login",
             new { email = _condutor.Email, password = palavraPasseErrada });
-        Assert.Equal(HttpStatusCode.Unauthorized, falhado.StatusCode);
+        await RespostasDeErro.AssertErroAsync(falhado, HttpStatusCode.Unauthorized, "Credenciais inválidas.");
 
         using var login = await anonimo.PostAsJsonAsync(
             "/api/v1/autenticacao/login",

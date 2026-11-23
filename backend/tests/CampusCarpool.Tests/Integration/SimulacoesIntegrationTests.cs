@@ -159,26 +159,26 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_02_ApenasCondutorPodeSimular()
     {
         using var f = new Fixture();
-        RespostaEsperada.Proibido(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        RespostaEsperada.Proibido(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Passageiro.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 403, "Só o condutor da viagem pode simular este pedido.");
+        RespostasDeErro.AssertErro(await f.Controller(f.Terceiro.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 403, "Só o condutor da viagem pode simular este pedido.");
     }
 
     [Fact]
     public async Task I040_03_PedidoInexistente_Devolve404()
     {
         using var f = new Fixture();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(Guid.NewGuid()), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(Guid.NewGuid()), default), 404, "Pedido não encontrado nesta viagem.");
     }
 
     [Fact]
     public async Task I040_04_ViagemInexistente_Devolve404()
     {
         using var f = new Fixture();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(Guid.NewGuid(),
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(Guid.NewGuid(),
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 404, "Viagem não encontrada.");
     }
 
     [Fact]
@@ -197,8 +197,8 @@ public sealed class SimulacoesIntegrationTests
         };
         f.Db.Viagens.Add(outra);
         await f.Db.SaveChangesAsync();
-        Assert.IsType<NotFoundObjectResult>(await f.Controller(f.Condutor.Id).Simular(outra.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(outra.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 404, "Pedido não encontrado nesta viagem.");
     }
 
     [Theory]
@@ -209,9 +209,11 @@ public sealed class SimulacoesIntegrationTests
     {
         using var f = new Fixture();
         f.Pedido.Estado = estado;
+        // Uma participação aceite guarda a data da aceitação (CK_Participacoes_AceiteEm).
+        if (estado == EstadoParticipacao.Aceite) f.Pedido.AceiteEm = DateTime.UtcNow;
         await f.Db.SaveChangesAsync();
-        Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "Só é possível simular pedidos pendentes.");
     }
 
     [Fact]
@@ -220,8 +222,8 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Viagem.Estado = EstadoViagem.Indisponibilizada;
         await f.Db.SaveChangesAsync();
-        Assert.IsType<ConflictObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "A viagem não está ativa.");
     }
 
     [Fact]
@@ -235,15 +237,45 @@ public sealed class SimulacoesIntegrationTests
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
     }
 
+    /// <summary>BE-26: numa viagem cheia não há nada a simular; 409, sem chamar os mapas.</summary>
+    [Fact]
+    public async Task I112_16_ViagemCheia_Devolve409()
+    {
+        using var f = new Fixture();
+        f.Viagem.LugaresDisponiveis = 0;
+        await f.Db.SaveChangesAsync();
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id, mapasConfigurados: false).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 409, "Sem lugares disponíveis.");
+    }
+
     [Fact]
     public async Task I040_08_SemPontos_Devolve400()
     {
         using var f = new Fixture();
         f.Pedido.Recolha = null;
+        f.Pedido.RecolhaLatitude = null;
+        f.Pedido.RecolhaLongitude = null;
         f.Pedido.Destino = null;
-        await f.Db.SaveChangesAsync();
-        Assert.IsType<BadRequestObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
-            new SimulacoesController.SimularPedido(f.Pedido.Id), default));
+        f.Pedido.DestinoLatitude = null;
+        f.Pedido.DestinoLongitude = null;
+        // Pedidos sem pontos só existem como dados antigos (anteriores ao CHECK de BE-33).
+        await f.Db.GravarDadosAntigosAsync();
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(f.Pedido.Id), default), 400, "O pedido deve indicar recolha ou destino.");
+    }
+
+    /// <summary>
+    /// Um pedido sem <c>pedidoId</c> (corpo vazio ou o Guid só com zeros) dá 400 antes de ler a viagem ou chamar os mapas.
+    /// </summary>
+    [Fact]
+    public async Task I112_108_SemPedidoId_Devolve400()
+    {
+        using var f = new Fixture();
+
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
+            new SimulacoesController.SimularPedido(Guid.Empty), default), 400, "Indica um pedidoId válido.");
+        RespostasDeErro.AssertErro(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id, null, default),
+            400, "Indica um pedidoId válido.");
     }
 
     [Fact]
@@ -252,7 +284,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var result = Assert.IsType<ObjectResult>(await f.Controller(f.Condutor.Id, false).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.Equal(503, result.StatusCode);
+        RespostasDeErro.AssertErro(result, 503, "Serviço de mapas não configurado.");
     }
 
     [Fact]
@@ -261,7 +293,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         var result = Assert.IsType<ObjectResult>(await f.Controller(f.Condutor.Id, true, new FakeMapasHandler(true))
             .Simular(f.Viagem.Id, new SimulacoesController.SimularPedido(f.Pedido.Id), default));
-        Assert.Equal(502, result.StatusCode);
+        RespostasDeErro.AssertErro(result, 502, "Serviço de mapas indisponível.");
     }
 
     [Fact]
@@ -288,8 +320,9 @@ public sealed class SimulacoesIntegrationTests
     public async Task I040_12_P20_PontoOpcional(bool soRecolha)
     {
         using var f = new Fixture();
-        if (soRecolha) f.Pedido.Destino = null;
-        else f.Pedido.Recolha = null;
+        // Um ponto omitido não tem texto nem coordenadas (CK_Participacoes_CoordRecolha/CoordDestino).
+        if (soRecolha) (f.Pedido.Destino, f.Pedido.DestinoLatitude, f.Pedido.DestinoLongitude) = (null, null, null);
+        else (f.Pedido.Recolha, f.Pedido.RecolhaLatitude, f.Pedido.RecolhaLongitude) = (null, null, null);
         await f.Db.SaveChangesAsync();
         var result = Assert.IsType<OkObjectResult>(await f.Controller(f.Condutor.Id).Simular(f.Viagem.Id,
             new SimulacoesController.SimularPedido(f.Pedido.Id), default));
@@ -304,6 +337,7 @@ public sealed class SimulacoesIntegrationTests
         using var f = new Fixture();
         f.Db.Participacoes.Add(new Participacao
         {
+            AceiteEm = DateTime.UtcNow,
             ViagemId = f.Viagem.Id,
             PassageiroId = f.Terceiro.Id,
             Estado = EstadoParticipacao.Aceite,

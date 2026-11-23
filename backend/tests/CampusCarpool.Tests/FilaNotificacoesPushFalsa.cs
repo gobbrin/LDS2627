@@ -9,11 +9,11 @@ public sealed class FilaNotificacoesPushFalsa : IFilaNotificacoesPush
 
     public IReadOnlyList<NotificacaoPushPendente> Notificacoes => _notificacoes;
 
-    public ValueTask EnfileirarAsync(Guid utilizadorId, string titulo, string mensagem, string tipo, CancellationToken ct)
+    public ValueTask EnfileirarAsync(NotificacaoPushPendente notificacao, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        _notificacoes.Add(new NotificacaoPushPendente(utilizadorId, titulo, mensagem, tipo));
+        _notificacoes.Add(notificacao);
 
         return ValueTask.CompletedTask;
     }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
@@ -31,7 +32,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(Guid.NewGuid(), "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), Guid.NewGuid(), null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(1, repositorio.ListarChamadas);
         Assert.Equal(0, pedidosHttp);
@@ -82,7 +83,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Novo pedido", "Recebeste um pedido.", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Novo pedido", "Recebeste um pedido.", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(1, pedidosFcm);
         Assert.Equal(0, repositorio.Desativacoes);
@@ -121,7 +122,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoAceite", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoAceite"), CancellationToken.None);
 
         Assert.Equal(1, repositorio.Desativacoes);
         Assert.Equal(tokenDispositivo, repositorio.UltimoTokenDesativado);
@@ -154,7 +155,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoAceite", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoAceite"), CancellationToken.None);
 
         Assert.Equal(0, repositorio.Desativacoes);
     }
@@ -182,7 +183,7 @@ public sealed class ServicoPushTests
 
         var servico = new ServicoPush(http, new ConfigurationBuilder().Build(), repositorio, NullLogger<ServicoPush>.Instance, new CacheTokenFcm());
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(0, repositorio.Desativacoes);
     }
@@ -221,7 +222,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(1, repositorio.Desativacoes);
         Assert.Equal(tokenDispositivo, repositorio.UltimoTokenDesativado);
@@ -260,7 +261,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(0, repositorio.Desativacoes);
     }
@@ -323,7 +324,7 @@ public sealed class ServicoPushTests
 
         var servico = CriarServico(http, repositorio);
 
-        await servico.EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await servico.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         Assert.Equal(2, pedidosFcm);
         Assert.Equal(0, repositorio.Desativacoes);
@@ -355,8 +356,8 @@ public sealed class ServicoPushTests
 
         var cache = new CacheTokenFcm();
 
-        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
-        await CriarServico(http, repositorio, cache).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await CriarServico(http, repositorio, cache).EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
+        await CriarServico(http, repositorio, cache).EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         return (autorizacoes[0], autorizacoes[1], pedidosOAuth);
     }
@@ -385,7 +386,7 @@ public sealed class ServicoPushTests
             return Resposta(pedidosFcm == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK, "{}");
         }));
 
-        await CriarServico(http, repositorio).EnviarAsync(utilizadorId, "Título", "Mensagem", "PedidoRecebido", CancellationToken.None);
+        await CriarServico(http, repositorio).EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizadorId, null, "Título", "Mensagem", "PedidoRecebido"), CancellationToken.None);
 
         return (pedidosOAuth, pedidosFcm);
     }

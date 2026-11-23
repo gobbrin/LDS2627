@@ -16,6 +16,23 @@ dotnet_analyzer_diagnostic.category-Performance.severity = suggestion
 
 dotnet_diagnostic.CA1062.severity = suggestion
 
+# Código de produção: complexidade e código morto (BE-19, R-B05, R-Q01/R-Q02).
+[src/**.cs]
+# CA1502: complexidade ciclomática acima de 15 (limite em CodeMetricsConfig.txt). CA1505: índice de manutenção baixo.
+dotnet_diagnostic.CA1502.severity = warning
+dotnet_diagnostic.CA1505.severity = warning
+# CA1506: acoplamento de classe acima de 60 tipos (limite em CodeMetricsConfig.txt; AE-03). Só aviso: não pára o build
+# (WarningsNotAsErrors em Directory.Build.props). Lista dos acoplamentos no relatório 14 (análise estática).
+dotnet_diagnostic.CA1506.severity = warning
+# Código morto: membro privado sem uso (IDE0051), membro privado escrito e nunca lido (IDE0052), parâmetro sem uso (IDE0060).
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+
+# Program.cs é a composição da aplicação: liga todos os serviços, por isso o acoplamento alto é esperado (AE-03).
+[src/CampusCarpool.Api/Program.cs]
+dotnet_diagnostic.CA1506.severity = none
+
 # Migrations geradas pelo EF Core: não formatar nem analisar.
 [src/CampusCarpool.Infrastructure/Migrations/**.cs]
 generated_code = true

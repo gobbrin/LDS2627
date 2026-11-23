@@ -32,7 +32,22 @@ public sealed class PipelineHttpTests
             "/api/v1/autenticacao/login",
             new { email = app.CriarUtilizador("Utilizador").Email, password = AplicacaoReal.PalavraPasse });
 
-    /// <summary>Uma exceção inesperada dá 500 em ProblemDetails, sem a mensagem nem a stack trace.</summary>
+    /// <summary>
+    /// Verifica que a resposta tem o código esperado e só o campo <c>erro</c>, com a mensagem esperada (BE-08).
+    /// </summary>
+    private static async Task AssertSoCampoErroAsync(HttpResponseMessage resposta, HttpStatusCode codigo, string mensagem)
+    {
+        string texto = await resposta.Content.ReadAsStringAsync();
+        Assert.True(codigo == resposta.StatusCode, $"Esperado {(int)codigo}, recebido {(int)resposta.StatusCode}: {texto}");
+        Assert.Equal("application/json", resposta.Content.Headers.ContentType?.MediaType);
+
+        using JsonDocument json = JsonDocument.Parse(texto);
+        JsonProperty campo = Assert.Single(json.RootElement.EnumerateObject());
+        Assert.Equal("erro", campo.Name);
+        Assert.Equal(mensagem, campo.Value.GetString());
+    }
+
+    /// <summary>Uma exceção inesperada dá 500 com <c>{ erro }</c> genérico, sem a mensagem nem a stack trace (BE-08).</summary>
     [Fact]
     public async Task I110_88_ExcecaoInesperada_Devolve500SemDetalhesInternos()
     {
@@ -42,13 +57,15 @@ public sealed class PipelineHttpTests
         using var resposta = await IniciarSessaoAsync(app, cliente);
 
         var corpo = await resposta.Content.ReadAsStringAsync();
-        Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
-        Assert.Equal("application/problem+json", resposta.Content.Headers.ContentType?.MediaType);
+        await AssertSoCampoErroAsync(resposta, HttpStatusCode.InternalServerError, "Ocorreu um erro inesperado.");
         Assert.DoesNotContain("segredo interno", corpo, StringComparison.Ordinal);
         Assert.DoesNotContain(nameof(HashQueFalha), corpo, StringComparison.Ordinal);
     }
 
-    /// <summary>Um conflito de concorrência chega como <see cref="RegraDeNegocioException"/> e dá 409 com a mensagem.</summary>
+    /// <summary>
+    /// Um conflito de concorrência chega como <see cref="RegraDeNegocioException"/> e dá 409 com a mensagem em
+    /// <c>{ erro }</c> (BE-08).
+    /// </summary>
     [Fact]
     public async Task I110_89_RegraDeNegocio_Devolve409ComAMensagem()
     {
@@ -57,9 +74,53 @@ public sealed class PipelineHttpTests
 
         using var resposta = await IniciarSessaoAsync(app, cliente);
 
-        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
-        using var json = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
-        Assert.Equal("Mensagem para o utilizador.", json.RootElement.GetProperty("detail").GetString());
+        await AssertSoCampoErroAsync(resposta, HttpStatusCode.Conflict, "Mensagem para o utilizador.");
+    }
+
+    /// <summary>BE-08: corpo que não é JSON dá 415 com <c>{ erro }</c> em português (DEF-BE-047).</summary>
+    [Fact]
+    public async Task I112_13_CorpoQueNaoEJson_Devolve415ComErro()
+    {
+        using var app = new AplicacaoReal();
+        using var cliente = app.CreateClient();
+        using var conteudo = new StringContent("email=a", Encoding.UTF8, "text/plain");
+
+        using var resposta = await cliente.PostAsync("/api/v1/autenticacao/login", conteudo);
+
+        await AssertSoCampoErroAsync(
+            resposta,
+            HttpStatusCode.UnsupportedMediaType,
+            "O corpo do pedido tem de ser JSON (Content-Type: application/json).");
+    }
+
+    /// <summary>BE-08: método errado num endereço que existe dá 405 com <c>{ erro }</c>.</summary>
+    [Fact]
+    public async Task I112_14_MetodoErrado_Devolve405ComErro()
+    {
+        using var app = new AplicacaoReal();
+        using var comSessao = app.ClienteDe(app.CriarUtilizador("Utilizador"));
+
+        using var resposta = await comSessao.DeleteAsync("/api/v1/autenticacao/login");
+
+        await AssertSoCampoErroAsync(resposta, HttpStatusCode.MethodNotAllowed, "Método não permitido neste endereço.");
+    }
+
+    /// <summary>BE-25: um campo que o pedido não conhece, ou com o tipo errado, dá 400 em vez de ser ignorado.</summary>
+    [Theory]
+    [InlineData("{\"email\":\"a@ipca.pt\",\"password\":\"x\",\"admin\":true}")]
+    [InlineData("{\"email\":123,\"password\":\"x\"}")]
+    public async Task I112_15_CampoAMaisOuDeTipoErrado_Devolve400(string corpo)
+    {
+        using var app = new AplicacaoReal();
+        using var cliente = app.CreateClient();
+        using var conteudo = new StringContent(corpo, Encoding.UTF8, "application/json");
+
+        using var resposta = await cliente.PostAsync("/api/v1/autenticacao/login", conteudo);
+
+        await AssertSoCampoErroAsync(
+            resposta,
+            HttpStatusCode.BadRequest,
+            "Pedido inválido: campo em falta, a mais ou com tipo errado.");
     }
 
     [Fact]
@@ -74,7 +135,7 @@ public sealed class PipelineHttpTests
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
 
         using var json = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
-        Assert.Contains("Pedido inválido", json.RootElement.GetProperty("erro").GetString(), StringComparison.Ordinal);
+        Assert.Equal("Pedido inválido: campo em falta, a mais ou com tipo errado.", json.RootElement.GetProperty("erro").GetString());
     }
 
     /// <summary>RNF-SEG-09: o estado do serviço responde sem token.</summary>
@@ -101,7 +162,9 @@ public sealed class PipelineHttpTests
         using var semToken = await anonimo.GetAsync("/api/v1/nao-existe");
         using var comToken = await comSessao.GetAsync("/api/v1/nao-existe");
 
+        // 401 sem corpo (exceção do contrato); 404 com { erro } (BE-08).
         Assert.Equal(HttpStatusCode.Unauthorized, semToken.StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, comToken.StatusCode);
+        Assert.Equal(string.Empty, await semToken.Content.ReadAsStringAsync());
+        await AssertSoCampoErroAsync(comToken, HttpStatusCode.NotFound, "Endereço não encontrado.");
     }
 }

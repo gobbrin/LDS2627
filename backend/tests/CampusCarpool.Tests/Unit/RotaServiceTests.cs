@@ -1,6 +1,8 @@
+using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Rotas;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
 namespace CampusCarpool.Tests.Unit;
@@ -18,7 +20,13 @@ public sealed class RotaServiceTests
     private static readonly PontoRota Origem = Ponto("Origem da viagem", TiposPontoRota.Origem);
     private static readonly PontoRota Destino = Ponto("Destino da viagem com outro tamanho", TiposPontoRota.DestinoViagem);
 
-    private static RotaService Rotas(MapasFalsos mapas) => new(mapas.CriarServico(), new UnidadeDeTrabalhoFalsa());
+    // Sem chave da HERE: a rota fica sem linha (reserva), como antes da I112.
+    private static readonly IServicoGeometriaRotas SemHere = new HereFalsa().CriarServico(configurado: false);
+
+    // Memória das simulações (D-2), vazia em cada serviço.
+    private static MemoryCache NovaMemoria() => new(new MemoryCacheOptions());
+
+    private static RotaService Rotas(MapasFalsos mapas) => new(mapas.CriarServico(), SemHere, new UnidadeDeTrabalhoFalsa(), NovaMemoria());
 
     private static List<string> Locais(ResultadoRotaComPontos rota) => rota.PontosOrdenados.Select(p => p.Local).ToList();
 
@@ -116,9 +124,9 @@ public sealed class RotaServiceTests
         var trabalho = new UnidadeDeTrabalhoFalsa();
         var viagem = ViagemPorRecalcular();
 
-        var rota = await new RotaService(new MapasFalsos().CriarServico(), trabalho).ObterAsync(viagem, [], default);
+        var rota = await new RotaService(new MapasFalsos().CriarServico(), SemHere, trabalho, NovaMemoria()).ObterAsync(viagem, [], default);
 
-        Assert.NotNull(rota);
+        Assert.Null(rota.Erro);
         Assert.NotNull(viagem.RotaPontos);
         Assert.Equal(1, trabalho.Confirmacoes);
     }
@@ -129,12 +137,12 @@ public sealed class RotaServiceTests
         var mapas = new MapasFalsos();
         var trabalho = new UnidadeDeTrabalhoFalsa();
         var viagem = ViagemPorRecalcular();
-        await new RotaService(mapas.CriarServico(), trabalho).ObterAsync(viagem, [], default);
+        await new RotaService(mapas.CriarServico(), SemHere, trabalho, NovaMemoria()).ObterAsync(viagem, [], default);
         var chamadas = mapas.ChamadasRotas;
 
-        var rota = await new RotaService(mapas.CriarServico(), trabalho).ObterAsync(viagem, [], default);
+        var rota = await new RotaService(mapas.CriarServico(), SemHere, trabalho, NovaMemoria()).ObterAsync(viagem, [], default);
 
-        Assert.NotNull(rota);
+        Assert.Null(rota.Erro);
         Assert.Equal(chamadas, mapas.ChamadasRotas);
         Assert.Equal(1, trabalho.Confirmacoes);
     }
@@ -145,10 +153,10 @@ public sealed class RotaServiceTests
     {
         var trabalho = new UnidadeDeTrabalhoFalsa { Falha = new RegraDeNegocioException("Conflito simulado.") };
 
-        var rota = await new RotaService(new MapasFalsos().CriarServico(), trabalho)
+        var rota = await new RotaService(new MapasFalsos().CriarServico(), SemHere, trabalho, NovaMemoria())
             .ObterAsync(ViagemPorRecalcular(), [], default);
 
-        Assert.NotNull(rota);
+        Assert.Null(rota.Erro);
     }
 
     [Fact]

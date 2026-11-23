@@ -134,6 +134,18 @@ public sealed class PerfilPublicoTests : IDisposable
         var quem = CriarUtilizador("Quem");
         await _db.SaveChangesAsync();
 
-        Assert.IsType<NotFoundObjectResult>(await ConsultarAsync(quem.Id, Guid.NewGuid()));
+        RespostasDeErro.AssertErro(await ConsultarAsync(quem.Id, Guid.NewGuid()), 404, "Utilizador não encontrado.");
+    }
+
+    /// <summary>BE-14: uma conta por confirmar não tem perfil público (404, como as suas avaliações).</summary>
+    [Fact]
+    public async Task BE14_PerfilPublicoContaPorConfirmar_Devolve404()
+    {
+        var quem = CriarUtilizador("Quem");
+        var porConfirmar = CriarUtilizador("Por confirmar");
+        porConfirmar.EmailConfirmado = false;
+        await _db.SaveChangesAsync();
+
+        RespostasDeErro.AssertErro(await ConsultarAsync(quem.Id, porConfirmar.Id), 404, "Utilizador não encontrado.");
     }
 }
