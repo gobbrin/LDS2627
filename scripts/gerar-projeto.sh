@@ -48,5 +48,8 @@ copiar_ficheiros docs/frontend-web/testes-de-sistema     "$Q/03.02-frontend-web/
 copiar_ficheiros docs/frontend-mobile/plano-de-testes    "$Q/03.03-frontend-mobile/03.03.01-plano-de-testes"
 copiar_ficheiros docs/frontend-mobile/testes-de-sistema  "$Q/03.03-frontend-mobile/03.03.02-testes-de-sistema"
 
+# Incrementos S08/S09
+copiar_ficheiros docs/frontend-web/testes-de-aceitacao "$Q/03.02-frontend-web/03.02.03-testes-de-aceitacao"
+
 echo "Feito. Os documentos de gestão, de processo e os PDF assinados não estão no repositório:"
 echo "juntam-se à mão, com o README da milestone (00-indice-e-submissao)."
