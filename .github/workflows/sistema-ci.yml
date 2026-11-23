@@ -1,0 +1,33 @@
+name: CampusCarpool Sistema Completo
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sistema-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    uses: ./.github/workflows/backend-ci.yml
+  web:
+    uses: ./.github/workflows/frontend-web-ci.yml
+  mobile:
+    uses: ./.github/workflows/frontend-mobile-ci.yml
+  gate-sistema:
+    name: Gate do sistema completo
+    needs: [backend, web, mobile]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir os três componentes aprovados
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          WEB: ${{ needs.web.result }}
+          MOBILE: ${{ needs.mobile.result }}
+        run: |
+          test "$BACKEND" = success
+          test "$WEB" = success
+          test "$MOBILE" = success
