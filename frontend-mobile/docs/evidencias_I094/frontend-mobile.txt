@@ -1,0 +1,35 @@
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:test :core:jacocoTestReport :app:testDebugUnitTest :app:jacocoApp                                                                                           
+Starting a Gradle Daemon, 3 stopped Daemons could not be reused, use --status for details
+
+BUILD SUCCESSFUL in 2m 17s
+38 actionable tasks: 38 executed
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:jacocoTestCoverageVerification :app:verificarCoberturaApp
+
+BUILD SUCCESSFUL in 7s
+40 actionable tasks: 2 executed, 38 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:ktlintCheck :app:ktlintCheck :app:lintDebug :app:assembleDebug
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so. Run with --info option to learn more.
+
+BUILD SUCCESSFUL in 4m 8s
+70 actionable tasks: 44 executed, 26 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> Start-Process ".\core\build\reports\jacoco\test\html\index.html"
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> Start-Process ".\app\build\reports\jacoco\jacocoApp\html\index.html"
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:jacocoTestCoverageVerification :app:verificarCoberturaApp 
+
+BUILD SUCCESSFUL in 14s
+40 actionable tasks: 40 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:ktlintCheck :app:ktlintCheck :app:lintDebug :app:assembleDebug
+
+BUILD SUCCESSFUL in 4s
+70 actionable tasks: 1 executed, 69 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:jacocoTestCoverageVerification :app:verificarCoberturaApp
+
+BUILD SUCCESSFUL in 4s
+40 actionable tasks: 40 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile> .\gradlew.bat :core:ktlintCheck :app:ktlintCheck :app:lintDebug :app:assembleDebug
+
+BUILD SUCCESSFUL in 3s
+70 actionable tasks: 1 executed, 69 up-to-date
+PS C:\Users\gleao\Downloads\gruifsuiohgrfhougrfehouiwgrfeohiegrohuiegrhuioegrhuoegr\LDS2627_projeto_completo_S08_S09_S10\LDS2627\frontend-mobile>

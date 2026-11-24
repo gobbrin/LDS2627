@@ -1,0 +1,20 @@
+Transcrição das saídas PowerShell comunicadas em 24/11/2026 (não é um XML original).
+
+Execução na cópia integrada:
+.\gradlew.bat :app:connectedDebugAndroidTest
+> Task :app:connectedDebugAndroidTest
+Starting 6 tests on Pixel_10a(AVD) - 17
+Pixel_10a(AVD) - 17 Tests 4/6 completed. (0 skipped) (0 failed)
+Pixel_10a(AVD) - 17 Tests 5/6 completed. (0 skipped) (0 failed)
+Pixel_10a(AVD) - 17 Tests 6/6 completed. (0 skipped) (0 failed)
+Finished 6 tests on Pixel_10a(AVD) - 17
+BUILD SUCCESSFUL in 3m 38s
+75 actionable tasks: 1 executed, 74 up-to-date
+
+Identificação posterior numa cópia local distinta (extração XML):
+pt.ipca.g15.campuscarpool.AndroidSessionStoreTest conteudoAdulteradoEDescartado
+pt.ipca.g15.campuscarpool.AndroidSessionStoreTest limparRemoveASessao
+pt.ipca.g15.campuscarpool.AndroidSessionStoreTest guardaELeOMesmoValor
+pt.ipca.g15.campuscarpool.AndroidSessionStoreTest oTokenNaoFicaEmTextoSimples
+pt.ipca.g15.campuscarpool.LoginScreenTest credenciaisVaziasNaoSubmetem
+pt.ipca.g15.campuscarpool.LoginScreenTest credenciaisValidasSaoEntreguesAoViewModel
