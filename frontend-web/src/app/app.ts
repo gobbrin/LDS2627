@@ -25,6 +25,7 @@ import { AutenticacaoApiService } from './features/autenticacao/autenticacao-api
       @if (sessao.autenticado()) {
         <nav class="sidebar" aria-label="Navegação principal">
           <p class="eyebrow">A TUA COMUNIDADE</p>
+          <a routerLink="/historico" routerLinkActive="active">Histórico</a>
           <a routerLink="/notificacoes" routerLinkActive="active">Notificações</a>
           <a routerLink="/mensagens" routerLinkActive="active">Mensagens</a>
           <a routerLink="/participacoes" routerLinkActive="active">Participações</a>

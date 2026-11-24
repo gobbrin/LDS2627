@@ -2,6 +2,12 @@ import { Routes } from '@angular/router';
 import { autenticadoGuard, visitanteGuard } from './core/guards';
 export const routes: Routes = [
   {
+    path: 'historico',
+    canActivate: [autenticadoGuard],
+    loadComponent: () => import('./features/historico/historico.page').then((m) => m.HistoricoPage),
+    title: 'Histórico · Campus Carpool',
+  },
+  {
     path: 'notificacoes',
     canActivate: [autenticadoGuard],
     loadComponent: () =>
