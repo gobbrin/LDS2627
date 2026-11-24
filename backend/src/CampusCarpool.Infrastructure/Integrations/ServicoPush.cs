@@ -94,14 +94,36 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
         return await http.SendAsync(request, ct);
     }
 
+    /// <summary>
+    /// Campo <c>data</c> do push (BE-17): <c>tipo</c> (nome do <c>TipoNotificacao</c>), <c>notificacaoId</c> e, se houver,
+    /// <c>viagemId</c>. O FCM só aceita texto nos valores, por isso os ids vão como texto (formato "D").
+    /// </summary>
+    /// <param name="notificacao">Notificação a enviar.</param>
+    /// <returns>Dicionário com os dados do push.</returns>
+    private static Dictionary<string, string> DadosDoPush(NotificacaoPushPendente notificacao)
+    {
+        var dados = new Dictionary<string, string>
+        {
+            ["tipo"] = notificacao.Tipo,
+            ["notificacaoId"] = notificacao.NotificacaoId.ToString("D")
+        };
+
+        if (notificacao.ViagemId is Guid viagemId)
+            dados["viagemId"] = viagemId.ToString("D");
+
+        return dados;
+    }
+
     /// <inheritdoc />
     /// <remarks>
     /// Um pedido ao FCM por dispositivo ativo. Os tokens que o FCM declara inválidos (404 ou
     /// <c>UNREGISTERED</c>) são desativados; as outras falhas só ficam no log.
     /// </remarks>
-    public async Task EnviarAsync(Guid utilizadorId, string titulo, string mensagem, string tipo, CancellationToken ct)
+    public async Task EnviarAsync(NotificacaoPushPendente notificacao, CancellationToken ct)
     {
-        var tokens = await dispositivos.ListarAtivosAsync(utilizadorId, ct);
+        ArgumentNullException.ThrowIfNull(notificacao);
+
+        var tokens = await dispositivos.ListarAtivosAsync(notificacao.UtilizadorId, ct);
         if (tokens.Count == 0) return;
         string? accessToken;
         try { accessToken = await ObterAccessTokenAsync(ct); }
@@ -120,8 +142,8 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                     message = new
                     {
                         token = dispositivo.Token,
-                        notification = new { title = titulo, body = mensagem },
-                        data = new Dictionary<string, string> { ["tipo"] = tipo },
+                        notification = new { title = notificacao.Titulo, body = notificacao.Mensagem },
+                        data = DadosDoPush(notificacao),
                         android = new { priority = "HIGH" }
                     }
                 });
@@ -147,10 +169,10 @@ public sealed class ServicoPush(HttpClient http, IConfiguration config,
                 if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest
                     && error.Contains("UNREGISTERED", StringComparison.Ordinal))
                     await dispositivos.DesativarTokenInvalidoAsync(dispositivo.Token, ct);
-                LogRespostaFcm(logger, (int)response.StatusCode, utilizadorId, error.Length > 500 ? error[..500] : error, null);
+                LogRespostaFcm(logger, (int)response.StatusCode, notificacao.UtilizadorId, error.Length > 500 ? error[..500] : error, null);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception ex) { LogFalhaEnvio(logger, utilizadorId, ex); }
+            catch (Exception ex) { LogFalhaEnvio(logger, notificacao.UtilizadorId, ex); }
         }
     }
 }

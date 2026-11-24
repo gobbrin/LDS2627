@@ -1,3 +1,4 @@
+using CampusCarpool.Application.Abstractions.Integrations;
 
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Infrastructure.Integrations;
@@ -118,14 +119,53 @@ public sealed class DispositivosAtivosIntegrationTests
             NullLogger<ServicoPush>.Instance,
             new CacheTokenFcm());
 
-        await push.EnviarAsync(
-            utilizador.Id,
-            "Pedido aceite",
-            "O teu pedido foi aceite.",
-            "PedidoAceite",
-            CancellationToken.None);
+        await push.EnviarAsync(new NotificacaoPushPendente(Guid.NewGuid(), utilizador.Id, null, "Pedido aceite", "O teu pedido foi aceite.", "PedidoAceite"), CancellationToken.None);
 
         Assert.Equal(0, pedidosHttp);
+    }
+
+    /// <summary>
+    /// R5 (teste em falta da R4): um token que o FCM recusa (UNREGISTERED) fica inativo no repositório real, pela conta que for;
+    /// os outros dispositivos do mesmo utilizador continuam ativos, e um token desconhecido não dá erro.
+    /// </summary>
+    [Fact]
+    public async Task I112_89_TokenInvalido_DesativaSoEsseDispositivo()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<CampusCarpoolDbContext>()
+            .UseBaseDeTeste(connection)
+            .Options;
+
+        await using var db = new CampusCarpoolDbContext(options);
+        await db.Database.CriarEsquemaDeTesteAsync();
+
+        var utilizador = new Utilizador
+        {
+            Nome = "Passageiro teste",
+            Email = $"{Guid.NewGuid():N}@estg.ipp.pt",
+            EmailConfirmado = true
+        };
+
+        db.Utilizadores.Add(utilizador);
+        await db.SaveChangesAsync();
+
+        var repositorio = new RepositorioDispositivo(db);
+        await repositorio.RegistarAsync(utilizador.Id, "token-telemovel", CancellationToken.None);
+        await repositorio.RegistarAsync(utilizador.Id, "token-tablet", CancellationToken.None);
+
+        // O ServicoPush só conhece o token (não sabe a conta): desativa por token.
+        await repositorio.DesativarTokenInvalidoAsync("token-telemovel", CancellationToken.None);
+        await repositorio.DesativarTokenInvalidoAsync("token-que-nao-existe", CancellationToken.None);
+
+        var ativos = await repositorio.ListarAtivosAsync(utilizador.Id, CancellationToken.None);
+        Assert.Equal("token-tablet", Assert.Single(ativos).Token);
+
+        // O registo fica na BD, só inativo (um novo registo do mesmo token volta a ativá-lo).
+        var invalido = await db.Dispositivos.AsNoTracking().SingleAsync(d => d.Token == "token-telemovel");
+        Assert.False(invalido.Ativo);
+        Assert.Equal(2, await db.Dispositivos.CountAsync());
     }
 
     private sealed class HandlerHttpFalso(Action registarPedido)

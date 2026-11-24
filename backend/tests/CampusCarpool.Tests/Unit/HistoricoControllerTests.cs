@@ -17,11 +17,16 @@ public sealed class HistoricoControllerTests
 
         public Task<HistoricoResultado> ConsultarAsync(
             Guid utilizadorId,
+            int pagina,
+            int tamanho,
             CancellationToken ct)
         {
             UltimoUtilizadorConsultado = utilizadorId;
 
             var resultado = new HistoricoResultado(
+                pagina,
+                tamanho,
+                new TotaisHistorico(0, 0, 0, 0, 0, 0),
                 Array.Empty<ViagemHistorico>(),
                 Array.Empty<ViagemHistorico>(),
                 Array.Empty<PedidoHistorico>(),
@@ -58,8 +63,7 @@ public sealed class HistoricoControllerTests
             }
         };
 
-        var resposta = await controller.Consultar(
-            CancellationToken.None);
+        var resposta = await controller.Consultar(1, 20, CancellationToken.None);
 
         Assert.IsType<OkObjectResult>(resposta);
         Assert.Equal(
@@ -80,8 +84,7 @@ public sealed class HistoricoControllerTests
             }
         };
 
-        var resposta = await controller.Consultar(
-            CancellationToken.None);
+        var resposta = await controller.Consultar(1, 20, CancellationToken.None);
 
         Assert.IsType<UnauthorizedResult>(resposta);
         Assert.Null(service.UltimoUtilizadorConsultado);

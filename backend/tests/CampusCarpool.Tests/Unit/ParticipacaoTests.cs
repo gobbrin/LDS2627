@@ -121,4 +121,30 @@ public sealed class ParticipacaoTests
 
         Assert.Equal(EstadoParticipacao.Cancelada, participacao.Estado);
     }
+
+    /// <summary>BE-16, P-20: o pedido criado pela fábrica fica pendente, com os textos aparados.</summary>
+    [Fact]
+    public void Pedir_SoComRecolha_FicaPendenteComOTextoAparado()
+    {
+        var pedido = Participacao.Pedir(Guid.NewGuid(), Guid.NewGuid(), " Maia ", new Coordenadas(41.2m, -8.6m), null, null, Agora);
+
+        Assert.True(pedido.EstaPendente);
+        Assert.Equal("Maia", pedido.Recolha);
+        Assert.Equal(41.2m, pedido.RecolhaLatitude);
+        Assert.Null(pedido.Destino);
+        Assert.Null(pedido.DestinoLatitude);
+        Assert.Equal(Agora, pedido.CriadoEm);
+    }
+
+    /// <summary>BE-16, P-20: sem pontos, ponto vazio ou ponto sem coordenadas são recusados pela entidade.</summary>
+    [Fact]
+    public void Pedir_PontosInvalidos_ERecusado()
+    {
+        var coordenadas = new Coordenadas(41.2m, -8.6m);
+
+        Assert.Throws<RegraDeNegocioException>(() => Participacao.Pedir(Guid.NewGuid(), Guid.NewGuid(), null, null, null, null, Agora));
+        Assert.Throws<RegraDeNegocioException>(() => Participacao.Pedir(Guid.NewGuid(), Guid.NewGuid(), "  ", coordenadas, null, null, Agora));
+        Assert.Throws<RegraDeNegocioException>(() => Participacao.Pedir(Guid.NewGuid(), Guid.NewGuid(), "Maia", null, null, null, Agora));
+        Assert.Throws<RegraDeNegocioException>(() => Participacao.Pedir(Guid.NewGuid(), Guid.NewGuid(), new string('a', 201), coordenadas, null, null, Agora));
+    }
 }

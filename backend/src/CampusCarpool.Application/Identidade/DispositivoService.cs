@@ -6,7 +6,8 @@ namespace CampusCarpool.Application.Identidade;
 /// <summary>Implementação de <see cref="IDispositivoService"/>.</summary>
 public sealed class DispositivoService(IRepositorioDispositivos dispositivos) : IDispositivoService
 {
-    private const int TamanhoMaximoToken = 500;
+    // Tamanho da coluna Dispositivos.Token (modelo de dados v07); um token FCM real tem cerca de 160 caracteres.
+    private const int TamanhoMaximoToken = 450;
 
     /// <inheritdoc />
     public async Task<Resultado> RegistarAsync(Guid utilizadorId, string token, CancellationToken ct)

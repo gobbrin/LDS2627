@@ -53,7 +53,6 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
         {
             RemetenteId = condutor.Id,
             DestinatarioId = Guid.NewGuid(),
-            ViagemId = viagem.Id,
             Conteudo = "Olá"
         });
         await Assert.ThrowsAsync<DbUpdateException>(() => a.Db.SaveChangesAsync());
@@ -96,7 +95,6 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
         {
             RemetenteId = condutor.Id,
             DestinatarioId = passageiro.Id,
-            ViagemId = viagem.Id,
             Conteudo = "Ponto de encontro"
         };
         a.Db.Mensagens.Add(mensagem);
@@ -106,7 +104,6 @@ public sealed class I054IntegridadeAdicionalIntegrationTests
         var persistida = await a.Db.Mensagens.SingleAsync(m => m.Id == mensagem.Id);
         Assert.Equal(condutor.Id, persistida.RemetenteId);
         Assert.Equal(passageiro.Id, persistida.DestinatarioId);
-        Assert.Equal(viagem.Id, persistida.ViagemId);
         Assert.Equal("Ponto de encontro", persistida.Conteudo);
     }
 

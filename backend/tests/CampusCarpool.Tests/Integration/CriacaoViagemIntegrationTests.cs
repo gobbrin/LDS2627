@@ -152,7 +152,7 @@ public sealed class CriacaoViagemIntegrationTests
             new ViagensController.CriarViagem("Porto", "Invicta", partida, 3),
             CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(mesmoLocal);
+        RespostasDeErro.AssertErro(mesmoLocal, 400, "A origem e o destino não podem ser o mesmo local.");
         Assert.Equal(1, await db.Viagens.CountAsync());
     }
 }

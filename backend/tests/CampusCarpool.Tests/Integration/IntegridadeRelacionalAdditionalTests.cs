@@ -42,7 +42,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
     public async Task TokenDeDispositivoTemDeSerUnico()
     {
         using var f = new Fixture();
-        var u = new Utilizador { Email = "a@estg.ipp.pt" };
+        var u = new Utilizador { Nome = "A", Email = "a@estg.ipp.pt" };
         f.Db.Utilizadores.Add(u);
         f.Db.Dispositivos.Add(new Dispositivo { UtilizadorId = u.Id, Token = "token-igual" });
         await f.Db.SaveChangesAsync();
@@ -64,7 +64,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
     public async Task HashDeConfirmacaoTemDeSerUnico()
     {
         using var f = new Fixture();
-        var u = new Utilizador { Email = "a@estg.ipp.pt" };
+        var u = new Utilizador { Nome = "A", Email = "a@estg.ipp.pt" };
         f.Db.Utilizadores.Add(u);
         f.Db.ConfirmacoesConta.Add(new ConfirmacaoConta { UtilizadorId = u.Id, TokenHash = "hash-repetido" });
         await f.Db.SaveChangesAsync();
@@ -76,8 +76,8 @@ public sealed class IntegridadeRelacionalAdditionalTests
     public async Task AvaliacaoDuplicadaParaMesmaViagemEAvaliadorERejeitada()
     {
         using var f = new Fixture();
-        var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
-        var passageiro = new Utilizador { Email = "passageiro@estg.ipp.pt" };
+        var condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt" };
+        var passageiro = new Utilizador { Nome = "Passageiro", Email = "passageiro@estg.ipp.pt" };
         f.Db.Utilizadores.AddRange(condutor, passageiro);
         var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
@@ -94,6 +94,7 @@ public sealed class IntegridadeRelacionalAdditionalTests
 
         var condutor = new Utilizador
         {
+            Nome = "Condutor",
             Email = "condutor@estg.ipp.pt"
         };
 
@@ -122,12 +123,12 @@ public sealed class IntegridadeRelacionalAdditionalTests
     public async Task ParticipacaoComPassageiroInexistenteERejeitada()
     {
         using var f = new Fixture();
-        var condutor = new Utilizador { Email = "condutor@estg.ipp.pt" };
+        var condutor = new Utilizador { Nome = "Condutor", Email = "condutor@estg.ipp.pt" };
         f.Db.Utilizadores.Add(condutor);
         var viagem = new Viagem { DestinoLatitude = 41.55m, LugaresOferecidos = 3, LugaresDisponiveis = 3, CondutorId = condutor.Id, Origem = "Porto", Destino = "Braga" };
         f.Db.Viagens.Add(viagem);
         await f.Db.SaveChangesAsync();
-        f.Db.Participacoes.Add(new Participacao { ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() });
+        f.Db.Participacoes.Add(new Participacao { Destino = viagem.Destino, DestinoLatitude = viagem.DestinoLatitude, DestinoLongitude = viagem.DestinoLongitude, ViagemId = viagem.Id, PassageiroId = Guid.NewGuid() });
         await Assert.ThrowsAsync<DbUpdateException>(() => f.Db.SaveChangesAsync());
     }
 }

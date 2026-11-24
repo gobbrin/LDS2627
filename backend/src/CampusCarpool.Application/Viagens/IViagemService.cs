@@ -3,11 +3,13 @@ using CampusCarpool.Application.Participacoes;
 
 namespace CampusCarpool.Application.Viagens;
 
-/// <summary>Ciclo de vida das viagens (F002): criar, consultar, editar, indisponibilizar e concluir.</summary>
+/// <summary>Viagens (F002): criar, consultar, listar e editar.</summary>
 /// <remarks>
 /// As datas têm de vir em UTC (<c>Kind = Utc</c>, ou seja, com <c>Z</c> no JSON); offsets como <c>+01:00</c> são
 /// recusados (DC-42). Em SQL Server, a coluna <c>Versao</c> faz falhar a segunda de duas gravações simultâneas da
-/// mesma viagem, o que chega ao cliente como 409 (<see cref="Domain.Exceptions.RegraDeNegocioException"/>).
+/// mesma viagem, o que chega ao cliente como 409 (<see cref="Domain.Exceptions.RegraDeNegocioException"/>). A
+/// simulação da alteração está em <see cref="ISimulacaoDeAlteracaoService"/> e indisponibilizar e concluir em
+/// <see cref="ICicloDeVidaDaViagemService"/>.
 /// </remarks>
 public interface IViagemService
 {
@@ -18,7 +20,7 @@ public interface IViagemService
     /// </remarks>
     /// <returns>
     /// A viagem; erro 400 com dados inválidos (vazios, mais de 200 caracteres, origem e destino no mesmo local, data
-    /// passada ou não UTC, lugares fora de 1 a 8); 403 com a conta por confirmar; 422 se um local ou a rota não forem
+    /// passada ou não UTC, lugares fora de 1 a 8); 422 se um local ou a rota não forem
     /// encontrados; 502/503/504 com problemas no Serviço de Mapas.
     /// </returns>
     Task<Resultado<ViagemCriada>> CriarAsync(
@@ -39,9 +41,14 @@ public interface IViagemService
     /// <returns>Os detalhes, ou erro 404 se a viagem não existir ou o utilizador não a puder consultar.</returns>
     Task<Resultado<DetalhesViagem>> ConsultarAsync(Guid viagemId, Guid? utilizadorId, CancellationToken ct);
 
-    /// <summary>Viagens ativas do condutor, por ordem de partida, para as gerir (RF-F002-15, DEF-BE-010).</summary>
+    /// <summary>Uma página das viagens ativas do condutor, por ordem de partida, para as gerir (RF-F002-15, DEF-BE-010, D-4).</summary>
     /// <remarks>As viagens noutros estados estão no histórico (RF-F009-02).</remarks>
-    Task<IReadOnlyList<ViagemDoCondutor>> ListarDoCondutorAsync(Guid condutorId, CancellationToken ct);
+    /// <param name="condutorId">Condutor autenticado.</param>
+    /// <param name="pagina">Página, a contar de 1 (validada pelo controller).</param>
+    /// <param name="tamanho">Viagens por página, de 1 a 100 (validado pelo controller).</param>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>A página, com o total de viagens ativas.</returns>
+    Task<PaginaViagensDoCondutor> ListarDoCondutorAsync(Guid condutorId, int pagina, int tamanho, CancellationToken ct);
 
     /// <summary>Passageiros aceites de uma viagem, com os respetivos pontos (RF-F003-07, P-13, DEF-BE-012).</summary>
     /// <remarks>Um ponto a <c>null</c> segue a origem ou o destino da viagem (P-20).</remarks>
@@ -74,23 +81,4 @@ public interface IViagemService
         string? origem,
         string? destino,
         CancellationToken ct);
-
-    /// <summary>Indisponibiliza uma viagem ativa (RF-F002-09, RF-F002-10, P-25).</summary>
-    /// <remarks>
-    /// Cancela os pedidos pendentes e as participações aceites, liberta todos os lugares e notifica os passageiros
-    /// afetados, não o condutor (P-23, RF-F006-03). A viagem fica no histórico dos aceites graças a <c>AceiteEm</c>.
-    /// Permitido mesmo depois da hora de partida, desde que ainda esteja <c>Ativa</c>. Fica sem os pontos na rota; o
-    /// Serviço de Mapas não impede a operação (P-19).
-    /// </remarks>
-    /// <returns>Sucesso; erro 403 se não for o condutor; 404 se a viagem não existir; 409 se já não estiver ativa.</returns>
-    Task<Resultado> IndisponibilizarAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct);
-
-    /// <summary>Conclusão manual pelo condutor, depois da hora de partida.</summary>
-    /// <remarks>
-    /// Faz o mesmo que a conclusão automática (<see cref="IConclusaoViagensService"/>, RF-F002-12): passa a
-    /// <c>Concluida</c> e cancela os pendentes (RF-F004-19); os aceites mantêm-se para a avaliação (P-16). Não envia
-    /// notificações. Mantida até o grupo decidir PA-01/PA-03.
-    /// </remarks>
-    /// <returns>Sucesso; erro 403 se não for o condutor; 404 se a viagem não existir; 409 se não estiver ativa ou ainda não tiver partido.</returns>
-    Task<Resultado> ConcluirAsync(Guid viagemId, Guid utilizadorId, CancellationToken ct);
 }

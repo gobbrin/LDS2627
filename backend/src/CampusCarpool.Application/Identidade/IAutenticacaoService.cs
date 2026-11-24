@@ -6,19 +6,21 @@ namespace CampusCarpool.Application.Identidade;
 /// <summary>Registo, confirmação de conta, início e fim de sessão (F001).</summary>
 public interface IAutenticacaoService
 {
-    /// <summary>Cria uma conta por confirmar e envia a ligação de confirmação (RF-F001-02 a RF-F001-06).</summary>
+    /// <summary>Cria uma conta por confirmar e põe na fila o email com a ligação de confirmação (RF-F001-02 a RF-F001-06).</summary>
+    /// <remarks>O email segue em segundo plano (BE-12): a resposta não espera pelo Brevo, e uma falha do envio fica no log.</remarks>
     /// <returns>
     /// Sucesso; erro 400 com dados inválidos ou email não académico (RF-F001-03); 409 com email já registado
-    /// (RF-F001-04); 503 se a conta ficou criada mas o envio do email falhou.
+    /// (RF-F001-04).
     /// </returns>
     Task<Resultado> RegistarAsync(string nome, string email, string palavraPasse, CancellationToken ct);
 
     /// <summary>Envia uma nova ligação de confirmação a uma conta por confirmar (RF-F001-21).</summary>
     /// <remarks>
-    /// Não revela se o endereço existe na plataforma: dá sucesso exista ou não a conta, e uma falha no envio também
-    /// fica escondida. No máximo um reenvio por minuto. Cada reenvio invalida as ligações anteriores por usar.
+    /// Não revela se o endereço existe na plataforma: dá sucesso exista ou não a conta, e o email segue em segundo
+    /// plano, por isso o tempo de resposta não depende do envio (BE-12, DEF-BE-046). No máximo um reenvio por minuto.
+    /// Cada reenvio invalida as ligações anteriores por usar.
     /// </remarks>
-    /// <returns>Sucesso, ou erro 400 com email vazio ou longo.</returns>
+    /// <returns>Sucesso, ou erro 400 com email vazio, longo ou sem formato de email (DEF-BE-045).</returns>
     Task<Resultado> ReenviarConfirmacaoAsync(string email, CancellationToken ct);
 
     /// <summary>Confirma a conta com o token da ligação do email (RF-F001-07, RF-F001-08).</summary>
@@ -34,7 +36,7 @@ public interface IAutenticacaoService
     /// O token; erro 401 com credenciais inválidas, com a mesma mensagem para email inexistente e palavra-passe errada
     /// (RF-F001-11); 403 com a conta por confirmar (P-09).
     /// </returns>
-    Task<Resultado<TokenAcesso>> IniciarSessaoAsync(string email, string palavraPasse, CancellationToken ct);
+    Task<Resultado<SessaoIniciada>> IniciarSessaoAsync(string email, string palavraPasse, CancellationToken ct);
 
     /// <summary>
     /// Termina a sessão: revoga o token atual, que deixa de ser aceite até expirar (RF-F001-12, DEF-BE-004), e

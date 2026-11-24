@@ -7,11 +7,8 @@ namespace CampusCarpool.Application.Abstractions.Integrations;
 /// </remarks>
 public interface IServicoPush
 {
-    /// <summary>Envia o push para todos os dispositivos ativos do utilizador.</summary>
-    /// <param name="utilizadorId">Destinatário.</param>
-    /// <param name="titulo">Título do push.</param>
-    /// <param name="mensagem">Texto do push.</param>
-    /// <param name="tipo">Nome do <c>TipoNotificacao</c>, enviado nos dados.</param>
+    /// <summary>Envia o push para todos os dispositivos ativos do destinatário.</summary>
+    /// <param name="notificacao">Destinatário, texto e dados (<c>tipo</c>, <c>notificacaoId</c>, <c>viagemId</c>) do push.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task EnviarAsync(Guid utilizadorId, string titulo, string mensagem, string tipo, CancellationToken ct);
+    Task EnviarAsync(NotificacaoPushPendente notificacao, CancellationToken ct);
 }

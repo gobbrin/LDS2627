@@ -63,7 +63,18 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
 
     private async Task<Participacao> CriarParticipacaoAsync(Guid viagemId, Guid passageiroId, EstadoParticipacao estado, DateTime? aceiteEm)
     {
-        var participacao = new Participacao { ViagemId = viagemId, PassageiroId = passageiroId, Estado = estado, AceiteEm = aceiteEm };
+        // Modelo v07 (BE-33): um pedido tem pelo menos um ponto; o destino da viagem não acrescenta paragem.
+        var viagem = await _db.Viagens.FindAsync(viagemId);
+        var participacao = new Participacao
+        {
+            ViagemId = viagemId,
+            PassageiroId = passageiroId,
+            Estado = estado,
+            AceiteEm = aceiteEm,
+            Destino = viagem!.Destino,
+            DestinoLatitude = viagem.DestinoLatitude,
+            DestinoLongitude = viagem.DestinoLongitude
+        };
         _db.Participacoes.Add(participacao);
         await _db.SaveChangesAsync();
         return participacao;
@@ -72,7 +83,10 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
     private static readonly IServicoMapasRotas MapasSemConfiguracao = new MapasFalsos().CriarServico(configurado: false);
 
     private ViagensController CriarController(Guid utilizadorId) =>
-        new(ServicosDeTeste.CriarViagens(_db, MapasSemConfiguracao))
+        new(
+            ServicosDeTeste.CriarViagens(_db, MapasSemConfiguracao),
+            ServicosDeTeste.CriarSimulacoesDeAlteracao(_db, MapasSemConfiguracao),
+            ServicosDeTeste.CriarCicloDeVida(_db))
         {
             ControllerContext = new ControllerContext
             {
@@ -97,14 +111,14 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         Assert.IsType<NoContentResult>(await CriarController(condutor.Id).Indisponibilizar(viagem.Id, default));
 
         var historico = ServicosDeTeste.CriarHistorico(_db);
-        var doAceite = await historico.ConsultarAsync(aceite.Id, default);
+        var doAceite = await historico.ConsultarAsync(aceite.Id, 1, 100, default);
         var registo = Assert.Single(doAceite.ViagensComoPassageiro);
         Assert.Equal(viagem.Id, registo.Id);
         Assert.Equal(nameof(EstadoViagem.Indisponibilizada), registo.Estado);
         Assert.Equal(nameof(EstadoParticipacao.Cancelada), registo.EstadoParticipacao);
 
         // O pedido que nunca foi aceite não é uma participação: fica só nos pedidos efetuados.
-        var doPendente = await historico.ConsultarAsync(pendente.Id, default);
+        var doPendente = await historico.ConsultarAsync(pendente.Id, 1, 100, default);
         Assert.Empty(doPendente.ViagensComoPassageiro);
         Assert.Equal(nameof(EstadoParticipacao.Cancelada), Assert.Single(doPendente.PedidosEfetuados).Estado);
     }
@@ -118,7 +132,7 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
         var viagem = await CriarViagemAsync(condutor.Id, DateTime.UtcNow.AddDays(-1), aceites: 0);
         await CriarParticipacaoAsync(viagem.Id, passageiro.Id, EstadoParticipacao.Cancelada, DateTime.UtcNow.AddDays(-2));
 
-        var historico = await ServicosDeTeste.CriarHistorico(_db).ConsultarAsync(passageiro.Id, default);
+        var historico = await ServicosDeTeste.CriarHistorico(_db).ConsultarAsync(passageiro.Id, 1, 100, default);
 
         var registo = Assert.Single(historico.ViagensComoPassageiro);
         Assert.Equal(nameof(EstadoParticipacao.Cancelada), registo.EstadoParticipacao);
@@ -135,8 +149,8 @@ public sealed class IndisponibilizacaoHistoricoTests : IDisposable
 
         var servico = ServicosDeTeste.CriarHistorico(_db);
 
-        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(condutor.Id, default)).ViagensComoCondutor).Id);
-        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(passageiro.Id, default)).ViagensComoPassageiro).Id);
+        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(condutor.Id, 1, 100, default)).ViagensComoCondutor).Id);
+        Assert.Equal(viagem.Id, Assert.Single((await servico.ConsultarAsync(passageiro.Id, 1, 100, default)).ViagensComoPassageiro).Id);
     }
 
     [Fact]

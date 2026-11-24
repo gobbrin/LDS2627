@@ -123,4 +123,27 @@ public sealed class EntidadesTests
 
         Assert.Equal(Agora, notificacao.LidaEm);
     }
+
+    /// <summary>BE-16, P-14: a mensagem fica com o texto aparado.</summary>
+    [Fact]
+    public void Mensagem_Criar_AparaOTexto()
+    {
+        var agora = new DateTime(2026, 11, 16, 10, 0, 0, DateTimeKind.Utc);
+
+        var mensagem = Mensagem.Criar(Guid.NewGuid(), Guid.NewGuid(), "  Olá  ", agora);
+
+        Assert.Equal("Olá", mensagem.Conteudo);
+        Assert.Equal(agora, mensagem.EnviadoEm);
+    }
+
+    /// <summary>BE-16, P-14: mensagem para si próprio, vazia ou com mais de 1000 caracteres é recusada.</summary>
+    [Fact]
+    public void Mensagem_Criar_Invalida_ERecusada()
+    {
+        var autor = Guid.NewGuid();
+
+        Assert.Throws<RegraDeNegocioException>(() => Mensagem.Criar(autor, autor, "Olá", DateTime.UtcNow));
+        Assert.Throws<RegraDeNegocioException>(() => Mensagem.Criar(autor, Guid.NewGuid(), "   ", DateTime.UtcNow));
+        Assert.Throws<RegraDeNegocioException>(() => Mensagem.Criar(autor, Guid.NewGuid(), new string('a', 1001), DateTime.UtcNow));
+    }
 }

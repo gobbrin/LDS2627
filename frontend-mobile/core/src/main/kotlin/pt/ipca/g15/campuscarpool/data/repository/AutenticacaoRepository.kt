@@ -12,7 +12,11 @@ import pt.ipca.g15.campuscarpool.domain.model.RegistoPedido
 import pt.ipca.g15.campuscarpool.domain.model.Resultado
 import pt.ipca.g15.campuscarpool.domain.model.TerminarSessaoPedido
 
-class AutenticacaoRepository(private val api: ApiService, private val sessao: SessaoManager) {
+class AutenticacaoRepository(
+    private val api: ApiService,
+    private val sessao: SessaoManager,
+    private val tokenPush: () -> String? = { null }
+) {
     suspend fun registar(nome: String, email: String, password: String): Resultado<String> =
         ErrosApi.executar {
             api.registar(RegistoPedido(nome.trim(), email.trim(), password))
@@ -80,7 +84,7 @@ class AutenticacaoRepository(private val api: ApiService, private val sessao: Se
     suspend fun logout(tokenDispositivo: String? = null): Resultado<Unit> {
         val token = sessao.obterToken()
         try {
-            val r = api.logout(TerminarSessaoPedido(tokenDispositivo))
+            val r = api.logout(TerminarSessaoPedido(tokenDispositivo ?: tokenPush()))
             return if (r.isSuccessful ||
                 r.code() == 401
             ) {

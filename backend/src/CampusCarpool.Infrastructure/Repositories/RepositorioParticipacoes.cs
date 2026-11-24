@@ -1,5 +1,4 @@
 using CampusCarpool.Application.Abstractions.Persistence;
-using CampusCarpool.Application.Participacoes;
 using CampusCarpool.Domain.Entities;
 using CampusCarpool.Domain.Enums;
 using CampusCarpool.Infrastructure.Persistence;
@@ -37,16 +36,6 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
         }
 
         return await query.ToListAsync(ct);
-    }
-
-    // Lista as participações de um passageiro.
-    /// <inheritdoc />
-    public async Task<IReadOnlyList<Participacao>> ListarPorPassageiroAsync(Guid passageiroId, CancellationToken ct)
-    {
-        return await context.Participacoes
-            .AsNoTracking()
-            .Where(p => p.PassageiroId == passageiroId)
-            .ToListAsync(ct);
     }
 
     // Verifica se o passageiro tem uma participação pendente ou aceite
@@ -94,24 +83,24 @@ public sealed class RepositorioParticipacoes(CampusCarpoolDbContext context) : I
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<PassageiroAceite>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct)
+    public async Task<IReadOnlyList<Participacao>> ListarPassageirosAceitesAsync(Guid viagemId, CancellationToken ct)
     {
         return await context.Participacoes
             .AsNoTracking()
+            .Include(p => p.Passageiro)
             .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Aceite)
             .OrderBy(p => p.AceiteEm)
-            .Select(p => new PassageiroAceite(p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino))
             .ToListAsync(ct);
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<PedidoPendente>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct)
+    public async Task<IReadOnlyList<Participacao>> ListarPedidosPendentesAsync(Guid viagemId, CancellationToken ct)
     {
         return await context.Participacoes
             .AsNoTracking()
+            .Include(p => p.Passageiro)
             .Where(p => p.ViagemId == viagemId && p.Estado == EstadoParticipacao.Pendente)
             .OrderBy(p => p.CriadoEm)
-            .Select(p => new PedidoPendente(p.Id, p.PassageiroId, p.Passageiro.Nome, p.Recolha, p.Destino, p.CriadoEm))
             .ToListAsync(ct);
     }
 

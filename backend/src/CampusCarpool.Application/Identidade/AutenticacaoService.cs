@@ -4,13 +4,14 @@ using CampusCarpool.Application.Abstractions.Integrations;
 using CampusCarpool.Application.Abstractions.Persistence;
 using CampusCarpool.Application.Comum;
 using CampusCarpool.Domain.Entities;
-using Microsoft.Extensions.Logging;
 
 namespace CampusCarpool.Application.Identidade;
 
 /// <summary>Implementação de <see cref="IAutenticacaoService"/>.</summary>
 /// <remarks>
 /// Os tokens de confirmação são 32 bytes aleatórios; na BD só fica o SHA-256 (ver <see cref="ConfirmacaoConta"/>).
+/// O email com a ligação segue em segundo plano (<see cref="IFilaEmails"/>, BE-12): o registo e o reenvio respondem
+/// sem esperar pelo Brevo, e uma falha do envio fica só no log.
 /// </remarks>
 public sealed class AutenticacaoService(
     IRepositorioUtilizadores utilizadores,
@@ -18,15 +19,11 @@ public sealed class AutenticacaoService(
     IRepositorioTokensRevogados tokensRevogados,
     IRepositorioDispositivos dispositivos,
     IUnidadeDeTrabalho unidadeDeTrabalho,
-    IServicoEmail servicoEmail,
+    IFilaEmails filaEmails,
     IHashPalavraPasse hashPalavraPasse,
     IGeradorTokens geradorTokens,
-    ValidadorEmailAcademico validadorEmail,
-    ILogger<AutenticacaoService> logger) : IAutenticacaoService
+    ValidadorEmailAcademico validadorEmail) : IAutenticacaoService
 {
-    private static readonly Action<ILogger, Exception?> LogFalhaEmail = LoggerMessage.Define(
-        LogLevel.Error, new EventId(3001, nameof(LogFalhaEmail)), "Falha no envio do email de confirmação");
-
     // P-02: validade da ligação de confirmação.
     private const int HorasDeValidadeConfirmacao = 24;
 
@@ -36,6 +33,25 @@ public sealed class AutenticacaoService(
     // P-08 / RF-F001-05: mínimo de 8 caracteres, com pelo menos uma letra e um dígito.
     private static bool PalavraPasseValida(string? palavraPasse) =>
         palavraPasse is { Length: >= 8 } && palavraPasse.Any(char.IsLetter) && palavraPasse.Any(char.IsDigit);
+
+    /// <summary>Valida o nome, o email e a palavra-passe do registo (RF-F001-02, P-08 / RF-F001-05).</summary>
+    /// <returns>O erro da primeira regra que falha, com uma mensagem própria (BE-15); <c>null</c> se estiver tudo certo.</returns>
+    private static Erro? ValidarDadosDoRegisto(string nome, string email, string palavraPasse)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return new Erro(TipoErro.DadosInvalidos, "Indica o nome.");
+
+        if (nome.Length > 100)
+            return new Erro(TipoErro.DadosInvalidos, "O nome tem no máximo 100 caracteres.");
+
+        if (string.IsNullOrWhiteSpace(email))
+            return new Erro(TipoErro.DadosInvalidos, "Indica o email.");
+
+        if (!PalavraPasseValida(palavraPasse))
+            return new Erro(TipoErro.DadosInvalidos, "A palavra-passe tem de ter pelo menos 8 caracteres, com letras e dígitos.");
+
+        return null;
+    }
 
     // Emails comparados sempre em minúsculas e sem espaços.
     private static string Normalizar(string email) => email.Trim().ToLowerInvariant();
@@ -47,11 +63,8 @@ public sealed class AutenticacaoService(
     /// <inheritdoc />
     public async Task<Resultado> RegistarAsync(string nome, string email, string palavraPasse, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(nome) || nome.Length > 100 ||
-            string.IsNullOrWhiteSpace(email) || !PalavraPasseValida(palavraPasse))
-        {
-            return new Erro(TipoErro.DadosInvalidos, "Dados de registo inválidos.");
-        }
+        if (ValidarDadosDoRegisto(nome, email, palavraPasse) is { } invalido)
+            return invalido;
 
         var normalizado = Normalizar(email);
 
@@ -87,22 +100,9 @@ public sealed class AutenticacaoService(
             throw new InvalidOperationException("A base de dados recusou o registo.", recusa);
         }
 
-        try
-        {
-            await servicoEmail.EnviarConfirmacaoAsync(normalizado, token, ct);
-        }
-        catch (Exception ex) when (
-            ex is HttpRequestException or InvalidOperationException ||
-            (ex is TaskCanceledException && !ct.IsCancellationRequested))
-        {
-            // Serviço de Email recusou, excedeu o tempo ou está por configurar. A conta fica por confirmar.
-            LogFalhaEmail(logger, ex);
-
-            // O reenvio só é aceite um minuto depois da última ligação.
-            return new Erro(
-                TipoErro.ServicoIndisponivel,
-                "Conta criada, mas o envio do email falhou. Aguarda um minuto e pede o reenvio da ligação de confirmação.");
-        }
+        // BE-12 (decisão de 16/11): o email segue em segundo plano. A resposta não espera pelo Brevo; se o envio
+        // falhar, fica no log e o utilizador pede o reenvio (aceite um minuto depois da última ligação).
+        await filaEmails.EnfileirarConfirmacaoAsync(normalizado, token, ct);
 
         return Resultado.Sucesso;
     }
@@ -114,6 +114,11 @@ public sealed class AutenticacaoService(
             return new Erro(TipoErro.DadosInvalidos, "Email inválido.");
 
         var normalizado = Normalizar(email);
+
+        // DEF-BE-045: um texto que nem é um email dá 400. Um email de outro domínio mantém a resposta neutra (202),
+        // para não revelar a lista de domínios aceites a quem experimenta.
+        if (!ValidadorEmailAcademico.FormatoValido(normalizado))
+            return new Erro(TipoErro.DadosInvalidos, "Email inválido.");
 
         if (!validadorEmail.Permitido(normalizado))
             return Resultado.Sucesso;
@@ -141,22 +146,15 @@ public sealed class AutenticacaoService(
             ExpiraEm = agora.AddHours(HorasDeValidadeConfirmacao)
         });
 
+        // Só a ligação mais recente serve. Com o envio em segundo plano, as anteriores deixam de valer já: se o envio
+        // falhar, o utilizador pede outra ligação um minuto depois.
         await unidadeDeTrabalho.ConfirmarAsync(ct);
-
-        try
-        {
-            await servicoEmail.EnviarConfirmacaoAsync(normalizado, token, ct);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
-        {
-            // A falha não é revelada ao cliente (resposta neutra) e a ligação anterior continua a servir.
-            LogFalhaEmail(logger, ex);
-            return Resultado.Sucesso;
-        }
-
-        // Só a ligação mais recente serve; as anteriores só deixam de valer depois de a nova seguir.
         await confirmacoes.InvalidarAnterioresAsync(utilizador.Id, tokenHash, agora, ct);
         await unidadeDeTrabalho.ConfirmarAsync(ct);
+
+        // BE-12 / DEF-BE-046: o envio segue em segundo plano, por isso o tempo de resposta já não depende do Brevo
+        // (antes, só as contas pendentes esperavam pelo envio e o tempo revelava-as).
+        await filaEmails.EnfileirarConfirmacaoAsync(normalizado, token, ct);
 
         return Resultado.Sucesso;
     }
@@ -191,7 +189,7 @@ public sealed class AutenticacaoService(
     }
 
     /// <inheritdoc />
-    public async Task<Resultado<TokenAcesso>> IniciarSessaoAsync(string email, string palavraPasse, CancellationToken ct)
+    public async Task<Resultado<SessaoIniciada>> IniciarSessaoAsync(string email, string palavraPasse, CancellationToken ct)
     {
         var utilizador = await utilizadores.ObterPorEmailAsync(Normalizar(email), ct);
 
@@ -208,7 +206,9 @@ public sealed class AutenticacaoService(
         if (!utilizador.EmailConfirmado)
             return new Erro(TipoErro.Proibido, "Conta por confirmar.");
 
-        return geradorTokens.Gerar(utilizador.Id);
+        TokenAcesso token = geradorTokens.Gerar(utilizador.Id);
+
+        return new SessaoIniciada(token.AccessToken, token.ExpiresIn);
     }
 
     /// <inheritdoc />
