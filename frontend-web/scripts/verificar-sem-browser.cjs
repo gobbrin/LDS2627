@@ -70,7 +70,7 @@ env.addReporter({
   await local('esbuild').build({
     stdin: {
       contents:
-        "import '@angular/compiler';import {getTestBed} from '@angular/core/testing';import {BrowserTestingModule,platformBrowserTesting} from '@angular/platform-browser/testing';getTestBed().initTestEnvironment(BrowserTestingModule,platformBrowserTesting());await import('./node_modules/.i069-verificacao/aot/core/core.spec.js');await import('./node_modules/.i069-verificacao/aot/app.spec.js');",
+        "import '@angular/compiler';import {getTestBed} from '@angular/core/testing';import {BrowserTestingModule,platformBrowserTesting} from '@angular/platform-browser/testing';getTestBed().initTestEnvironment(BrowserTestingModule,platformBrowserTesting());await import('./node_modules/.i069-verificacao/aot/core/core.spec.js');await import('./node_modules/.i069-verificacao/aot/app.spec.js');await import('./node_modules/.i069-verificacao/aot/features/testes-sistema-m4.spec.js');",
       resolveDir: root,
       sourcefile: 'i069-node.ts',
     },
