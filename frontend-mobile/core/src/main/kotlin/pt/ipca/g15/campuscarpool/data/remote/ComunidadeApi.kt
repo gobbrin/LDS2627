@@ -65,5 +65,11 @@ interface ComunidadeApi {
 
     @POST("dispositivos")
     suspend fun dispositivo(@Body dados: JsonObject): Response<Unit>
+
+    @POST("avaliacoes")
+    suspend fun avaliar(@Body dados: JsonObject): Response<JsonObject>
+
+    @PUT("avaliacoes/utilizadores/{id}")
+    suspend fun alterarAvaliacao(@Path("id") id: String, @Body dados: JsonObject): Response<Unit>
     // METODOS
 }
