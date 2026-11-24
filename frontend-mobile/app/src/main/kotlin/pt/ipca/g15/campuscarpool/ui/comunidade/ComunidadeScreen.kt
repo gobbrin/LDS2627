@@ -32,12 +32,14 @@ import androidx.compose.ui.unit.dp
         Botao("Participações") { pagina = "Participações" }
         Botao("Mensagens") { pagina = "Mensagens" }
         Botao("Notificações") { pagina = "Notificações" }
+        Botao("Histórico") { pagina = "Histórico" }
         // MENU
         when (pagina) {
             "Pesquisa" -> PesquisaScreen()
             "Participações" -> ParticipacoesScreen()
             "Mensagens" -> MensagensScreen()
             "Notificações" -> NotificacoesScreen()
+            "Histórico" -> HistoricoScreen()
             // PAGINAS
         }
     }
