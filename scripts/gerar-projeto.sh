@@ -48,5 +48,14 @@ copiar_ficheiros docs/frontend-web/testes-de-sistema     "$Q/03.02-frontend-web/
 copiar_ficheiros docs/frontend-mobile/plano-de-testes    "$Q/03.03-frontend-mobile/03.03.01-plano-de-testes"
 copiar_ficheiros docs/frontend-mobile/testes-de-sistema  "$Q/03.03-frontend-mobile/03.03.02-testes-de-sistema"
 
+# Incrementos S08/S09
+copiar_ficheiros docs/frontend-web/testes-de-aceitacao "$Q/03.02-frontend-web/03.02.03-testes-de-aceitacao"
+mkdir -p "$Q/03.02-frontend-web/03.02.06-analise-estatica"
+for f in "$TMP/frontend-web/docs/"I089-analise-estatica.*; do [ ! -f "$f" ] || cp -a "$f" "$Q/03.02-frontend-web/03.02.06-analise-estatica/"; done
+copiar_ficheiros docs/frontend-mobile/testes-de-aceitacao "$Q/03.03-frontend-mobile/03.03.03-testes-de-aceitacao"
+mkdir -p "$Q/03.03-frontend-mobile/03.03.06-analise-estatica"
+for f in "$TMP/frontend-mobile/docs/"I094-analise-estatica.*; do [ ! -f "$f" ] || cp -a "$f" "$Q/03.03-frontend-mobile/03.03.06-analise-estatica/"; done
+copiar_ficheiros docs/ci "$T/04.16-ci-cd/$M-v${VERSAO_CICD:-$V}"
+
 echo "Feito. Os documentos de gestão, de processo e os PDF assinados não estão no repositório:"
 echo "juntam-se à mão, com o README da milestone (00-indice-e-submissao)."
